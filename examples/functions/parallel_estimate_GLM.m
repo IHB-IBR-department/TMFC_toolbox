@@ -11,7 +11,8 @@ dur = (length(dir([stat_path filesep exp_folder filesep 'funct_images'])) - 2)/N
 spm('defaults','fmri');
 spm_jobman('initcfg');
 
-for subji = 1:N    
+for subji = 1:N
+    mkdir([stat_path filesep exp_folder filesep 'GLMs' filesep 'Sub_' num2str(subji,'%.3d')]);
     matlabbatch{1}.spm.stats.fmri_spec.dir = ...
         {[stat_path filesep exp_folder filesep 'GLMs' filesep 'Sub_' num2str(subji,'%.3d')]};
     matlabbatch{1}.spm.stats.fmri_spec.timing.units = 'secs';
