@@ -61,6 +61,7 @@ tmfc.project_path = data.stat_path;
 % etc
 
 % Alternativelly, use tmfc_select_subjects_GUI to select subjects
+% Go to GLMs subfolder and select 20 subjects 
 SPM_check = 1;                      % Check SPM.mat files
 [paths] = tmfc_select_subjects_GUI(SPM_check);
 
@@ -68,6 +69,7 @@ for i = 1:length(paths)
     tmfc.subjects(i).path = paths{i};
 end
 
+clear SPM_check paths
 
 %% Select ROIs
 
@@ -78,9 +80,13 @@ end
 % will be removed. Masked ROIs will be limited to only voxels which have 
 % data for all subjects. The dimensions, orientation, and voxel sizes of 
 % the masked ROI images will be adjusted according to the group binary mask
+%
+% Go to ROI_masks subfolder and select 100 ROIs
 
 [ROI_set] = tmfc_select_ROIs_GUI(tmfc);
 tmfc.ROI_set(1) = ROI_set;
+
+clear ROI_set
 
 
 %% LSS regression
@@ -98,6 +104,8 @@ tmfc.LSS.conditions = conditions;
 % Run LSS regression
 start_sub = 1;                      % Start from the 1st subject
 [sub_check] = tmfc_LSS(tmfc,start_sub);
+
+clear conditions
 
 
 %% BSC-LSS
@@ -138,11 +146,18 @@ correction = 'FDR';                 % False Discovery Rate (FDR) correction (Ben
 
 % Plot BSC-LSS results
 figure(1);
-sgtitle('BSC-LSS results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
+try
+    sgtitle('BSC-LSS results');
+catch
+    suptitle('BSC-LSS results');
+end
+subplot(1,2,1); imagesc(conval);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
+subplot(1,2,2); imagesc(thresholded);   title('pFDR<0.001'); axis square; colorbar;
 colormap(subplot(1,2,1),'redblue')
+colormap(subplot(1,2,2),'parula') 
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
+
+clear type contrasts contrast_number
 
 
 %% FIR task regression (regress out co-activations and save residual time series)
@@ -201,12 +216,18 @@ matrices = cat(3,M(:).paths);
 
 % Plot BSC-LSS (after FIR) results
 figure(2);
-sgtitle('BSC-LSS (after FIR task regression) results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
+try
+    sgtitle('BSC-LSS (after FIR task regression) results');
+catch
+    suptitle('BSC-LSS (after FIR task regression) results');
+end
+subplot(1,2,1); imagesc(conval);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
+subplot(1,2,2); imagesc(thresholded);   title('pFDR<0.001'); axis square; colorbar;
+colormap(subplot(1,2,2),'parula') 
 colormap(subplot(1,2,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
+clear type contrasts contrast_number
 
 %% BGFC
 
