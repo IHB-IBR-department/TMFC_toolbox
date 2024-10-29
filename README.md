@@ -58,7 +58,7 @@ clear
 data.SF  = 1;         % Scaling Factor (SF) for co-activations: SF = SD_oscill/SD_coact
 data.SNR = 1;         % Signal-to-noise ratio (SNR): SNR = SD_signal/SD_noise
 data.STP_delay = 0.2; % Short-term synaptic plasticity (STP) delay, [s]
- = 20;          % Sample size (Select 20 subjects out of 100 to reduce computations)
+data.N = 20;          % Sample size (Select 20 subjects out of 100 to reduce computations)
 data.N_ROIs = 100;    % Number of ROIs
 data.dummy = 3;       % Remove first M dummy scans
 data.TR = 2;          % Repetition time (TR), [s]
