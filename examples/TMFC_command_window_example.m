@@ -346,3 +346,6 @@ colormap(subplot(1,2,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
 clear type contrasts contrast_number
+
+%% Save TMFC project *.mat file
+save(fullfile(data.stat_path,'TMFC_project.mat'),'tmfc');
