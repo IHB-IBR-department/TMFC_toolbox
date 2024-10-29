@@ -56,6 +56,7 @@ function [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number)
 %
 %   tmfc                   - As above
 %   ROI_set_number         - Number of the ROI set in the tmfc structure
+%                            (by default, ROI_set_number = 1)
 %
 % FORMAT [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number,clear_BSC)
 % Run the function for the selected ROI set.
@@ -163,7 +164,7 @@ for iSub = 1:nSub
         % Extract mean beta series from ROIs
         for kTrial = 1:nTrialCond(jCond)
             betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
-                ['Beta_' beta_series(jCond).condition '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
+                ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
             for kROI = 1:nROI
                 beta_series(jCond).ROI_mean(kTrial,kROI) = nanmean(ROIs(kROI).mask.*betas(kTrial,:));
             end
@@ -176,7 +177,7 @@ for iSub = 1:nSub
 
             % Save BSC matrices
             save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI', ...
-                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' beta_series(jCond).condition '.mat']),'z_matrix');
+                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.mat']),'z_matrix');
 
             clear z_matrix
         end
@@ -191,8 +192,8 @@ for iSub = 1:nSub
             for kROI = 1:nROI
                 hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR', ...
                     'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                    ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' beta_series(jCond).condition '.nii']);
-                hdr.descrip = ['z-value map: ' beta_series(jCond).condition];    
+                    ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii']);
+                hdr.descrip = ['z-value map: ' cond_list(jCond).file_name];    
                 image = NaN(SPM.SPM.xVol.DIM');
                 image(iXYZ) = BSC_image(kROI).z_value;
                 spm_write_vol(hdr,image);
@@ -211,7 +212,7 @@ for iSub = 1:nSub
     % Update waitbar
     hms = fix(mod(((nSub-iSub)*toc/iSub), [0, 3600, 60]) ./ [3600, 60, 1]);
     try
-        waitbar(iSub/nSub, w, [num2str(iSub/N*100,'%.f') '%, ' num2str(hms(1)) ':' num2str(hms(2)) ':' num2str(hms(3)) ' [hr:min:sec] remaining']);
+        waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1)) ':' num2str(hms(2)) ':' num2str(hms(3)) ' [hr:min:sec] remaining']);
     end
 
     sub_check(iSub) = 1;
