@@ -238,7 +238,9 @@ clear type contrasts contrast_number
 %% gPPI
 
 % Define conditions of interest
-tmfc.ROI_set(ROI_set_number).gPPI.conditions = tmfc.LSS.conditions;
+[conditions] = tmfc_gPPI_GUI(tmfc.subjects(1).path);
+tmfc.ROI_set(ROI_set_number).gPPI.conditions = conditions;
+clear conditions
 
 % VOI extraction
 [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub);
@@ -279,11 +281,18 @@ matrices = cat(3,M(:).paths);
 
 % Plot gPPI results
 figure(3);
-sgtitle('gPPI results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
+try
+    sgtitle('gPPI results');
+catch
+    suptitle('gPPI results');
+end
+subplot(1,2,1); imagesc(conval);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
+subplot(1,2,2); imagesc(thresholded);   title('pFDR<0.001'); axis square; colorbar;
+colormap(subplot(1,2,2),'parula')
 colormap(subplot(1,2,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
+
+clear type contrasts contrast_number
 
 
 %% gPPI-FIR (gPPI model with psychological regressors defined by FIR functions)
