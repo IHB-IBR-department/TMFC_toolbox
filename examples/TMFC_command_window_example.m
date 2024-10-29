@@ -7,6 +7,7 @@ close all
 % 2) Set path to TMFC_toolbox (Add with subfolders)
 % 3) Change current working directory to: '...\TMFC_toolbox\examples'
 
+cd(fileparts(matlab.desktop.editor.getActiveFilename)); % Set path to '...\TMFC_toolbox\examples'
 
 %% Prepare example data and calculate basic first-level GLMs
 
