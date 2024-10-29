@@ -17,7 +17,7 @@ TMFC toolbox implements:
  - Parralel computations.
 
 If you use TMFC toolbox, please cite this study: <br/>
-[Masharipov et al. "Comparison of whole-brain task-modulated functional connectivity methods for fMRI task connectomics." bioRxiv (2024): 2024-01](https://doi.org/10.1101/2024.01.22.576622).
+[Masharipov et al. "Comparison of whole-brain task-modulated functional connectivity methods for fMRI task connectomics." Commun Biol 7, 1402 (2024)](https://doi.org/10.1038/s42003-024-07088-3).
 
 ## Installation
 
@@ -42,7 +42,7 @@ Task design parameters:
 - Dummy scans: first 3 time points (6 s)
 - Total scan time = 9.7 min
 
-Simulation procedure is described in details in [the referenced paper](https://doi.org/10.1101/2024.01.22.576622) and here: <br/>
+Simulation procedure is described in details in [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and here: <br/>
 [https://github.com/IHB-IBR-department/TMFC_simulations](https://github.com/IHB-IBR-department/TMFC_simulations)
 
 To prepare example data and estimate basic GLMs run this code:
