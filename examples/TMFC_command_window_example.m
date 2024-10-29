@@ -153,8 +153,8 @@ catch
 end
 subplot(1,2,1); imagesc(conval);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
 subplot(1,2,2); imagesc(thresholded);   title('pFDR<0.001'); axis square; colorbar;
+colormap(subplot(1,2,2),'parula')
 colormap(subplot(1,2,1),'redblue')
-colormap(subplot(1,2,2),'parula') 
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
 clear type contrasts contrast_number
