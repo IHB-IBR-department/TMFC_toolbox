@@ -136,7 +136,8 @@ if isempty(findobj('Tag', 'TMFC_GUI')) == 1
     warning('off','backtrace');
 else
     figure(findobj('Tag', 'TMFC_GUI')); 
-    warning('TMFC toolbox is already running.');    
+    warning('TMFC toolbox is already running.');
+    return;
 end
 
 %% ========================[ Select subjects ]=============================
@@ -410,7 +411,7 @@ function VOI_GUI(~,~,~)
     freeze_GUI(0);     
 end
 
-%% ===============================[ PPIs ]=================================
+%% =============================[ PPIs ]===================================
 % Perform PPI computation for selected ROI set
 function PPI_GUI(~,~,~)
     
@@ -525,7 +526,7 @@ function PPI_GUI(~,~,~)
     freeze_GUI(0);  
 end
 
-%% ==============================[ gPPI ]==================================
+%% =============================[ gPPI ]===================================
 % Perform gPPI analysis for selected ROI set
 function gPPI_GUI(~,~,~)
                
@@ -659,7 +660,7 @@ function gPPI_GUI(~,~,~)
     freeze_GUI(0);   
 end
 
-%% =============================[ gPPI FIR ]===============================
+%% ===========================[ gPPI FIR ]=================================
 % Perform gPPI-FIR analysis for selected ROI set
 function gPPI_FIR_GUI(~,~,~)
 
@@ -967,7 +968,7 @@ function LSS_GLM_GUI(~,~,~)
     freeze_GUI(0);        
 end
 
-%% ============================== [ BSC ] =================================
+%% ============================= [ BSC ] ==================================
 % Calculate beta-series correlations (BSC)
 function BSC_GUI(~,~,~)
 
@@ -1073,7 +1074,7 @@ function BSC_GUI(~,~,~)
     freeze_GUI(0);    
 end
 
-%% ========================[ FIR regression ]==============================
+%% =========================[ FIR regression ]=============================
 % Calculate FIR GLMs (residuals can be used for BGFC analysis and LSS_after_FIR GLMs)
 function FIR_GUI(~,~,~)
     
@@ -1199,7 +1200,7 @@ function FIR_GUI(~,~,~)
     
 end
 
-%% ==============================[ BGFC ]==================================
+%% =============================[ BGFC ]===================================
 % Calculate background functional connectivity (BGFC) 
 function BGFC_GUI(~,~,~)
 
@@ -1465,7 +1466,7 @@ function LSS_FIR_GUI(~,~,~)
     freeze_GUI(0);        
 end
 
-%% ==========================[ BSC after FIR ]=============================
+%% =========================[ BSC after FIR ]==============================
 % Calculate beta-series correlations after FIR regression (BSC after FIR)
 function BSC_after_FIR_GUI(~,~,~)
 
@@ -1540,7 +1541,7 @@ function BSC_after_FIR_GUI(~,~,~)
 
         try
             % Specify new contrasts
-            tmfc = tmfc_specify_contrasts_GUI(tmfc,tmfc.ROI_set_number,3);
+            tmfc = tmfc_specify_contrasts_GUI(tmfc,tmfc.ROI_set_number,4);
 
             % Calculate new contrasts
             if nCon ~= length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR)       
@@ -2052,11 +2053,11 @@ function tmfc = update_tmfc_progress(tmfc)
             end
 
             if track_LSS_after_FIR == 0
-                set(main_GUI.TMFC_GUI_S6,'String', strcat(num2str(nSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);       
+                set(main_GUI.TMFC_GUI_S10,'String', strcat(num2str(nSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);       
             elseif track_LSS_after_FIR == 1
-                set(main_GUI.TMFC_GUI_S6,'String', 'Not done', 'ForegroundColor', [0.773, 0.353, 0.067]);       
+                set(main_GUI.TMFC_GUI_S10,'String', 'Not done', 'ForegroundColor', [0.773, 0.353, 0.067]);       
             else
-                set(main_GUI.TMFC_GUI_S6,'String', strcat(num2str(track_LSS_after_FIR-1), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);       
+                set(main_GUI.TMFC_GUI_S10,'String', strcat(num2str(track_LSS_after_FIR-1), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);       
             end
             
             clear cond_list nCond sess sess_num nSess
