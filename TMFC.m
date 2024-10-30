@@ -189,9 +189,9 @@ function ROI_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
@@ -270,17 +270,15 @@ function VOI_GUI(~,~,~)
     
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
     end
 
     % Freeze main TMFC GUI
@@ -417,23 +415,21 @@ function PPI_GUI(~,~,~)
     
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
+    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
+        warning('Calculate VOIs for all subjects.'); return;    
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number),'gPPI')
         error('Select conditions of interest.');
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number).gPPI,'conditions')
         error('Select conditions of interest. Calculate VOIs for all subjects.');
-    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
-        error('Calculate VOIs for all subjects.');
     end
 
     % Freeze main TMFC GUI
@@ -532,25 +528,23 @@ function gPPI_GUI(~,~,~)
                
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
+    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
+        warning('Calculate VOIs for all subjects.'); return;
+    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).PPI] == 0)
+        warning('Calculate PPIs for all subjects.'); return;
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number),'gPPI')
         error('Select conditions of interest. Calculate VOIs for all subjects.');
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number).gPPI,'conditions')
         error('Select conditions of interest. Calculate VOIs for all subjects.');
-    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
-        error('Calculate VOIs for all subjects.');
-    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).PPI] == 0)
-        error('Calculate PPIs for all subjects.');
     end
 
     % Freeze main TMFC GUI
@@ -666,25 +660,23 @@ function gPPI_FIR_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
+    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
+        warning('Calculate VOIs for all subjects.'); return;
+    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).PPI] == 0)
+        warning('Calculate PPIs for all subjects.'); return;    
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number),'gPPI')
         error('Select conditions of interest. Calculate VOIs for all subjects.');
     elseif ~isfield(tmfc.ROI_set(tmfc.ROI_set_number).gPPI,'conditions')
         error('Select conditions of interest. Calculate VOIs for all subjects.');
-    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).VOI] == 0)
-        error('Calculate VOIs for all subjects.');
-    elseif any([tmfc.ROI_set(tmfc.ROI_set_number).subjects(:).PPI] == 0)
-        error('Calculate PPIs for all subjects.');
     end
 
     % Freeze main TMFC GUI
@@ -807,9 +799,9 @@ function LSS_GLM_GUI(~,~,~)
     
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
@@ -974,17 +966,15 @@ function BSC_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
     elseif ~isfield(tmfc.subjects,'LSS')
-        error('Compute LSS GLMs for all selected subjects.');
+        warning('Compute LSS GLMs for all selected subjects.'); return;
     end
 
     nSub = length(tmfc.subjects);
@@ -1021,9 +1011,9 @@ function BSC_GUI(~,~,~)
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = sub_check(iSub);
             end
-            for iSub = 1:nSub
-                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iSub).title = contrasts(iSub).title;
-                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iSub).weights = contrasts(iSub).weights;
+            for iCon = 1:length(contrasts)
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCon).title = contrasts(iCon).title;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCon).weights = contrasts(iCon).weights;
             end
             disp('BSC LSS computation completed.');
         catch
@@ -1036,7 +1026,18 @@ function BSC_GUI(~,~,~)
 
         fprintf('\nBSC was calculated for all subjects, %d Session(s) and %d Condition(s). \n', max([tmfc.LSS.conditions.sess]), size(tmfc.LSS.conditions,2));
         disp('To calculate BSC for different conditions, recompute LSS GLMs with desired conditions.');         
-
+        
+        % Define default contrasts if empty
+        if isempty(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(1).title)
+            cond_list = tmfc.LSS.conditions;
+            nCond = length(cond_list);
+            for iCond = 1:nCond
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).title = cond_list(iCond).file_name;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).weights = zeros(1,nCond);
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).weights(1,iCond) = 1;
+            end            
+        end
+        
         % Number of previously calculated contrasts
         nCon = length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC);
 
@@ -1080,9 +1081,9 @@ function FIR_GUI(~,~,~)
     
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
@@ -1206,19 +1207,17 @@ function BGFC_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
     elseif ~isfield(tmfc.subjects,'FIR')
-        error('Calculate FIR task regression.');
+        warning('Calculate FIR task regression.'); return;
     elseif any([tmfc.subjects(:).FIR]) == 0 
         error('Calculate FIR task regression for all subjects.');
     end
@@ -1305,9 +1304,9 @@ function LSS_FIR_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~exist(tmfc.subjects(1).path,'file')
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
@@ -1472,17 +1471,15 @@ function BSC_after_FIR_GUI(~,~,~)
 
     % Initial checks
     if ~isfield(tmfc,'subjects')
-        error('Select subejcts'); 
+        warning('Select subjects.'); return; 
     elseif strcmp(tmfc.subjects(1).path, '')
-        error('Select subjects.');
+        warning('Select subjects.'); return;
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
-    elseif ~isfield(tmfc,'ROI_set_number')
-        error('Select ROI set number.');
     elseif ~isfield(tmfc,'ROI_set')
-        error('Select ROIs.');
+        warning('Select ROIs.'); return;
     elseif ~isfield(tmfc.subjects,'LSS_after_FIR')
-        error('Compute LSS after FIR for all selected subjects.');
+        warning('Compute LSS after FIR for all selected subjects.'); return;
     end
     
     nSub = length(tmfc.subjects);
@@ -1520,9 +1517,9 @@ function BSC_after_FIR_GUI(~,~,~)
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = sub_check(iSub);
             end
-            for iSub = 1:nSub
-                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iSub).title = contrasts(iSub).title;
-                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iSub).weights = contrasts(iSub).weights;
+            for iCon = 1:length(contrasts)
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCon).title = contrasts(iCon).title;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCon).weights = contrasts(iCon).weights;
             end
             disp('BSC LSS after FIR computation completed.');
         catch
@@ -1535,7 +1532,18 @@ function BSC_after_FIR_GUI(~,~,~)
 
         fprintf('\nBSC after FIR was calculated for all subjects, %d Sessions and %d Conditions. \n', max([tmfc.LSS_after_FIR.conditions.sess]), size(tmfc.LSS_after_FIR.conditions,2));
         disp('To calculate BSC after FIR for different conditions, recompute LSS after FIR with desired conditions.');         
-
+        
+        % Define default contrasts if empty
+        if isempty(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(1).title)
+            cond_list = tmfc.LSS_after_FIR.conditions;
+            nCond = length(cond_list);
+            for iCond = 1:nCond
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).title = cond_list(iCond).file_name;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).weights = zeros(1,nCond);
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).weights(1,iCond) = 1;
+            end            
+        end
+        
         % Number of previously calculated contrasts
         nCon = length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR);
 
@@ -1801,14 +1809,14 @@ function close_GUI(~,~,~)
     end    
 end
 
-%% ==========================[ Statistics ]================================
+%% ===========================[ Statistics ]===============================
 function statistics_GUI(~,~,~)
 	freeze_GUI(1);
     tmfc_statistics_GUI();
     freeze_GUI(0);
 end
 
-%% ===========================[ Results ]==================================
+%% ============================[ Results ]=================================
 function results_GUI(~,~,~)
     tmfc_results_GUI();
 end
@@ -2764,7 +2772,7 @@ function [continue_status] = tmfc_continue_GUI(iSub,option)
     uiwait();
 end
 
-%% Dialog box for PPI recomputation explanation
+%% ================[ Dialog box for PPI recomputation ]====================
 function PPI_recompute()
     PPI_recomp_GUI = figure('Name', 'PPI', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.45 0.24 0.12],'MenuBar', 'none', ...
                            'ToolBar', 'none','color','w','Resize','off','WindowStyle', 'modal','CloseRequestFcn', @ok_action, 'Tag', 'PPI');
@@ -2783,7 +2791,7 @@ function PPI_recompute()
     uiwait();
 end
 
-%% GUI to select window length and time bins for FIR or gPPI-FIR regression
+%% ==[ GUI: window length and time bins for FIR or gPPI-FIR regression ]===
 % case 0 = FIR 
 % case 1 = gPPI-FIR
 function [window, bins] = tmfc_FIR_GUI(cases)
@@ -2875,7 +2883,7 @@ function [window, bins] = tmfc_FIR_GUI(cases)
     uiwait();    
 end
 
-%% Dialog box for BGFC recomputation
+%% ===============[ Dialog box for BGFC recomputation ]====================
 function recompute_BGFC(tmfc)
 
 recompute_BGFC_GUI = figure('Name', 'BGFC', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.45 0.5 0.12], ...
