@@ -61,7 +61,7 @@ function TMFC
 if isempty(findobj('Tag', 'TMFC_GUI')) == 1  
     
 	% Set up TMFC structure
-    tmfc.defaults.parallel = 0;      
+    tmfc.defaults.parallel = 1;      
     tmfc.defaults.maxmem = 2^32;
     tmfc.defaults.resmem = true;
     tmfc.defaults.analysis = 1;
