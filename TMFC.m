@@ -861,13 +861,18 @@ function LSS_GLM_GUI(~,~,~)
 
     % Update main TMFC GUI
     track_LSS = 0;
+    flag = 0;
     if exist('cond_list','var')
         for iSub = 1:nSub
             for jCond = 1:nCond
                 if any(tmfc.subjects(iSub).LSS.session(cond_list(jCond).sess).condition(cond_list(jCond).number).trials == 0)
                     track_LSS = iSub;
+                    flag = 1;
                     break;
                 end
+            end
+            if flag == 1
+                break;
             end
         end
     else
@@ -1298,7 +1303,7 @@ function BGFC_GUI(~,~,~)
     freeze_GUI(0);    
 end
 
-%% ============================[ LSS FIR ]=================================
+%% =========================[ LSS after FIR ]==============================
 % Estimate LSS GLMs after FIR task regression 
 function LSS_FIR_GUI(~,~,~)
 
@@ -1366,13 +1371,18 @@ function LSS_FIR_GUI(~,~,~)
 
     % Update main TMFC GUI
     track_LSS_after_FIR = 0;
+    flag = 0;
     if exist('cond_list','var')
         for iSub = 1:nSub
             for jCond = 1:nCond
                 if any(tmfc.subjects(iSub).LSS_after_FIR.session(cond_list(jCond).sess).condition(cond_list(jCond).number).trials == 0)
                     track_LSS_after_FIR = iSub;
+                    flag = 1;
                     break;
                 end
+            end
+            if flag == 1
+                break;
             end
         end
     else
@@ -1917,14 +1927,18 @@ function tmfc = update_tmfc_progress(tmfc)
             end
             
             track_LSS = 0;
-            
+            flag = 0;
             if exist('cond_list','var')
                 for iSub = 1:nSub
                     for jCond = 1:nCond
                         if any(tmfc.subjects(iSub).LSS.session(cond_list(jCond).sess).condition(cond_list(jCond).number).trials == 0)
                             track_LSS = iSub;
+                            flag = 1;
                             break;
                         end
+                    end
+                    if flag == 1
+                        break;
                     end
                 end
             else
@@ -2046,14 +2060,18 @@ function tmfc = update_tmfc_progress(tmfc)
             end
             
             track_LSS_after_FIR = 0;
-            
+            flag = 0;
             if exist('cond_list','var')
                 for iSub = 1:nSub
                     for jCond = 1:nCond
                         if any(tmfc.subjects(iSub).LSS_after_FIR.session(cond_list(jCond).sess).condition(cond_list(jCond).number).trials == 0)
                             track_LSS_after_FIR = iSub;
+                            flag = 1;
                             break;
                         end
+                    end
+                    if flag == 1
+                        break;
                     end
                 end
             else
