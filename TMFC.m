@@ -1628,8 +1628,43 @@ function load_project_GUI(~,~,~)
             end
             if ~isfield(tmfc.defaults,'analysis')
                 tmfc.defaults.analysis = 1;
-            end                 
+            end
             
+            %--------------------------------------------------------------
+            % Check TMFC project path and freeze main TMFC GUI
+            if isfield(tmfc,'project_path')
+                cd(tmfc.project_path);
+                freeze_GUI(1);
+            else
+                warning('TMFC project path not specified. TMFC project not loaded.');
+                freeze_GUI(0);
+                return;
+            end
+
+            %--------------------------------------------------------------
+            % Update subjects
+            if isfield(tmfc,'subjects')
+                nSub = length(tmfc.subjects);
+                for iSub = 1:nSub
+                    if exist(tmfc.subjects(iSub).path,'file')
+                        sub_check(iSub) = 1;
+                    else
+                        sub_check(iSub) = 0;
+                    end
+                end
+                if ~any(sub_check == 0)           
+                    set(main_GUI.TMFC_GUI_S1,'String', strcat(num2str(nSub), ' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);
+                else
+                    warning('SPM.mat files for one or more subjects are missing. TMFC project not loaded.')
+                    freeze_GUI(0);
+                    return;
+                end
+            else
+                warning('Subjects not specified. TMFC project not loaded.');
+                return;
+            end
+            
+            %--------------------------------------------------------------
             % Update TMFC GUI
             tmfc = update_tmfc_progress(tmfc);
             fprintf('Successfully loaded file: "%s".\n', filename);           
@@ -1832,40 +1867,9 @@ function results_GUI(~,~,~)
 end
 
 %% =========[ Update main TMFC GUI after loading a TMFC project ]==========
-function tmfc = update_tmfc_progress(tmfc) 
+function tmfc = update_tmfc_progress(tmfc)
     
-    %----------------------------------------------------------------------
-    % Check TMFC project path and freeze main TMFC GUI
-    if isfield(tmfc,'project_path')
-        cd(tmfc.project_path);
-        freeze_GUI(1);
-    else
-        warning('TMFC project path not specified. TMFC project not loaded.');
-        return;
-    end
-    
-    %----------------------------------------------------------------------
-    % Update subjects
-    if isfield(tmfc,'subjects')
-        nSub = length(tmfc.subjects);
-        for iSub = 1:nSub
-            if exist(tmfc.subjects(iSub).path,'file')
-                sub_check(iSub) = 1;
-            else
-                sub_check(iSub) = 0;
-            end
-        end
-        if ~any(sub_check == 0)           
-            set(main_GUI.TMFC_GUI_S1,'String', strcat(num2str(nSub), ' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);
-        else
-            warning('SPM.mat files for one or more subjects are missing. TMFC project not loaded.')
-            freeze_GUI(0);
-            return;
-        end
-    else
-    	warning('Subjects not specified. TMFC project not loaded.');
-        return;
-    end
+    nSub = length(tmfc.subjects);
     
     %----------------------------------------------------------------------
     % Update ROI set 
