@@ -2381,8 +2381,10 @@ function [tmfc] = reset_LSS(tmfc)
     disp('Deleting old files...');
 
     % Reset LSS and BSC progress
-    tmfc = rmfield(tmfc,'LSS');
-    tmfc.subjects = rmfield(tmfc.subjects,'LSS');
+    try
+        tmfc = rmfield(tmfc,'LSS');
+        tmfc.subjects = rmfield(tmfc.subjects,'LSS');
+    end
     for iSub = 1:length(tmfc.subjects)
         tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = 0;
     end
@@ -2411,8 +2413,10 @@ function [tmfc] = reset_LSS_after_FIR(tmfc)
     disp('Deleting old files...');
 
     % Reset LSS and BSC after FIR progress
-    tmfc = rmfield(tmfc,'LSS_after_FIR');
-    tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
+    try
+        tmfc = rmfield(tmfc,'LSS_after_FIR');
+        tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
+    end
     for iSub = 1:length(tmfc.subjects)
         tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
     end
@@ -2461,8 +2465,10 @@ function [tmfc] = reset_FIR(tmfc)
     end 
     
     % Reset BGFC, LSS and BSC after FIR progress
-    tmfc = rmfield(tmfc,'LSS_after_FIR');
-    tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
+    try
+        tmfc = rmfield(tmfc,'LSS_after_FIR');
+        tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
+    end
     for iSub = 1:length(tmfc.subjects)
         tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
         tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = 0;
