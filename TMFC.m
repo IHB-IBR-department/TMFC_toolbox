@@ -1169,7 +1169,7 @@ function FIR_GUI(~,~,~)
     % Define FIR regression parameters
     if define_FIR_params == 1
         [window, bins] = tmfc_FIR_GUI(0);
-        if isnan(tmfc.FIR.window) || isnan(tmfc.FIR.bins)
+        if isnan(window) || isnan(bins)
             warning('Incorrect FIR parameters.');
             freeze_GUI(0);
             return;
