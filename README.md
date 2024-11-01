@@ -259,29 +259,38 @@ ROI_set_number = 1;
 tmfc.ROI_set(ROI_set_number).set_name = '100_ROIs';
 
 % Load BSC-LSS matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-for i = 1:20 
+for i = 1:20
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
         ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-contrast = 1;                       % TaskA_vs_TaskB effect
+contrast = 1;                       % A > B effect
 alpha = 0.001/2;                    % alpha = 0.001 thredhold corrected for two-sided comparison
 correction = 'FDR';                 % False Discovery Rate (FDR) correction (Benjamini–Hochberg procedure)
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot BSC-LSS results
-figure(1);
-sgtitle('BSC-LSS results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f1 = figure(1); f1.Position = [382,422,1063,299];
+try
+    sgtitle('BSC-LSS results');
+catch
+    suptitle('BSC-LSS results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
 ```
 
-Results for edge-wise inference with FDR-correction ("TaskA > TaskB" contrast):
+Results for edge-wise inference with FDR-correction ("TaskA vs TaskB"):
 
 <p align="center">
 <img src = "illustrations/04_BSC_LSS_results.png">
@@ -289,7 +298,7 @@ Results for edge-wise inference with FDR-correction ("TaskA > TaskB" contrast):
 
 ## BSC-LSS after FIR task regression
 
-Co-activations can spuriosly inflate TMFC estimates (see [the referenced paper](https://doi.org/10.1101/2024.01.22.576622) and [Cole et al., 2019](https://doi.org/10.1016/j.neuroimage.2018.12.054)).
+Co-activations can spuriosly inflate TMFC estimates (see [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and [Cole et al., 2019](https://doi.org/10.1016/j.neuroimage.2018.12.054)).
 
 To remove co-activations, we can perform task regression with finite impulse response (FIR) functions prior to BSC analysis.
 
@@ -347,29 +356,37 @@ ROI_set_number = 1;
 tmfc.ROI_set(ROI_set_number).set_name = '100_ROIs';
 
 % Load gPPI-FIR matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-for i = 1:20
+clear M marices conval_1 thresholded_1
+for i = 1:20 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
         ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-contrast = 1;                       % TaskA_vs_TaskB effect
-alpha = 0.001/2;                    % alpha = 0.001 thredhold corrected for two-sided comparison
-correction = 'FDR';                 % False Discovery Rate (FDR) correction (Benjamini–Hochberg procedure)
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = 1;                       % A > B effect
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction);
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot gPPI-FIR results
-figure(2);
-sgtitle('gPPI-FIR results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f2 = figure(2); f2.Position = [382,422,1063,299];
+try
+    sgtitle('gPPI-FIR results');
+catch
+    suptitle('gPPI-FIR results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
 ```
 
-Results for edge-wise inference with FDR-correction ("TaskA > TaskB" contrast):
+Results for edge-wise inference with FDR-correction ("TaskA vs TaskB"):
 
 <p align="center">
 <img src = "illustrations/07_gPPI_FIR_results.png">
