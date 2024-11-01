@@ -989,6 +989,10 @@ function BSC_GUI(~,~,~)
     elseif ~isfield(tmfc.subjects,'LSS')
         warning('Compute LSS GLMs for all selected subjects.'); return;
     end
+    ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+    if ROI_check == 0
+        error('One or more ROI masks are missing. Check the ROI_sets subfolder.')
+    end
 
     nSub = length(tmfc.subjects);
     
@@ -1502,6 +1506,10 @@ function BSC_after_FIR_GUI(~,~,~)
         warning('Select ROIs.'); return;
     elseif ~isfield(tmfc.subjects,'LSS_after_FIR')
         warning('Compute LSS after FIR for all selected subjects.'); return;
+    end
+    ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+    if ROI_check == 0
+        error('One or more ROI masks are missing. Check the ROI_sets subfolder.')
     end
     
     nSub = length(tmfc.subjects);

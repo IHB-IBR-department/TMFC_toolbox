@@ -97,7 +97,7 @@ switch tmfc.defaults.parallel
             D = parallel.pool.DataQueue;            
             w = waitbar(0,'Please wait...','Name','PPI regressors calculation','Tag','tmfc_waitbar');
             afterEach(D, @tmfc_parfor_waitbar);     
-            tmfc_parfor_waitbar(w,nSub);     
+            tmfc_parfor_waitbar(w,nSub,start_sub);     
         catch % No waitbar for MATLAB R2016b and earlier
             opts = struct('WindowStyle','non-modal','Interpreter','tex');
             w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
@@ -213,16 +213,16 @@ function unfreeze_after_ctrl_c()
 end
 end
 
-% Waitbar for parallel mode
-function tmfc_parfor_waitbar(waitbarHandle,iterations)
-    persistent count h nSub start
+%% ========================================================================
 
-    if nargin == 2
-        count = 0;
+% Waitbar for parallel mode
+function tmfc_parfor_waitbar(waitbarHandle,iterations,start_sub)
+    persistent count h nSub start
+    if nargin == 3
+        count = start_sub - 1;
         h = waitbarHandle;
         nSub = iterations;
-        start = tic;
-        
+        start = tic;        
     else
         if isvalid(h)         
             count = count + 1;
