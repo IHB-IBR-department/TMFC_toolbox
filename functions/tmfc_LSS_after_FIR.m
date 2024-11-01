@@ -120,12 +120,12 @@ EXIT_STATUS_LSS = 0;
 % Initialize waitbar for sequential or parallel computations
 switch tmfc.defaults.parallel
     case 0    % Sequential
-        w = waitbar(0,'Please wait...','Name','LSS regression','Tag','tmfc_waitbar');
+        w = waitbar(0,'Please wait...','Name','LSS regression after FIR','Tag','tmfc_waitbar');
         cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
     case 1    % Parallel 
         try   % Waitbar for MATLAB R2017a and higher
             D = parallel.pool.DataQueue;            
-            w = waitbar(0,'Please wait...','Name','LSS regression','Tag','tmfc_waitbar');
+            w = waitbar(0,'Please wait...','Name','LSS regression after FIR','Tag','tmfc_waitbar');
             afterEach(D, @tmfc_parfor_waitbar);     
             tmfc_parfor_waitbar(w,nSub);     
         catch % No waitbar for MATLAB R2016b and earlier
@@ -395,7 +395,7 @@ for iSub = start_sub:nSub
 
 end
 
-% Deleting the waitbar after completion of LSS regression
+% Deleting the waitbar after completion of LSS regression after FIR
 try
     delete(w);
 end
