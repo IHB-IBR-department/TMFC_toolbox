@@ -425,6 +425,11 @@ function tmfc_parsave_batch(fname,matlabbatch)
 	save(fname, 'matlabbatch')
 end
 
+% Save SPM.mat files in parallel mode
+function tmfc_parsave_SPM(fname,SPM)
+	save(fname, 'SPM')
+end
+
 % Waitbar for parallel mode
 function tmfc_parfor_waitbar(waitbarHandle,iterations,start_sub)
     persistent count h nSub start
