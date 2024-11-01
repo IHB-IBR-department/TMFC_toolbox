@@ -280,6 +280,10 @@ function VOI_GUI(~,~,~)
     elseif ~isfield(tmfc,'ROI_set')
         warning('Select ROIs.'); return;
     end
+    ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+    if ROI_check == 0
+        error('One or more ROI masks are missing. Check the ROI_sets subfolder.')
+    end
 
     % Freeze main TMFC GUI
     cd(tmfc.project_path);
@@ -1226,6 +1230,10 @@ function BGFC_GUI(~,~,~)
     elseif any([tmfc.subjects(:).FIR]) == 0 
         error('Calculate FIR task regression for all subjects.');
     end
+    ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+    if ROI_check == 0
+        error('One or more ROI masks are missing. Check the ROI_sets subfolder.')
+    end
 
     nSub = length(tmfc.subjects);
 
@@ -1667,7 +1675,7 @@ function load_project_GUI(~,~,~)
             %--------------------------------------------------------------
             % Update TMFC GUI
             tmfc = update_tmfc_progress(tmfc);
-            fprintf('Successfully loaded file: "%s".\n', filename);           
+            fprintf('Loaded file: "%s".\n', filename);           
         else
             warning('Selected file is not in TMFC format, please select another file.');
         end
@@ -1877,7 +1885,12 @@ function tmfc = update_tmfc_progress(tmfc)
         if ~isfield(tmfc,'ROI_set_number')  
             tmfc.ROI_set_number = 1;
         end
-        set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(tmfc.ROI_set_number).set_name, ' (',num2str(length(tmfc.ROI_set(tmfc.ROI_set_number).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]); 
+        ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+        if ROI_check == 1
+            set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(tmfc.ROI_set_number).set_name, ' (',num2str(length(tmfc.ROI_set(tmfc.ROI_set_number).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]); 
+        else
+            warning('One or more ROI masks are missing. Check the ROI_sets subfolder.');
+        end
     end
     
     %----------------------------------------------------------------------
@@ -2135,6 +2148,21 @@ function tmfc = update_tmfc_progress(tmfc)
     end
 
     freeze_GUI(0);
+end
+
+%% ========================[ Check ROI masks ]=============================
+function ROI_check = check_ROI_masks(tmfc,ROI_set_number)
+    ROI_check = 1;
+    if isfield(tmfc.ROI_set(ROI_set_number),'ROIs')
+        for iROI = 1:size(tmfc.ROI_set(ROI_set_number).ROIs,2)
+            if ~exist(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked,'file')
+                ROI_check = 0;
+                break;
+            end
+        end
+    else
+        ROI_check = 0;
+    end
 end
 
 %% =================[ Freeze/unfreeze main TMFC GUI ]======================
