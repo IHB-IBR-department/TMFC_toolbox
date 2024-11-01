@@ -734,6 +734,10 @@ function gPPI_FIR_GUI(~,~,~)
         if ~isnan(FIR_window) || ~isnan(FIR_bins)
             tmfc.ROI_set(tmfc.ROI_set_number).gPPI_FIR.window = FIR_window;
             tmfc.ROI_set(tmfc.ROI_set_number).gPPI_FIR.bins = FIR_bins;
+        else
+            warning('Define the window length and number of time bins for gPPI-FIR regression.');
+            freeze_GUI(0);
+            return;
         end
 
     % gPPI-FIR was calculated for all subjects 
