@@ -171,6 +171,13 @@ for iSub = start_sub:nSub
     end
     
     sub_check(iSub) = 1;
+    pause(0.0001)
+
+    % Update main TMFC GUI
+    try  
+        main_GUI = guidata(findobj('Tag','TMFC_GUI'));                        
+        set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);    
+    end
     
     % Update waitbar
     switch tmfc.defaults.parallel
@@ -179,17 +186,9 @@ for iSub = start_sub:nSub
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1)) ':' num2str(hms(2)) ':' num2str(hms(3)) ' [hr:min:sec] remaining']);
             end
-            try % Update main TMFC GUI                                                       
-                main_GUI = guidata(findobj('Tag','TMFC_GUI'));              
-                set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);    
-            end
         case 1  % Parallel
             try 
                 send(D,[]);
-            end
-            try % Update main TMFC GUI                                                           
-                main_GUI = guidata(findobj('Tag','TMFC_GUI'));              
-                set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);    
             end
     end
 
