@@ -414,11 +414,40 @@ clc
 clear
 close all
 
-%% Set path for stat folder 
+% BEFORE RUNNING THIS SCRIPT:
+% 1) Set path to SPM12
+% 2) Set path to TMFC_toolbox (Add with subfolders)
+% 3) Change current working directory to: '...\TMFC_toolbox\examples'
 
+cd(fileparts(matlab.desktop.editor.getActiveFilename)); % Set path to '...\TMFC_toolbox\examples'
+
+%% Prepare example data and calculate basic first-level GLMs
+
+data.SF  = 1;         % Scaling Factor (SF) for co-activations: SF = SD_oscill/SD_coact
+data.SNR = 1;         % Signal-to-noise ratio (SNR): SNR = SD_signal/SD_noise
+data.STP_delay = 0.2; % Short-term synaptic plasticity (STP) delay, [s]
+data.N = 20;          % Sample size (Select 20 subjects out of 100 to reduce computations)
+data.N_ROIs = 100;    % Number of ROIs
+data.dummy = 3;       % Remove first M dummy scans
+data.TR = 2;          % Repetition time (TR), [s]
+data.model = 'AR(1)'; % Autocorrelation modeling
+
+% Set path for stat folder 
 spm_jobman('initcfg');
 data.stat_path = spm_select(1,'dir','Select a folder for data extraction and statistical analysis');
-data.N = 20; % 20 subjects
+
+% Set path for simulated BOLD time series *.mat file
+data.sim_path = fullfile(pwd,'data','SIMULATED_BOLD_EVENT_RELATED_[2s_TR]_[1s_DUR]_[6s_ISI]_[40_TRIALS].mat');
+
+% Set path for task design *.mat file (stimulus onset times, SOTs)
+data.sots_path = fullfile(pwd,'data','TASK_DESIGN_EVENT_RELATED_[2s_TR]_[1s_DUR]_[6s_ISI]_[40_TRIALS].mat');
+
+% Generate *.nii images and calculate GLMs
+prepare_example_data(data)
+
+% Change current directory to new TMFC project folder
+cd(data.stat_path)
+
 
 %% Setting up computation parameters
 
@@ -427,7 +456,7 @@ tmfc.defaults.parallel = 1;         % Parallel
 % Store temporaty files during GLM estimation in RAM or on disk
 tmfc.defaults.resmem = true;        % RAM
 % How much RAM can be used at the same time during GLM estimation
-tmfc.defaults.maxmem = 2^33;        % 8 GB
+tmfc.defaults.maxmem = 2^32;        % 4 GB
 % Seed-to-voxel and ROI-to-ROI analyses
 tmfc.defaults.analysis = 1;
 
@@ -444,6 +473,7 @@ tmfc.project_path = data.stat_path;
 % etc
 
 % Alternativelly, use tmfc_select_subjects_GUI to select subjects
+% Go to GLMs subfolder and select 20 subjects 
 SPM_check = 1;                      % Check SPM.mat files
 [paths] = tmfc_select_subjects_GUI(SPM_check);
 
@@ -451,6 +481,7 @@ for i = 1:length(paths)
     tmfc.subjects(i).path = paths{i};
 end
 
+clear SPM_check paths
 
 %% Select ROIs
 
@@ -461,9 +492,13 @@ end
 % will be removed. Masked ROIs will be limited to only voxels which have 
 % data for all subjects. The dimensions, orientation, and voxel sizes of 
 % the masked ROI images will be adjusted according to the group binary mask
+%
+% Go to ROI_masks subfolder and select 100 ROIs
 
 [ROI_set] = tmfc_select_ROIs_GUI(tmfc);
 tmfc.ROI_set(1) = ROI_set;
+
+clear ROI_set
 
 
 %% LSS regression
@@ -481,6 +516,8 @@ tmfc.LSS.conditions = conditions;
 % Run LSS regression
 start_sub = 1;                      % Start from the 1st subject
 [sub_check] = tmfc_LSS(tmfc,start_sub);
+
+clear conditions
 
 
 %% BSC-LSS
@@ -514,18 +551,29 @@ end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-contrast = 1;                       % TaskA_vs_TaskB effect
+contrast = 1;                       % A > B effect
 alpha = 0.001/2;                    % alpha = 0.001 thredhold corrected for two-sided comparison
 correction = 'FDR';                 % False Discovery Rate (FDR) correction (Benjamini–Hochberg procedure)
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot BSC-LSS results
-figure(1);
-sgtitle('BSC-LSS results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f1 = figure(1); f1.Position = [382,422,1063,299];
+try
+    sgtitle('BSC-LSS results');
+catch
+    suptitle('BSC-LSS results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
+
+clear type contrasts contrast_number
 
 
 %% FIR task regression (regress out co-activations and save residual time series)
@@ -572,7 +620,7 @@ contrast_number = [3,4];            % Calculate contrast #3 and #4
 [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI_set_number);
 
 % Load BSC-LSS (after FIR) matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-clear M marices conval thresholded
+clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI',...
         ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
@@ -580,16 +628,27 @@ end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = 1;                       % A > B effect
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction);
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot BSC-LSS (after FIR) results
-figure(2);
-sgtitle('BSC-LSS (after FIR task regression) results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f2 = figure(2); f2.Position = [382,422,1063,299];
+try
+    sgtitle('BSC-LSS (after FIR task regression) results');
+catch
+    suptitle('BSC-LSS (after FIR task regression) results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
+clear type contrasts contrast_number
 
 %% BGFC
 
@@ -600,7 +659,9 @@ set(findall(gcf,'-property','FontSize'),'FontSize',16)
 %% gPPI
 
 % Define conditions of interest
-tmfc.ROI_set(ROI_set_number).gPPI.conditions = tmfc.LSS.conditions;
+[conditions] = tmfc_gPPI_GUI(tmfc.subjects(1).path);
+tmfc.ROI_set(ROI_set_number).gPPI.conditions = conditions;
+clear conditions
 
 % VOI extraction
 [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub);
@@ -629,7 +690,7 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI_set_number);
 
 % Load gPPI matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-clear M marices conval thresholded
+clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','ROI_to_ROI','symmetrical',...
         ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
@@ -637,15 +698,27 @@ end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = 1;                       % A > B effect
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction);
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot gPPI results
-figure(3);
-sgtitle('gPPI results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f3 = figure(3); f3.Position = [382,422,1063,299];
+try
+    sgtitle('gPPI results');
+catch
+    suptitle('gPPI results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
+
+clear type contrasts contrast_number
 
 
 %% gPPI-FIR (gPPI model with psychological regressors defined by FIR functions)
@@ -675,7 +748,7 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI_set_number);
 
 % Load gPPI-FIR matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-clear M marices conval thresholded
+clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
         ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
@@ -683,13 +756,29 @@ end
 matrices = cat(3,M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
-[thresholded,pval,tval,conval] = tmfc_ttest(matrices,contrast,alpha,correction); 
+contrast = 1;                       % A > B effect
+[thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction);
+contrast = -1;                      % B > A effect
+[thresholded_2] = tmfc_ttest(matrices,contrast,alpha,correction); 
 
 % Plot gPPI-FIR results
-figure(4);
-sgtitle('gPPI-FIR results');
-subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));
-subplot(1,2,2); imagesc(thresholded);   subtitle('pFDR<0.001'); axis square; colorbar;
-colormap(subplot(1,2,1),'redblue')
+f4 = figure(4); f4.Position = [382,422,1063,299];
+try
+    sgtitle('gPPI-FIR results');
+catch
+    suptitle('gPPI-FIR results');
+end
+subplot(1,3,1); imagesc(conval_1);        title('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval_1,1));
+subplot(1,3,2); imagesc(thresholded_1);   title('A>B (pFDR<0.001)'); axis square; colorbar;
+subplot(1,3,3); imagesc(thresholded_2);   title('B>A (pFDR<0.001)'); axis square; colorbar;
+colormap(subplot(1,3,2),'parula')
+colormap(subplot(1,3,3),'parula')
+colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
+
+clear type contrasts contrast_number
+
+%% Save TMFC project *.mat file
+save(fullfile(data.stat_path,'TMFC_project.mat'),'tmfc');
+
 ```
