@@ -156,7 +156,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
                 % Generation of Strings
                 for iCon = 1:length(contrasts)
                    contrasts(iCon).no = size(existing_contrasts,1)+iCon;
-                   contrast_string = horzcat('No ',num2str(contrasts(iCon).no),' :: ',contrasts(iCon).title,' :: ', 'c = [',contrasts(iCon).weights,']');
+                   contrast_string = horzcat('No ',num2str(contrasts(iCon).no),' :: ',contrasts(iCon).title,' :: ', 'c = [',num2str(contrasts(iCon).weights),']');
                    new_contrasts = vertcat(new_contrasts, contrast_string);
                 end
 
