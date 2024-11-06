@@ -41,7 +41,7 @@ end
 SS_MW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.36 0.25 0.35 0.575],'MenuBar', 'none','ToolBar', 'none','color','w','CloseRequestFcn',@SS_MW_exit);
 SS_MW_S1 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundColor','red','Units', 'normalized', 'Position',[0.500 0.820 0.450 0.095],'backgroundcolor','w','FontUnits','normalized','FontSize',0.25);
 SS_MW_S2 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundColor','red','Units', 'normalized', 'Position',[0.500 0.720 0.450 0.095],'backgroundcolor','w','FontUnits','normalized','FontSize',0.25);
-SS_MW_LB1 = uicontrol(SS_MW, 'Style', 'listbox', 'String', '','Max',100,'Units', 'normalized', 'Position',[0.033 0.250 0.920 0.490],'FontUnits','normalized','FontSize',0.045,'Value', [],'callback', @SS_LB_select);
+SS_MW_LB1 = uicontrol(SS_MW, 'Style', 'listbox', 'String', '','Max', inf,'Units', 'normalized', 'Position',[0.033 0.250 0.920 0.490],'FontUnits','normalized','FontSize',0.045,'Value', [],'callback', @SS_LB_select);
 SS_MW_sel_sub = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select subject folders','Units', 'normalized', 'Position',[0.033 0.850 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_sub);
 SS_MW_sel_mat = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select SPM.mat file for Subject #1','Units', 'normalized', 'Position',[0.033 0.750 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_SPM_mat);
 SS_MW_add_new = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Add new subject','Units', 'normalized', 'Position',[0.033 0.14 0.300 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @add_new);
@@ -109,7 +109,7 @@ function select_SPM_mat(~,~)
         
     else
         [subject_full_path, SPM_mat_path] = add_mat_file(subject_dir);            
-        if ~isempty(SPM_mat_path)
+        if ~isempty(SPM_mat_path(1))
             set(SS_MW_LB1, 'String', subject_full_path);                          
             disp('TMFC Subjects: The SPM.mat file has been succesfully selected.');
             set(SS_MW_S2,'String','Selected','ForegroundColor',[0.219, 0.341, 0.137]);
@@ -327,7 +327,7 @@ function [file_exist] = check_file_exist(subject_full_path)
     if length(file_exist) ~= length(subject_full_path)      
     	% SS_WW = select subjects warning window
         SS_WW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.32 0.26 0.35 0.28], 'color', 'w','MenuBar', 'none','ToolBar', 'none');
-        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_not_exist,'Max',100,'Units', 'normalized', 'Position',[0.028 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
+        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_not_exist,'Max',inf,'Units', 'normalized', 'Position',[0.032 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
         SS_WW_S1 = uicontrol(SS_WW,'Style','text','String', 'Warning, the following SPM.mat files are missing:','Units', 'normalized', 'Position',[0.15 0.820 0.720 0.095], 'FontUnits','normalized','FontSize',0.5,'backgroundcolor', 'w');
         SS_WW_close = uicontrol(SS_WW,'Style','pushbutton', 'String', 'OK','Units', 'normalized',  'Position',[0.415 0.06 0.180 0.120] ,'FontUnits','normalized','FontSize',0.30,'callback', @close_SS_WW);
         movegui(SS_WW,'center');
@@ -402,8 +402,8 @@ function [file_correct] = check_file_cond(subject_full_path)
 
     % Show incorrect SPM.mat files
     if length(file_correct) ~= length(subject_full_path)
-        SS_WW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.32 0.26 0.35 0.28], 'color', 'w','MenuBar', 'none','ToolBar', 'none');
-        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_incorrect,'Max',100,'Units', 'normalized', 'Position',[0.028 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
+        SS_WW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.32 0.30 0.35 0.28], 'color', 'w','MenuBar', 'none','ToolBar', 'none');
+        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_incorrect,'Max',inf,'Units', 'normalized', 'Position',[0.032 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
         SS_WW_S1 = uicontrol(SS_WW,'Style','text','String', 'Warning, the following SPM.mat files have different conditions specified:','Units', 'normalized', 'Position',[0.15 0.820 0.720 0.095], 'FontUnits','normalized','FontSize',0.5,'backgroundcolor', 'w');%
         SS_WW_close = uicontrol(SS_WW,'Style','pushbutton', 'String', 'OK','Units', 'normalized',  'Position',[0.415 0.06 0.180 0.120] ,'FontUnits','normalized','FontSize',0.30,'callback', @close_SS_WW);
         movegui(SS_WW,'center');
@@ -456,8 +456,8 @@ function [file_dir] = check_file_dir(subject_full_path)
     % Show incorrect SPM.mat files
     if length(file_dir) ~= length(subject_full_path)
         SS_WW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.32 0.26 0.35 0.28], 'color', 'w','MenuBar', 'none','ToolBar', 'none');
-        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_no_dir,'Max',100,'Units', 'normalized', 'Position',[0.028 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
-        SS_WW_S1 = uicontrol(SS_WW,'Style','text','String', 'Warning, the output folder (SPM.swd) specified in the following SPM.mat files do not exist:','Units', 'normalized', 'Position',[0.15 0.820 0.720 0.095], 'FontUnits','normalized','FontSize',0.5,'backgroundcolor', 'w');%
+        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_no_dir,'Max',inf,'Units', 'normalized', 'Position',[0.032 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
+        SS_WW_S1 = uicontrol(SS_WW,'Style','text','String', 'Warning, the output folder (SPM.swd) specified in the following SPM.mat files do not exist:','Units', 'normalized', 'Position',[0.08 0.820 0.840 0.080], 'FontUnits','normalized','FontSize',0.56,'backgroundcolor', 'w');
         SS_WW_close = uicontrol(SS_WW,'Style','pushbutton', 'String', 'OK','Units', 'normalized',  'Position',[0.415 0.06 0.180 0.120] ,'FontUnits','normalized','FontSize',0.30,'callback', @close_SS_WW);
         movegui(SS_WW,'center');
     	uiwait();
@@ -512,7 +512,7 @@ function [file_func] = check_file_func(subject_full_path)
     
     if length(file_func) ~= length(subject_full_path)
         SS_WW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.32 0.26 0.35 0.28], 'color', 'w','MenuBar', 'none','ToolBar', 'none');
-        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_no_func,'Max',100,'Units', 'normalized', 'Position',[0.028 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
+        SS_WW_LB = uicontrol(SS_WW, 'Style', 'listbox', 'String', file_no_func,'Max',inf,'Units', 'normalized', 'Position',[0.032 0.250 0.940 0.520],'FontUnits','normalized','FontSize',0.08);
         SS_WW_S1 = uicontrol(SS_WW,'Style','text','String', 'Warning, the functional files specified in the following SPM.mat files do not exist:','Units', 'normalized', 'Position',[0.15 0.820 0.720 0.095], 'FontUnits','normalized','FontSize',0.5,'backgroundcolor', 'w');%
         SS_WW_close = uicontrol(SS_WW,'Style','pushbutton', 'String', 'OK','Units', 'normalized',  'Position',[0.415 0.06 0.180 0.120] ,'FontUnits','normalized','FontSize',0.30,'callback', @close_SS_WW);
         movegui(SS_WW,'center');
