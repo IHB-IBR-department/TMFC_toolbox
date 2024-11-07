@@ -1683,7 +1683,16 @@ function load_project_GUI(~,~,~)
                 warning('Subjects not specified. TMFC project not loaded.');
                 return;
             end
-            
+
+            %--------------------------------------------------------------
+            % Reset TMFC progress
+            set(main_GUI.TMFC_GUI_S2,'String', 'Not selected','ForegroundColor',[1, 0, 0]);
+            set(main_GUI.TMFC_GUI_S3,'String', 'Not selected','ForegroundColor',[0.773, 0.353, 0.067]);
+            set(main_GUI.TMFC_GUI_S4,'String', 'Not selected','ForegroundColor',[0.773, 0.353, 0.067]);
+            set(main_GUI.TMFC_GUI_S6,'String', 'Not selected','ForegroundColor',[0.773, 0.353, 0.067]);
+            set(main_GUI.TMFC_GUI_S8,'String', 'Not selected','ForegroundColor',[0.773, 0.353, 0.067]);
+            set(main_GUI.TMFC_GUI_S10,'String', 'Not selected','ForegroundColor',[0.773, 0.353, 0.067]);
+
             %--------------------------------------------------------------
             % Update TMFC GUI
             tmfc = update_tmfc_progress(tmfc);
