@@ -68,6 +68,7 @@ nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 SPM = load(tmfc.subjects(1).path);
 nSess = length(SPM.SPM.Sess);
+sub_check = zeros(1,nSub);
 
 % Initialize waitbar for parallel or sequential computing
 switch tmfc.defaults.parallel
@@ -203,6 +204,7 @@ for iSub = start_sub:nSub
     end
 end
 
+% Close waitbar
 try
     close(w)
 end
