@@ -77,6 +77,9 @@ spm_jobman('initcfg');
 
 nSub = length(tmfc.subjects);
 sub_check = zeros(1,nSub);
+if start_sub > 1
+    sub_check(1:start_sub) = 1;
+end
 
 for iSub = start_sub:nSub
     
