@@ -184,7 +184,7 @@ for iSub = start_sub:nSub
         z_matrix(1:size(z_matrix,1)+1:end) = nan;
         save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','ROI_to_ROI', ... 
                 ['Subject_' num2str(iSub,'%04.f') '_Session_' num2str(jSess) '.mat']),'z_matrix');
-        clear VOI z_matrix  
+        clear Y z_matrix  
     end
     
     sub_check(iSub) = 1;
