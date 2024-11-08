@@ -2434,8 +2434,10 @@ function [tmfc] = reset_LSS(tmfc)
         tmfc = rmfield(tmfc,'LSS');
         tmfc.subjects = rmfield(tmfc.subjects,'LSS');
     end
-    for iSub = 1:length(tmfc.subjects)
-        tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = 0;
+    try
+        for iSub = 1:length(tmfc.subjects)
+            tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = 0;
+        end
     end
 
     % Delete old LSS files
@@ -2444,8 +2446,10 @@ function [tmfc] = reset_LSS(tmfc)
     end
 
     % Delete old BSC files
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS'))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS'),'s');
+    try
+        if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS'))
+            rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS'),'s');
+        end
     end
 
     % Clear BSC contrasts
@@ -2466,8 +2470,10 @@ function [tmfc] = reset_LSS_after_FIR(tmfc)
         tmfc = rmfield(tmfc,'LSS_after_FIR');
         tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
     end
-    for iSub = 1:length(tmfc.subjects)
-        tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
+    try
+        for iSub = 1:length(tmfc.subjects)
+            tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
+        end
     end
 
     % Delete old LSS after FIR files
@@ -2476,8 +2482,10 @@ function [tmfc] = reset_LSS_after_FIR(tmfc)
     end
 
     % Delete old BSC after FIR files
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'),'s');
+    try
+        if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'))
+            rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'),'s');
+        end
     end
 
     % Clear BSC after FIR contrasts
@@ -2499,8 +2507,10 @@ function [tmfc] = reset_FIR(tmfc)
     end
     
     % Delete old BGFC files
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC'))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC'),'s');
+    try
+        if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC'))
+            rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC'),'s');
+        end
     end
     
     % Delete old LSS after FIR files
@@ -2509,19 +2519,23 @@ function [tmfc] = reset_FIR(tmfc)
     end
 
     % Delete old BSC after FIR files
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'),'s');
-    end 
+    try
+        if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'))
+            rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'),'s');
+        end
+    end
     
     % Reset BGFC, LSS and BSC after FIR progress
     try
         tmfc = rmfield(tmfc,'LSS_after_FIR');
         tmfc.subjects = rmfield(tmfc.subjects,'LSS_after_FIR');
     end
-    for iSub = 1:length(tmfc.subjects)
-        tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
-        tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = 0;
-    end 
+    try
+        for iSub = 1:length(tmfc.subjects)
+            tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
+            tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = 0;
+        end
+    end
 
     % Clear BSC after FIR contrasts
     try
