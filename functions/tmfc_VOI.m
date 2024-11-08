@@ -96,6 +96,9 @@ end
 sess_num = unique(sess);
 nSess = length(sess_num);
 sub_check = zeros(1,nSub);
+if start_sub > 1
+    sub_check(1:start_sub) = 1;
+end
 
 % Initialize waitbar for sequential or parallel computations
 switch tmfc.defaults.parallel
