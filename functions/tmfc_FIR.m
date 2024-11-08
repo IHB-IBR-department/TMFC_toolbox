@@ -82,6 +82,15 @@ for iSub = start_sub:nSub
     
     SPM = load(tmfc.subjects(iSub).path);
 
+    % Check if SPM.mat has concatenated sessions 
+    % (if spm_fmri_concatenate.m sript was used)
+    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2)
+        SPM_concat(iSub) = 0;
+    else
+        SPM_concat(iSub) = 1;
+    end
+    concat(iSub).scans = SPM.SPM.nscan;
+
     if isdir(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]))
         rmdir(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]),'s');
     end
@@ -93,32 +102,38 @@ for iSub = start_sub:nSub
     matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t = SPM.SPM.xBF.T;
     matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t0 = SPM.SPM.xBF.T0;
     
-    for j = 1:length(SPM.SPM.Sess)
+    for jSess = 1:length(SPM.SPM.Sess)
         
         % Functional images
-        for image = 1:SPM.SPM.nscan(j)
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(j).row(image)).fname;
+        if SPM_concat(iSub) == 0
+            for kImage = 1:SPM.SPM.nscan(jSess)
+                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname;
+            end
+        else
+            for kImage = 1:size(SPM.SPM.xY.VY,1)
+                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname;
+            end
         end
         
         % Conditions
-        for cond = 1:length(SPM.SPM.Sess(j).U)
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).name = SPM.SPM.Sess(j).U(cond).name{1};
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).onset = SPM.SPM.Sess(j).U(cond).ons;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).duration = 0;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).tmod = 0;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).pmod = struct('name', {}, 'param', {}, 'poly', {});
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).cond(cond).orth = 1;
+        for kCond = 1:length(SPM.SPM.Sess(jSess).U)
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).name = SPM.SPM.Sess(jSess).U(kCond).name{1};
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).onset = SPM.SPM.Sess(jSess).U(kCond).ons;
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).duration = 0;
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).tmod = 0;
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).pmod = struct('name', {}, 'param', {}, 'poly', {});
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).orth = 1;
         end
         
         % Confounds       
-        for conf = 1:length(SPM.SPM.Sess(j).C.name)
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).regress(conf).name = SPM.SPM.Sess(j).C.name{1,conf};
-            matlabbatch{1}.spm.stats.fmri_spec.sess(j).regress(conf).val = SPM.SPM.Sess(j).C.C(:,conf);
+        for kConf = 1:length(SPM.SPM.Sess(jSess).C.name)
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf).name = SPM.SPM.Sess(jSess).C.name{1,kConf};
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf).val = SPM.SPM.Sess(jSess).C.C(:,kConf);
         end
         
-        matlabbatch{1}.spm.stats.fmri_spec.sess(j).multi = {''};
-        matlabbatch{1}.spm.stats.fmri_spec.sess(j).multi_reg = {''};
-        matlabbatch{1}.spm.stats.fmri_spec.sess(j).hpf = SPM.SPM.xX.K(j).HParam;
+        matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).multi = {''};
+        matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).multi_reg = {''};
+        matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).hpf = SPM.SPM.xX.K(jSess).HParam;
     end
 
     matlabbatch{1}.spm.stats.fmri_spec.fact = struct('name', {}, 'levels', {});
@@ -142,11 +157,13 @@ for iSub = start_sub:nSub
         matlabbatch{1}.spm.stats.fmri_spec.cvi = 'FAST';
     end
 
-    matlabbatch{2}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')};
-    matlabbatch{2}.spm.stats.fmri_est.write_residuals = 0;
-    matlabbatch{2}.spm.stats.fmri_est.method.Classical = 1;
+    matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')};
+    matlabbatch_2{1}.spm.stats.fmri_est.write_residuals = 0;
+    matlabbatch_2{1}.spm.stats.fmri_est.method.Classical = 1;
     
     batch{iSub} = matlabbatch;
+    batch_2{iSub} = matlabbatch_2;
+
     clear matlabbatch SPM; 
 end
 
@@ -170,13 +187,16 @@ switch tmfc.defaults.parallel
             spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
             spm_get_defaults('stats.fmri.ufp',1);
             spm_jobman('run', batch{iSub});
+            if SPM_concat(iSub) == 1
+                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),concat(iSub).scans);
+            end
+            spm_jobman('run', batch_2{iSub});
             tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),NaN);
             tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batch.mat'),batch{iSub});
             sub_check(iSub) = 1;
 
             % Update TMFC GUI window
-            try
-                main_GUI = guidata(findobj('Tag','TMFC_GUI'));                                 
+            try                                
                 set(main_GUI.TMFC_GUI_S8,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'), 'ForegroundColor', [0.219, 0.341, 0.137]); 
             end
 
@@ -227,20 +247,23 @@ switch tmfc.defaults.parallel
             spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
             spm_get_defaults('stats.fmri.ufp',1);
             spm_jobman('run',batch{iSub});
+            if SPM_concat(iSub) == 1
+                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),concat(iSub).scans);
+            end
+            spm_jobman('run', batch_2{iSub});
             tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),NaN);
             tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batch.mat'),batch{iSub});
             sub_check(iSub) = 1;
-
-            % Update TMFC GUI window
-            try
-                main_GUI = guidata(findobj('Tag','TMFC_GUI'));                             
-                set(main_GUI.TMFC_GUI_S8,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);
-            end
 
             % Update waitbar 
             try
                 send(D,[]); 
             end 
+        end
+
+        % Update TMFC GUI window
+        try                                
+            set(main_GUI.TMFC_GUI_S8,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'), 'ForegroundColor', [0.219, 0.341, 0.137]); 
         end
 
         % Close waitbar
