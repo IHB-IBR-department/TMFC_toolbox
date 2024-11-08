@@ -87,6 +87,9 @@ nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
 sub_check = zeros(1,nSub);
+if start_sub > 1
+    sub_check(1:start_sub) = 1;
+end
 
 % Initialize waitbar for sequential or parallel computations
 switch tmfc.defaults.parallel
