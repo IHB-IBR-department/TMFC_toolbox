@@ -1969,10 +1969,15 @@ end
 function tmfc = update_tmfc_progress(tmfc)
     
     nSub = length(tmfc.subjects);
-    
+    w = waitbar(0,'Please wait...','Name','Updating TMFC project');
+
     %----------------------------------------------------------------------
     % Update ROI set 
     if isfield(tmfc,'ROI_set')
+        try
+            waitbar(1/8,w,'Updating ROI set...');
+        end
+        
         if ~isfield(tmfc,'ROI_set_number')  
             tmfc.ROI_set_number = 1;
         end
@@ -1987,6 +1992,9 @@ function tmfc = update_tmfc_progress(tmfc)
     %----------------------------------------------------------------------
     % Update VOIs, PPIs, gPPI, gPPI-FIR
     if isfield(tmfc,'subjects') && isfield(tmfc,'ROI_set')
+        try
+            waitbar(2/8,w,'Updating VOIs, PPIs, gPPI and gPPI-FIR...');
+        end
         tmfc = update_gPPI(tmfc);
     end
     
@@ -2003,7 +2011,9 @@ function tmfc = update_tmfc_progress(tmfc)
             sess_num = unique(sess);
             nSess = length(sess_num);  
             
-            w = waitbar(0,'Please wait...','Name','Updating LSS progress');
+            try
+                waitbar(3/8,w,'Updating LSS GLMs...');
+            end
             for iSub = 1:nSub             
                 SPM = load(tmfc.subjects(iSub).path);
                 for jSess = 1:nSess 
@@ -2032,13 +2042,7 @@ function tmfc = update_tmfc_progress(tmfc)
                     tmfc.subjects(iSub).LSS.session(sess_num(jSess)).condition = condition;
                     clear condition
                 end
-                try
-                    waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-                end
                 clear SPM trial nTrial
-            end
-            try
-                delete(w)
             end
             
             track_LSS = 0;
@@ -2077,7 +2081,9 @@ function tmfc = update_tmfc_progress(tmfc)
     %----------------------------------------------------------------------
     % Update BSC-LSS
     if isfield(tmfc,'subjects') && isfield(tmfc,'ROI_set') && isfield(tmfc,'LSS')
-        w = waitbar(0,'Please wait...','Name','Updating BSC progress');
+        try
+            waitbar(4/8,w,'Updating BSC-LSS...');
+        end
         for iSub = 1:nSub
             if exist(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS', ...
                     'Beta_series',['Subject_' num2str(iSub,'%04.f') '_beta_series.mat']), 'file')
@@ -2085,31 +2091,21 @@ function tmfc = update_tmfc_progress(tmfc)
             else
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = 0;
             end
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
     end
     
     %----------------------------------------------------------------------
     % Update FIR
     if isfield(tmfc,'subjects') && isfield(tmfc.subjects,'FIR') 
-        w = waitbar(0,'Please wait...','Name','Updating FIR progress');
+        try
+            waitbar(5/8,w,'Updating FIR GLMs...');
+        end
         for iSub = 1:nSub
             if exist(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batch.mat'),'file')
                 tmfc.subjects(iSub).FIR = 1;
             else
                 tmfc.subjects(iSub).FIR = 0;
             end
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
         track_FIR = 0;
         for iSub = 1:nSub
@@ -2131,7 +2127,9 @@ function tmfc = update_tmfc_progress(tmfc)
     % Update BGFC 
     if isfield(tmfc,'subjects') && isfield(tmfc,'ROI_set') && isfield(tmfc.subjects,'FIR')
         SPM = load(tmfc.subjects(1).path); 
-        w = waitbar(0,'Please wait...','Name','Updating BGFC progress')
+        try
+            waitbar(6/8,w,'Updating BGFC...');
+        end
         for iSub = 1:nSub
             check_BGFC = zeros(1,length(SPM.SPM.Sess));
             for jSess = 1:length(SPM.SPM.Sess)
@@ -2141,14 +2139,8 @@ function tmfc = update_tmfc_progress(tmfc)
                 end
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = double(~any(check_BGFC == 0));
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
         end
         clear SPM
-        try
-            delete(w)
-        end
     end
     
     %----------------------------------------------------------------------
@@ -2164,7 +2156,9 @@ function tmfc = update_tmfc_progress(tmfc)
             sess_num = unique(sess);
             nSess = length(sess_num); 
             
-            w = waitbar(0,'Please wait...','Name','Updating LSS after FIR progress');
+            try
+                waitbar(7/8,w,'Updating LSS after FIR GLMs...');
+            end
             for iSub = 1:nSub             
                 SPM = load(tmfc.subjects(iSub).path);
                 for jSess = 1:nSess 
@@ -2193,13 +2187,7 @@ function tmfc = update_tmfc_progress(tmfc)
                     tmfc.subjects(iSub).LSS_after_FIR.session(sess_num(jSess)).condition = condition;
                     clear condition
                 end
-                try
-                    waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-                end
                 clear SPM trial nTrial
-            end
-            try
-                delete(w)
             end
             
             track_LSS_after_FIR = 0;
@@ -2238,7 +2226,9 @@ function tmfc = update_tmfc_progress(tmfc)
     %----------------------------------------------------------------------
     % Update BSC after FIR
     if isfield(tmfc,'subjects') && isfield(tmfc,'ROI_set') && isfield(tmfc,'LSS_after_FIR')
-        w = waitbar(0,'Please wait...','Name','Updating BSC after FIR progress');
+        try
+            waitbar(8/8,w,'Updating BSC after FIR...');
+        end
         for iSub = 1:nSub
             if exist(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR', ...
                     'Beta_series',['Subject_' num2str(iSub,'%04.f') '_beta_series.mat']), 'file')
@@ -2246,13 +2236,11 @@ function tmfc = update_tmfc_progress(tmfc)
             else
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = 0;
             end
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
         end
-        try
-            delete(w)
-        end
+    end
+
+    try
+        delete(w)
     end
     
     %----------------------------------------------------------------------
@@ -2369,7 +2357,6 @@ function [tmfc] = update_gPPI(tmfc)
 
     % Update TMFC structure
     try
-        w = waitbar(0,'Please wait...','Name','Updating VOI progress');
         for iSub = 1:nSub
             check_VOI = zeros(nROI,nSess);
             for jROI = 1:nROI
@@ -2381,12 +2368,6 @@ function [tmfc] = update_gPPI(tmfc)
                 end
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).VOI = double(~any(check_VOI(:) == 0));
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
     end
 
@@ -2413,7 +2394,6 @@ function [tmfc] = update_gPPI(tmfc)
 
     % Update TMFC structure
     try
-        w = waitbar(0,'Please wait...','Name','Updating PPI progress');
         for iSub = 1:nSub
             SPM = load(tmfc.subjects(iSub).path);
             check_PPI = zeros(nROI,nCond);
@@ -2427,12 +2407,6 @@ function [tmfc] = update_gPPI(tmfc)
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).PPI = double(~any(check_PPI(:) == 0));
             clear SPM
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
     end 
 
@@ -2458,7 +2432,6 @@ function [tmfc] = update_gPPI(tmfc)
 
     % Update TMFC structure
     try
-        w = waitbar(0,'Please wait...','Name','Updating gPPI progress');
         for iSub = 1:nSub
             check_gPPI = ones(1,nCond);
             for jCond = 1:nCond
@@ -2478,12 +2451,6 @@ function [tmfc] = update_gPPI(tmfc)
                 end
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).gPPI = double(~any(check_gPPI(:) == 0));
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
     end
 
@@ -2491,7 +2458,6 @@ function [tmfc] = update_gPPI(tmfc)
 
     % Update TMFC structure
     try
-        w = waitbar(0,'Please wait...','Name','Updating gPPI-FIR progress');
         for iSub = 1:nSub
             check_gPPI_FIR = ones(1,nCond);
             for jCond = 1:nCond
@@ -2511,12 +2477,6 @@ function [tmfc] = update_gPPI(tmfc)
                 end
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).gPPI_FIR = double(~any(check_gPPI_FIR(:) == 0));
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
-            end
-        end
-        try
-            delete(w)
         end
     end
 end
