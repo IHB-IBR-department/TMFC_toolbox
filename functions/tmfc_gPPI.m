@@ -90,7 +90,6 @@ nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
 nCond = length(cond_list);
-SPM = load(tmfc.subjects(1).path);
 sess = []; sess_num = []; nSess = []; PPI_num = []; PPI_sess = [];
 for cond_PPI = 1:nCond
     sess(cond_PPI) = cond_list(cond_PPI).sess;
@@ -159,6 +158,16 @@ for iSub = start_sub:nSub
     tic
     %=======================[ Specify gPPI GLM ]===========================
     SPM = load(tmfc.subjects(iSub).path);
+
+    % Check if SPM.mat has concatenated sessions 
+    % (if spm_fmri_concatenate.m sript was used)
+    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2)
+        SPM_concat(iSub) = 0;
+    else
+        SPM_concat(iSub) = 1;
+    end
+    concat(iSub).scans = SPM.SPM.nscan;
+
     % Loop through ROIs
     for jROI = 1:nROI
         if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name))
@@ -179,8 +188,14 @@ for iSub = start_sub:nSub
         % Loop throuph sessions
         for kSess = 1:nSess
             % Functional images
-            for image = 1:SPM.SPM.nscan(sess_num(kSess))
-                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(kSess)).row(image)).fname;
+            if SPM_concat(iSub) == 0
+                for image = 1:SPM.SPM.nscan(sess_num(kSess))
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(kSess)).row(image)).fname;
+                end
+            else
+                for image = 1:size(SPM.SPM.xY.VY,1)
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(kSess).row(image)).fname;
+                end
             end
             
             % Conditions (including PSY regressors)
@@ -251,6 +266,10 @@ for iSub = start_sub:nSub
                 spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
                 spm_get_defaults('stats.fmri.ufp',1);
                 spm_jobman('run',batch{jROI});
+                if SPM_concat(iSub) == 1
+                    spm_fmri_concatenate(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI', ...
+                        ['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,'SPM.mat'),concat(iSub).scans);
+                end
     
                 % Save GLM_batch.mat file
                 tmfc_parsave_batch(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','GLM_batches',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,...
@@ -266,6 +285,10 @@ for iSub = start_sub:nSub
                 spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
                 spm_get_defaults('stats.fmri.ufp',1);
                 spm_jobman('run',batch{jROI});
+                if SPM_concat(iSub) == 1
+                    spm_fmri_concatenate(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI', ...
+                        ['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,'SPM.mat'),concat(iSub).scans);
+                end
 
                 % Save GLM_batch.mat file
                 tmfc_parsave_batch(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','GLM_batches',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,...
@@ -493,9 +516,9 @@ for iSub = start_sub:nSub
     % Update waitbar
     switch tmfc.defaults.parallel
         case 0  % Sequential
-            hms = fix(mod(((nSub-iSub)*toc/iSub), [0, 3600, 60]) ./ [3600, 60, 1]);
+            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
-                waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1)) ':' num2str(hms(2)) ':' num2str(hms(3)) ' [hr:min:sec] remaining']);
+                waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
             end
         case 1  % Parallel
             try 
@@ -550,8 +573,8 @@ function tmfc_parfor_waitbar(waitbarHandle,iterations,start_sub)
         if isvalid(h)         
             count = count + 1;
             time = toc(start);
-            hms = fix(mod(((nSub-count)*time/count), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(count/nSub, h, [num2str(count/nSub*100,'%.f') '%, ' num2str(hms(1)) ':' num2str(hms(2)) ':' num2str(hms(3)) ' [hr:min:sec] remaining']);
+            hms = fix(mod(((nSub-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
+            waitbar(count/nSub, h, [num2str(count/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
         end
     end
 end
