@@ -320,9 +320,9 @@ function VOI_GUI(~,~,~)
                 waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
             end
         end
-        try
-            delete(w)
-        end
+    end
+    try
+        delete(w)
     end
 
     % Update main TMFC GUI
