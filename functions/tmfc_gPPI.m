@@ -400,7 +400,7 @@ for iSub = start_sub:nSub
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for jROI = 1:nROI
-                    SPM = [];
+                    SPM = []; xX = []; xVi = []; W = []; xKXs = []; pKX = [];
                     SPM = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,'SPM.mat'));
                     xX = SPM.SPM.xX;
                     if isfield(SPM.SPM.xX,'W')
@@ -416,7 +416,7 @@ for iSub = start_sub:nSub
                     xKXs        = spm_sp('Set',spm_filter(xX.K,W*xX.X));
                     xKXs.X      = full(xKXs.X);
                     pKX         = spm_sp('x-',xKXs);
-                    beta(:,:,jROI)        = pKX*Y;                    
+                    beta(:,:,jROI)        = pKX*Y;
                 end
             case 1  % Parallel
                 parfor jROI = 1:nROI
@@ -526,7 +526,7 @@ for iSub = start_sub:nSub
             end
     end
 
-    clear SPM
+    clear SPM VOI
 end
 
 % Default contrasts info
