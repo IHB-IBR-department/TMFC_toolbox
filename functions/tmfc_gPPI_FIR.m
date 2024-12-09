@@ -371,6 +371,8 @@ for iSub = start_sub:nSub
         for jROI = 1:nSess
             Y = [Y; VOI.sess(jROI).Y];
         end
+        
+        beta = [];
 
         switch tmfc.defaults.parallel
             case 0  % Sequential
@@ -406,12 +408,14 @@ for iSub = start_sub:nSub
         Y = [];
         for jROI = 1:nSess
             Y = [Y; VOI.sess(jROI).Y];
-        end       
+        end
+
+        beta = [];
 
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for jROI = 1:nROI
-                    SPM = [];
+                    SPM = []; xX = []; xVi = []; W = []; xKXs = []; pKX = []; 
                     SPM = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,'SPM.mat'));
                     xX = SPM.SPM.xX;
                     if isfield(SPM.SPM.xX,'W')
@@ -431,7 +435,7 @@ for iSub = start_sub:nSub
                 end
             case 1  % Parallel
                 parfor jROI = 1:nROI
-                    SPM = []; xX = []; xVi = []; W = []; xKXs = []; pKX = [];
+                    SPM = []; xX = []; xVi = []; W = []; xKXs = []; pKX = []; 
                     SPM = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,'SPM.mat'));
                     xX = SPM.SPM.xX;
                     if isfield(SPM.SPM.xX,'W')

@@ -361,6 +361,8 @@ for iSub = start_sub:nSub
             Y = [Y; VOI.sess(jROI).Y];
         end
 
+        beta = [];
+
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for jROI = 1:nROI
@@ -396,6 +398,8 @@ for iSub = start_sub:nSub
         for jROI = 1:nSess
             Y = [Y; VOI.sess(jROI).Y];
         end       
+        
+        beta = [];
 
         switch tmfc.defaults.parallel
             case 0  % Sequential
