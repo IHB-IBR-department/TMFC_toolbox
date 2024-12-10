@@ -167,7 +167,7 @@ for iSub = start_sub:nSub
     batch{iSub} = matlabbatch;
     batch_2{iSub} = matlabbatch_2;
 
-    clear matlabbatch SPM; 
+    clear matlabbatch matlabbatch_2 SPM; 
 end
 
 % Sequential or parallel computing
