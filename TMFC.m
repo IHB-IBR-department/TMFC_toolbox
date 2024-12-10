@@ -897,9 +897,9 @@ function LSS_GLM_GUI(~,~,~)
             end
             clear SPM trial nTrial
         end
-        try
-            delete(w)
-        end
+    end
+    try
+        delete(w)
     end
 
     % Update main TMFC GUI
@@ -1443,9 +1443,9 @@ function LSS_FIR_GUI(~,~,~)
             end
             clear SPM trial nTrial
         end
-        try
-            delete(w)
-        end
+    end
+    try
+        delete(w)
     end
 
     % Update main TMFC GUI
