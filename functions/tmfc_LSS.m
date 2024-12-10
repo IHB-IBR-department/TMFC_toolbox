@@ -251,9 +251,9 @@ for iSub = start_sub:nSub
                 matlabbatch{1}.spm.stats.fmri_spec.cvi = 'FAST';
             end
 
-            matlabbatch_2{2}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat')};
-            matlabbatch_2{2}.spm.stats.fmri_est.write_residuals = 0;
-            matlabbatch_2{2}.spm.stats.fmri_est.method.Classical = 1;
+            matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat')};
+            matlabbatch_2{1}.spm.stats.fmri_est.write_residuals = 0;
+            matlabbatch_2{1}.spm.stats.fmri_est.method.Classical = 1;
 
             batch{kTrial} = matlabbatch;
             batch_2{kTrial} = matlabbatch_2;
