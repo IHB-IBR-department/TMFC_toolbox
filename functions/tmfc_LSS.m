@@ -123,6 +123,15 @@ end
 for iSub = start_sub:nSub
     tic
     SPM = load(tmfc.subjects(iSub).path);
+
+    % Check if SPM.mat has concatenated sessions 
+    % (if spm_fmri_concatenate.m sript was used)
+    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2)
+        SPM_concat(iSub) = 0;
+    else
+        SPM_concat(iSub) = 1;
+    end
+    concat(iSub).scans = SPM.SPM.nscan;
     
     if isdir(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')]))
         rmdir(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')]),'s');
@@ -180,8 +189,14 @@ for iSub = start_sub:nSub
             matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t0 = SPM.SPM.xBF.T0;
                         
             % Functional images
-            for image = 1:SPM.SPM.nscan(sess_num(jSess))
-                matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(jSess)).row(image)).fname;
+            if SPM_concat(iSub) == 0
+                for image = 1:SPM.SPM.nscan(sess_num(jSess))
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(jSess)).row(image)).fname;
+                end
+            else
+                for image = 1:size(SPM.SPM.xY.VY,1)
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(image)).fname;
+                end
             end
     
             % Current trial vs all other trials (of interest and no interrest)
@@ -236,12 +251,13 @@ for iSub = start_sub:nSub
                 matlabbatch{1}.spm.stats.fmri_spec.cvi = 'FAST';
             end
 
-            matlabbatch{2}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat')};
-            matlabbatch{2}.spm.stats.fmri_est.write_residuals = 0;
-            matlabbatch{2}.spm.stats.fmri_est.method.Classical = 1;
+            matlabbatch_2{2}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat')};
+            matlabbatch_2{2}.spm.stats.fmri_est.write_residuals = 0;
+            matlabbatch_2{2}.spm.stats.fmri_est.method.Classical = 1;
 
             batch{kTrial} = matlabbatch;
-            clear matlabbatch current* other*
+            batch_2{kTrial} = matlabbatch_2;
+            clear matlabbatch matlabbatch_2 current* other*
         end
          
         % Sequential or parallel computing
@@ -257,6 +273,11 @@ for iSub = start_sub:nSub
                     spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
                     spm_get_defaults('stats.fmri.ufp',1);
                     spm_jobman('run',batch{kTrial});
+                    if SPM_concat(iSub) == 1
+                        spm_fmri_concatenate(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                            ['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat'),concat(iSub).scans);
+                    end
+                    spm_jobman('run', batch_2{kTrial});
 
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
@@ -284,6 +305,11 @@ for iSub = start_sub:nSub
                     spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
                     spm_get_defaults('stats.fmri.ufp',1);
                     spm_jobman('run',batch{kTrial});
+                    if SPM_concat(iSub) == 1
+                        spm_fmri_concatenate(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                            ['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat'),concat(iSub).scans);
+                    end
+                    spm_jobman('run', batch_2{kTrial});
 
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
