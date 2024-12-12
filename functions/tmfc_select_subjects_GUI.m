@@ -41,7 +41,7 @@ end
 SS_MW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.36 0.25 0.35 0.575],'MenuBar', 'none','ToolBar', 'none','color','w','CloseRequestFcn',@SS_MW_exit);
 SS_MW_S1 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundColor','red','Units', 'normalized', 'Position',[0.500 0.820 0.450 0.095],'backgroundcolor','w','FontUnits','normalized','FontSize',0.25);
 SS_MW_S2 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundColor','red','Units', 'normalized', 'Position',[0.500 0.720 0.450 0.095],'backgroundcolor','w','FontUnits','normalized','FontSize',0.25);
-SS_MW_LB1 = uicontrol(SS_MW, 'Style', 'listbox', 'String', '','Max', inf,'Units', 'normalized', 'Position',[0.033 0.250 0.920 0.490],'FontUnits','normalized','FontSize',0.045,'Value', [],'callback', @SS_LB_select);
+SS_MW_LB1 = uicontrol(SS_MW, 'Style', 'listbox', 'String', '','Max', 100000,'Units', 'normalized', 'Position',[0.033 0.250 0.920 0.490],'FontUnits','normalized','FontSize',0.045,'Value', [],'callback', @SS_LB_select);
 SS_MW_sel_sub = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select subject folders','Units', 'normalized', 'Position',[0.033 0.850 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_sub);
 SS_MW_sel_mat = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select SPM.mat file for Subject #1','Units', 'normalized', 'Position',[0.033 0.750 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_SPM_mat);
 SS_MW_add_new = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Add new subject','Units', 'normalized', 'Position',[0.033 0.14 0.300 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @add_new);
