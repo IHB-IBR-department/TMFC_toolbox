@@ -220,19 +220,22 @@ end
 %% ========================================================================
 
 % Waitbar for parallel mode
-function tmfc_parfor_waitbar(waitbarHandle,iterations,start_sub)
-    persistent count h nSub start
+function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
+    persistent count h N start t1 t2
     if nargin == 3
-        count = start_sub - 1;
+        count = firstsub - 1;
         h = waitbarHandle;
-        nSub = iterations;
-        start = tic;        
+        N = iterations;
+        start = tic;
+        t1 = 0; t2 = 0;
     else
         if isvalid(h)         
             count = count + 1;
-            time = toc(start);
-            hms = fix(mod(((nSub-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(count/nSub, h, [num2str(count/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            t1 = toc(start);
+            time = t1 - t2;
+            hms = fix(mod(((N-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
+            waitbar(count/N, h, [num2str(count/N*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            t2 = toc(start);
         end
     end
 end
