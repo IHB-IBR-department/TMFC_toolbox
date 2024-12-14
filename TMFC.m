@@ -177,6 +177,7 @@ function select_subjects_GUI(~,~,~)
             fprintf('TMFC: %d subject(s) selected.\n', size(subject_paths,1));
             set(main_GUI.TMFC_GUI_S1,'String', strcat(num2str(size(subject_paths,1)),' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);
             tmfc.project_path = project_path;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             freeze_GUI(0);
         	cd(tmfc.project_path);
     	end
@@ -214,6 +215,7 @@ function ROI_GUI(~,~,~)
             tmfc.ROI_set(1) = ROI_set;
             set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(1).set_name, ' (',num2str(length(tmfc.ROI_set(1).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]);
             tmfc = ROI_set_initializer(tmfc);
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         end
         
     else
@@ -243,6 +245,7 @@ function ROI_GUI(~,~,~)
                 disp('New ROI set selected.');
                 set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(nSet+1).set_name, ' (',num2str(length(tmfc.ROI_set(nSet+1).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]);
                 tmfc = ROI_set_initializer(tmfc);
+                save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
                 set(main_GUI.TMFC_GUI_S3,'String', 'Not done', 'ForegroundColor', [0.773, 0.353, 0.067]);
                 set(main_GUI.TMFC_GUI_S4,'String', 'Not done', 'ForegroundColor', [0.773, 0.353, 0.067]);
             end
@@ -259,6 +262,8 @@ function ROI_GUI(~,~,~)
             disp('No new ROI set selected.');
         end
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
     
     % Unfreeze main TMFC GUI
     freeze_GUI(0);   
@@ -395,6 +400,7 @@ function VOI_GUI(~,~,~)
                 tmfc = reset_gPPI(tmfc);
             end
             tmfc.ROI_set(tmfc.ROI_set_number).gPPI.conditions = gPPI_conditions;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('Conditions of interest selected.');
         else
             disp('Conditions of interest not selected.');
@@ -415,6 +421,8 @@ function VOI_GUI(~,~,~)
         freeze_GUI(0);
         error('Error: Calculate VOIs for all subjects.');
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);     
@@ -536,6 +544,8 @@ function PPI_GUI(~,~,~)
         end
     end
 
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
+
     % Unfreeze main TMFC GUI
     freeze_GUI(0);  
 end
@@ -637,6 +647,7 @@ function gPPI_GUI(~,~,~)
                     seed2vox_or_ROI2ROI(tmfc,iCon,1);
                 end
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         catch
             freeze_GUI(0);       
             error('Error: Calculate new contrasts.');
@@ -668,12 +679,15 @@ function gPPI_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI(iCon).title = contrasts(iCon).title;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI(iCon).weights = contrasts(iCon).weights;
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('gPPI computation completed.');
         catch
             freeze_GUI(0);
         	error('Error: Calculate gPPI for all subjects.');
         end 
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);   
@@ -762,6 +776,7 @@ function gPPI_FIR_GUI(~,~,~)
         if ~isnan(FIR_window) || ~isnan(FIR_bins)
             tmfc.ROI_set(tmfc.ROI_set_number).gPPI_FIR.window = FIR_window;
             tmfc.ROI_set(tmfc.ROI_set_number).gPPI_FIR.bins = FIR_bins;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         else
             warning('Define the window length and number of time bins for gPPI-FIR regression.');
             freeze_GUI(0);
@@ -787,6 +802,7 @@ function gPPI_FIR_GUI(~,~,~)
                     seed2vox_or_ROI2ROI(tmfc,iCon,2);
                 end
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         catch
             freeze_GUI(0);       
             error('Error: Calculate new contrasts.');
@@ -818,12 +834,15 @@ function gPPI_FIR_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR(iCon).title = contrasts(iCon).title;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR(iCon).weights = contrasts(iCon).weights;
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('gPPI-FIR computation completed.');
         catch
             freeze_GUI(0);
             error('Error: Calculate gPPI-FIR for all subjects.');
         end 
     end 
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);    
@@ -983,6 +1002,7 @@ function LSS_GLM_GUI(~,~,~)
                 tmfc = reset_LSS(tmfc);
             end
             tmfc.LSS.conditions = LSS_conditions;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('Conditions of interest selected.');
         else
             warning('Conditions of interest not selected.');
@@ -998,11 +1018,14 @@ function LSS_GLM_GUI(~,~,~)
         for iSub = start_sub:nSub
             tmfc.subjects(iSub).LSS = sub_check(iSub);
         end
+        save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('LSS computation completed.');
     catch
         freeze_GUI(0);
         error('Error: Calculate LSS for all subjects.');
     end
+    
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);        
@@ -1074,6 +1097,7 @@ function BSC_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCon).title = contrasts(iCon).title;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCon).weights = contrasts(iCon).weights;
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS computation completed.');
         catch
             freeze_GUI(0);
@@ -1094,7 +1118,8 @@ function BSC_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).title = cond_list(iCond).file_name;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).weights = zeros(1,nCond);
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC(iCond).weights(1,iCond) = 1;
-            end            
+            end   
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         end
         
         % Number of previously calculated contrasts
@@ -1110,6 +1135,7 @@ function BSC_GUI(~,~,~)
                     seed2vox_or_ROI2ROI(tmfc,iCon,3);
                 end
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         catch
             freeze_GUI(0);       
             error('Error: Calculate new contrasts.');
@@ -1123,12 +1149,15 @@ function BSC_GUI(~,~,~)
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = sub_check(iSub);
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS computation completed.');
         catch
             freeze_GUI(0);
             error('Error: Recompute BSC for all subjects.');
         end
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);    
@@ -1245,6 +1274,7 @@ function FIR_GUI(~,~,~)
             end
             tmfc.FIR.window = window;
             tmfc.FIR.bins = bins;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('FIR parameters selected.');
         end
     end
@@ -1256,12 +1286,15 @@ function FIR_GUI(~,~,~)
         for iSub = start_sub:nSub
             tmfc.subjects(iSub).FIR = sub_check(iSub);
         end
+        save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('FIR computation completed.');
     catch
         freeze_GUI(0);
         error('Error: Calculate FIR GLMs for all subjects.');
     end   
- 
+    
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
+
     % Unfreeze main TMFC GUI
     freeze_GUI(0);
     
@@ -1337,6 +1370,7 @@ function BGFC_GUI(~,~,~)
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = sub_check(iSub);
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BGFC computation completed.');
         catch
             freeze_GUI(0);
@@ -1358,9 +1392,10 @@ function BGFC_GUI(~,~,~)
             if continue_BGFC == 1
                 disp('Continuing BGFC computation...');
                 sub_check = tmfc_BGFC(tmfc,tmfc.ROI_set_number,track_BGFC);
-                for i = track_BGFC:nSub
-                    tmfc.ROI_set(tmfc.ROI_set_number).subjects(i).BGFC = sub_check(i);
+                for iSub = track_BGFC:nSub
+                    tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BGFC = sub_check(iSub);
                 end
+                save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
                 disp('BGFC computation completed.');
             else
                 warning('BGFC computation not initiated.');
@@ -1369,7 +1404,9 @@ function BGFC_GUI(~,~,~)
             freeze_GUI(0);
         	error('Error: Continue BGFC computation.');
         end
-    end          
+    end 
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);    
@@ -1529,6 +1566,7 @@ function LSS_FIR_GUI(~,~,~)
                 tmfc = reset_LSS_after_FIR(tmfc);
             end
             tmfc.LSS_after_FIR.conditions = LSS_after_FIR_conditions;
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('Conditions of interest selected.');
         else
             warning('Conditions of interest not selected.');
@@ -1544,11 +1582,14 @@ function LSS_FIR_GUI(~,~,~)
         for iSub = start_sub:nSub
             tmfc.subjects(iSub).LSS_after_FIR = sub_check(iSub);
         end
+        save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('LSS after FIR computation completed.');
     catch
         freeze_GUI(0);
         error('Error: Calculate LSS after FIR for all subjects.');
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);        
@@ -1621,6 +1662,7 @@ function BSC_after_FIR_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCon).title = contrasts(iCon).title;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCon).weights = contrasts(iCon).weights;
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS after FIR computation completed.');
         catch
             freeze_GUI(0);
@@ -1641,7 +1683,8 @@ function BSC_after_FIR_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).title = cond_list(iCond).file_name;
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).weights = zeros(1,nCond);
                 tmfc.ROI_set(tmfc.ROI_set_number).contrasts.BSC_after_FIR(iCond).weights(1,iCond) = 1;
-            end            
+            end 
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         end
         
         % Number of previously calculated contrasts
@@ -1657,6 +1700,7 @@ function BSC_after_FIR_GUI(~,~,~)
                     seed2vox_or_ROI2ROI(tmfc,iCon,4);
                 end
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         catch
             freeze_GUI(0);       
             error('Error: Calculate new contrasts.');
@@ -1668,14 +1712,17 @@ function BSC_after_FIR_GUI(~,~,~)
         try
             sub_check = tmfc_BSC_after_FIR(tmfc,tmfc.ROI_set_number);
             for iSub = 1:nSub
-                tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = sub_check(i);
+                tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = sub_check(iSub);
             end
+            save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS after FIR computation completed.');
         catch
             freeze_GUI(0);
             error('Error: Recompute BSC after FIR for all subjects.');
         end
     end
+
+    save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
 
     % Unfreeze main TMFC GUI
     freeze_GUI(0);
