@@ -64,7 +64,10 @@ end
 function [ROI_set] = ROI_set_generation(ROI_set_name)
     
     ROI_set.set_name = ROI_set_name;
-    
+    SPM = load(tmfc.subjects(1).path);
+    XYZ  = SPM.SPM.xVol.XYZ;
+    XYZmm = SPM.SPM.xVol.M(1:3,:)*[XYZ; ones(1,size(XYZ,2))];
+
     % Select ROIs
     try
         [ROI_paths] = spm_select(inf,'any','Select ROI masks',{},pwd);
@@ -149,8 +152,16 @@ function [ROI_set] = ROI_set_generation(ROI_set_name)
         % Calculate ROI size after masking
         w = waitbar(0,'Please wait...','Name','Calculating masked ROI sizes');
         for iROI = 1:nROI
-            ROI_set.ROIs(iROI).masked_size = nnz(spm_read_vols(spm_vol(ROI_set.ROIs(iROI).path_masked)));
+            binary_mask = [];
+            coord = [];
+            binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked,'xyz',XYZ);
+            ROI_set.ROIs(iROI).masked_size = nnz(binary_mask);
             ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
+            % Calculate centroid coordinates
+            coord = XYZmm(:,(binary_mask ~= 0));
+            ROI_set.ROIs(iROI).X = mean(coord(1,:));
+            ROI_set.ROIs(iROI).Y = mean(coord(2,:));
+            ROI_set.ROIs(iROI).Z = mean(coord(3,:));
             try
                 waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
             end
