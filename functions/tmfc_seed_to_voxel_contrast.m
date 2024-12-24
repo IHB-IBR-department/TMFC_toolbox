@@ -90,7 +90,11 @@ hdr.dt = SPM.SPM.Vbeta(1).dt;
 hdr.pinfo = SPM.SPM.Vbeta(1).pinfo;
 hdr.mat = SPM.SPM.Vbeta(1).mat;
 
-w = waitbar(0,'Please wait...','Name','Compute contrasts');
+w = waitbar(0,'Please wait...','Name','Compute seed-to-voxel contrasts');
+start_time = tic;
+count_sub = 1;
+cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+
 nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 nCon = length(contrast_number);
@@ -99,7 +103,6 @@ switch type
     %================================gPPI==================================
     case 1
         for iSub = 1:nSub
-            tic
             % Load default contrasts for conditions of interest
             cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
             for jCond = 1:length(cond_list)
@@ -114,30 +117,44 @@ switch type
                     tmfc.defaults.analysis = analysis;
                 end
                 
-                for kROI = 1:nROI
-                    images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
-                        'gPPI','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'gPPI','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
+                    case 1  % Parallel
+                        try
+                            parpool;
+                            figure(findobj('Tag','TMFC_GUI'));
+                        end
+                        parfor kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'gPPI','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
                 end
             end
             % Calculate and save contrasts
             for jCon = 1:nCon
-                for kROI = 1:nROI
-                    contrast = tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).weights*images(kROI).seed;
-
-                    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI', ...
-                        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
-                        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title,' ','_') '].nii']);
-                    hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title];    
-                    image = NaN(SPM.SPM.xVol.DIM');
-                    image(iXYZ) = contrast;
-                    spm_write_vol(hdr,image);
-                    clear contrast
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            tmfc_gPPI_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
+                    case 1  % Parallel
+                        parfor kROI = 1:nROI
+                            tmfc_gPPI_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
                 end
             end
             % Update waitbar
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
             end       
@@ -148,7 +165,6 @@ switch type
     %=============================gPPI-FIR=================================
     case 2
         for iSub = 1:nSub
-            tic
             % Load default contrasts for conditions of interest
             cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
             for jCond = 1:length(cond_list)
@@ -163,33 +179,47 @@ switch type
                     tmfc.defaults.analysis = analysis;
                 end
                 
-                for kROI = 1:nROI
-                    images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
-                        'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
+                    case 1  % Parallel
+                        try
+                            parpool;
+                            figure(findobj('Tag','TMFC_GUI'));
+                        end
+                        parfor kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
                 end
             end
             % Calculate and save contrasts
             for jCon = 1:nCon
-                for kROI = 1:nROI
-                    contrast = tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).weights*images(kROI).seed;
-
-                    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR', ...
-                        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
-                        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
-                    hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title];    
-                    image = NaN(SPM.SPM.xVol.DIM');
-                    image(iXYZ) = contrast;
-                    spm_write_vol(hdr,image);
-                    clear contrast
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            tmfc_gPPI_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
+                    case 1  % Parallel
+                        parfor kROI = 1:nROI
+                            tmfc_gPPI_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
                 end
             end
             % Update waitbar
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            end       
+            end          
             sub_check(iSub) = 1;
             clear images
         end
@@ -197,7 +227,6 @@ switch type
     %===============================BSC-LSS================================
     case 3
         for iSub = 1:nSub
-            tic
             % Load default contrasts for conditions of interest
             cond_list = tmfc.LSS.conditions;
             for jCond = 1:length(cond_list)
@@ -212,33 +241,47 @@ switch type
                     tmfc.defaults.analysis = analysis;
                 end
                 
-                for kROI = 1:nROI
-                    images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
-                        'BSC_LSS','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'BSC_LSS','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
+                    case 1  % Parallel
+                        try
+                            parpool;
+                            figure(findobj('Tag','TMFC_GUI'));
+                        end
+                        for kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'BSC_LSS','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
                 end
             end
             % Calculate and save contrasts
             for jCon = 1:nCon
-                for kROI = 1:nROI
-                    contrast = tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).weights*images(kROI).seed;
-
-                    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS', ...
-                        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
-                        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title,' ','_') '].nii']);
-                    hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title];    
-                    image = NaN(SPM.SPM.xVol.DIM');
-                    image(iXYZ) = contrast;
-                    spm_write_vol(hdr,image);
-                    clear contrast
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            tmfc_BSC_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
+                    case 1  % Parallel
+                        parfor kROI = 1:nROI
+                            tmfc_BSC_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
                 end
             end
             % Update waitbar
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            end       
+            end         
             sub_check(iSub) = 1;
             clear images
         end
@@ -246,7 +289,6 @@ switch type
     %==========================BSC-LSS after FIR===========================
     case 4
         for iSub = 1:nSub
-            tic
             % Load default contrasts for conditions of interest
             cond_list = tmfc.LSS_after_FIR.conditions;
             for jCond = 1:length(cond_list)
@@ -261,33 +303,47 @@ switch type
                     tmfc.defaults.analysis = analysis;
                 end
                 
-                for kROI = 1:nROI
-                    images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
-                        'BSC_LSS_after_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'BSC_LSS_after_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
+                    case 1  % Parallel
+                        try
+                            parpool;
+                            figure(findobj('Tag','TMFC_GUI'));
+                        end
+                        parfor kROI = 1:nROI
+                            images(kROI).seed(jCond,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name, ...
+                                'BSC_LSS_after_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+                                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii'])),'xyz',XYZ);
+                        end
                 end
             end
             % Calculate and save contrasts
             for jCon = 1:nCon
-                for kROI = 1:nROI
-                    contrast = tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).weights*images(kROI).seed;
-
-                    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR', ...
-                        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
-                        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
-                    hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title];    
-                    image = NaN(SPM.SPM.xVol.DIM');
-                    image(iXYZ) = contrast;
-                    spm_write_vol(hdr,image);
-                    clear contrast
+                switch tmfc.defaults.parallel
+                    case 0  % Sequential
+                        for kROI = 1:nROI
+                            tmfc_BSC_after_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
+                    case 1  % Parallel
+                        parfor kROI = 1:nROI
+                            tmfc_BSC_after_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ);
+                        end
                 end
             end
             % Update waitbar
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            end       
+            end         
             sub_check(iSub) = 1;
             clear images
         end
@@ -296,4 +352,66 @@ end
 % Close waitbar
 try
     delete(w)
+end
+
+function unfreeze_after_ctrl_c()    
+    try
+        delete(findall(0,'type','figure','Tag', 'tmfc_waitbar'));
+        GUI = guidata(findobj('Tag','TMFC_GUI')); 
+        set([GUI.TMFC_GUI_B1, GUI.TMFC_GUI_B2, GUI.TMFC_GUI_B3, GUI.TMFC_GUI_B4,...
+           GUI.TMFC_GUI_B5a, GUI.TMFC_GUI_B5b, GUI.TMFC_GUI_B6, GUI.TMFC_GUI_B7,...
+           GUI.TMFC_GUI_B8, GUI.TMFC_GUI_B9, GUI.TMFC_GUI_B10, GUI.TMFC_GUI_B11,...
+           GUI.TMFC_GUI_B12a,GUI.TMFC_GUI_B12b,GUI.TMFC_GUI_B13a,GUI.TMFC_GUI_B13b,...
+           GUI.TMFC_GUI_B14a, GUI.TMFC_GUI_B14b], 'Enable', 'on');
+    end 
+end
+end
+
+%% ========================================================================
+
+function tmfc_gPPI_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ)
+    contrast = tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).weights*images(kROI).seed;
+    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI', ...
+        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
+        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title,' ','_') '].nii']);
+    hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title];    
+    image = NaN(SPM.SPM.xVol.DIM');
+    image(iXYZ) = contrast;
+    spm_write_vol(hdr,image);
+end
+
+function tmfc_gPPI_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ)
+    contrast = tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).weights*images(kROI).seed;
+    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR', ...
+        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
+        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
+    hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title];    
+    image = NaN(SPM.SPM.xVol.DIM');
+    image(iXYZ) = contrast;
+    spm_write_vol(hdr,image);
+end
+
+function tmfc_BSC_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ)
+    contrast = tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).weights*images(kROI).seed;
+    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS', ...
+        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
+        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title,' ','_') '].nii']);
+    hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title];    
+    image = NaN(SPM.SPM.xVol.DIM');
+    image(iXYZ) = contrast;
+    spm_write_vol(hdr,image);    
+end
+
+function tmfc_BSC_after_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,hdr,iSub,SPM,iXYZ)
+    contrast = tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).weights*images(kROI).seed;
+    hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR', ...
+        'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
+        ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
+        regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
+    hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title];    
+    image = NaN(SPM.SPM.xVol.DIM');
+    image(iXYZ) = contrast;
 end

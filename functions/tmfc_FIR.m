@@ -175,14 +175,14 @@ switch tmfc.defaults.parallel
     % ----------------------- Sequential Computing ------------------------
     case 0
 
-        % Creation of Waitbar Figure
-        w = waitbar(0,'Please wait...','Name','FIR task regression','Tag', 'tmfc_waitbar');                                   
+        % Initialize waitbar
+        w = waitbar(0,'Please wait...','Name','FIR task regression','Tag', 'tmfc_waitbar');
+        start_time = tic;
+        count_sub = 1;
         cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
         
         % Sequential computing
-        for iSub = start_sub:nSub   
-            tic
-            
+        for iSub = start_sub:nSub              
             spm('defaults','fmri');
             spm_jobman('initcfg');
             spm_get_defaults('cmdline',true);
@@ -204,7 +204,11 @@ switch tmfc.defaults.parallel
             end
 
             % Update waitbar
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
             try
                 waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
             end
@@ -234,14 +238,13 @@ switch tmfc.defaults.parallel
         end
         
         cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
-        
-        disp('Processing... please wait');
 
-        try % Bring TMFC main window to the front 
+        % Parallel Loop
+        try
+            parpool;
             figure(findobj('Tag','TMFC_GUI'));
         end
 
-        % Parallel Loop
         parfor iSub = start_sub:nSub
             spm('defaults','fmri');
             spm_jobman('initcfg');
@@ -297,21 +300,22 @@ end
 
 % Waitbar for parallel mode
 function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
-    persistent count h N start t1 t2
+    persistent w nSub start_sub start_time count_sub 
     if nargin == 3
-        count = firstsub - 1;
-        h = waitbarHandle;
-        N = iterations;
-        start = tic;
-        t1 = 0; t2 = 0;
+        w = waitbarHandle;
+        nSub = iterations;
+        start_sub = firstsub - 1;
+        start_time = tic;
+        count_sub = 1;
     else
-        if isvalid(h)         
-            count = count + 1;
-            t1 = toc(start);
-            time = t1 - t2;
-            hms = fix(mod(((N-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(count/N, h, [num2str(count/N*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            t2 = toc(start);
+        if isvalid(w)         
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            iSub = start_sub + count_sub;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+            waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            count_sub = count_sub + 1;
         end
     end
 end

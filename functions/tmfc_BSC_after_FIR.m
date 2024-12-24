@@ -1,4 +1,4 @@
-function [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number)
+function [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number,clear_BSC)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
@@ -145,11 +145,98 @@ try
     delete(w)
 end
 
-% Extract and correlate mean beta series from ROIs
-w = waitbar(0,'Please wait...','Name','Extract and correlate mean beta series');
+% Sequential or parallel computing
+switch tmfc.defaults.parallel
+    % ----------------------- Sequential Computing ------------------------
+    case 0
 
-for iSub = 1:nSub
-    tic
+        % Create waitbar
+        w = waitbar(0,'Please wait...','Name','Extract and correlate beta series','Tag','tmfc_waitbar');
+        start_time = tic;
+        count_sub = 1;
+        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);  
+
+        for iSub = 1:nSub
+            tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub);
+            sub_check(iSub) = 1;
+
+            % Update waitbar
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            count_sub = count_sub + 1;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+            try
+                waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            end
+        end
+
+    % ------------------------ Parallel Computing -------------------------
+    case 1
+        
+        % Create waitbar
+        try   % Waitbar for MATLAB R2017a and higher
+            D = parallel.pool.DataQueue;            
+            w = waitbar(0,'Please wait...','Name','Extract and correlate beta series','Tag','tmfc_waitbar');
+            afterEach(D, @tmfc_parfor_waitbar);    
+            tmfc_parfor_waitbar(w,nSub,1);     
+        catch % No waitbar for MATLAB R2016b and earlier
+            opts = struct('WindowStyle','non-modal','Interpreter','tex');
+            w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
+                'Please wait until all computations are completed.',[],...
+                'If you want to interrupt computations:',...
+                '   1) Do not close this window;',...
+                '   2) Select MATLAB main window;',...
+                '   3) Press Ctrl+C.'},'Please wait...',opts);
+        end
+        
+        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+        
+        try
+            parpool;
+            figure(findobj('Tag','TMFC_GUI'));
+        end
+
+        parfor iSub = 1:nSub
+            tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub);
+            sub_check(iSub) = 1;
+
+            % Update waitbar 
+            try
+                send(D,[]); 
+            end
+        end    
+end
+
+% Default contrasts info
+for iCond = 1:nCond
+    contrasts(iCond).title = cond_list(iCond).file_name;
+    contrasts(iCond).weights = zeros(1,nCond);
+    contrasts(iCond).weights(1,iCond) = 1;
+end
+
+% Close waitbar
+try
+    delete(w)
+end
+
+function unfreeze_after_ctrl_c()    
+    try
+        delete(findall(0,'type','figure','Tag', 'tmfc_waitbar'));
+        GUI = guidata(findobj('Tag','TMFC_GUI')); 
+        set([GUI.TMFC_GUI_B1, GUI.TMFC_GUI_B2, GUI.TMFC_GUI_B3, GUI.TMFC_GUI_B4,...
+           GUI.TMFC_GUI_B5a, GUI.TMFC_GUI_B5b, GUI.TMFC_GUI_B6, GUI.TMFC_GUI_B7,...
+           GUI.TMFC_GUI_B8, GUI.TMFC_GUI_B9, GUI.TMFC_GUI_B10, GUI.TMFC_GUI_B11,...
+           GUI.TMFC_GUI_B12a,GUI.TMFC_GUI_B12b,GUI.TMFC_GUI_B13a,GUI.TMFC_GUI_B13b,...
+           GUI.TMFC_GUI_B14a, GUI.TMFC_GUI_B14b], 'Enable', 'on');
+    end
+end
+end
+
+%% ========================================================================
+
+% Extract and correlate betas
+function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub)
     SPM = load(tmfc.subjects(iSub).path); 
 
     % Number of trials per condition
@@ -162,13 +249,14 @@ for iSub = 1:nSub
     for jCond = 1:nCond
 
         % Extract mean beta series from ROIs
+        disp(['Extracting mean beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
         for kTrial = 1:nTrialCond(jCond)
             betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
                 ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
             for kROI = 1:nROI
                 beta_series(jCond).ROI_mean(kTrial,kROI) = nanmean(ROIs(kROI).mask.*betas(kTrial,:));
             end
-        end      
+        end
 
         % ROI-to-ROI correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
@@ -208,29 +296,31 @@ for iSub = 1:nSub
     % Save mean beta-series
     save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','Beta_series', ...
         ['Subject_' num2str(iSub,'%04.f') '_beta_series.mat']),'beta_series');
+end
 
-    % Update waitbar
-    hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
-    try
-        waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+% Waitbar for parallel mode
+function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
+    persistent w nSub start_sub start_time count_sub 
+    if nargin == 3
+        w = waitbarHandle;
+        nSub = iterations;
+        start_sub = firstsub - 1;
+        start_time = tic;
+        count_sub = 1;
+    else
+        if isvalid(w)         
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            iSub = start_sub + count_sub;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+            waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            count_sub = count_sub + 1;
+        end
     end
-
-    sub_check(iSub) = 1;
-
-    clear beta_series E_C SPM
 end
 
-% Default contrasts info
-for iCond = 1:nCond
-    contrasts(iCond).title = cond_list(iCond).file_name;
-    contrasts(iCond).weights = zeros(1,nCond);
-    contrasts(iCond).weights(1,iCond) = 1;
-end
 
-% Close waitbar
-try
-    delete(w)
-end
 
 
            

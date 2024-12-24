@@ -1425,6 +1425,10 @@ function LSS_FIR_GUI(~,~,~)
         error('SPM.mat file for the first subject does not exist.')
     elseif ~isfield(tmfc,'project_path')
         error('Select TMFC project folder.');
+    elseif ~isfield(tmfc.subjects,'FIR')
+        warning('Calculate FIR task regression.'); return;
+    elseif any([tmfc.subjects(:).FIR]) == 0 
+        error('Calculate FIR task regression for all subjects.');
     end
 
     % Freeze main TMFC GUI

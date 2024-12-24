@@ -115,37 +115,14 @@ end
 sess_num = unique(sess);
 nSess = length(sess_num);
 
-% Initialize waitbar for sequential or parallel computations
-switch tmfc.defaults.parallel
-    case 0    % Sequential
-        w = waitbar(0,'Please wait...','Name','LSS regression after FIR','Tag','tmfc_waitbar');
-        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
-    case 1    % Parallel 
-        try   % Waitbar for MATLAB R2017a and higher
-            D = parallel.pool.DataQueue;            
-            w = waitbar(0,'Please wait...','Name','LSS regression after FIR','Tag','tmfc_waitbar');
-            afterEach(D, @tmfc_parfor_waitbar);     
-            tmfc_parfor_waitbar(w,nSub,start_sub);     
-        catch % No waitbar for MATLAB R2016b and earlier
-            opts = struct('WindowStyle','non-modal','Interpreter','tex');
-            w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
-                'Please wait until all computations are completed.',[],...
-                'If you want to interrupt computations:',...
-                '   1) Do not close this window;',...
-                '   2) Select MATLAB main window;',...
-                '   3) Press Ctrl+C.'},'Please wait...',opts);
-        end
-        
-        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
-        
-        try   % Bring TMFC main window to the front 
-            figure(findobj('Tag','TMFC_GUI'));
-        end
-end
+% Initialize waitbar
+w = waitbar(0,'Please wait...','Name','LSS regression after FIR','Tag','tmfc_waitbar');
+start_time = tic;
+count_sub = 1;
+cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
 % Loop through subjects
 for iSub = start_sub:nSub
-    tic   
     SPM = load(tmfc.subjects(iSub).path);
 
     % Check if SPM.mat has concatenated sessions 
@@ -315,6 +292,11 @@ for iSub = start_sub:nSub
                 end
             % --------------------- Parallel Computing ------------------------        
             case 1
+                try
+                    parpool;
+                    figure(findobj('Tag','TMFC_GUI'));
+                end
+
                 parfor kTrial = 1:nTrial
                     % Specify LSS GLM
                     spm('defaults','fmri');
@@ -374,17 +356,14 @@ for iSub = start_sub:nSub
         set(main_GUI.TMFC_GUI_S10,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);    
     end
     
-    % Update waitbar for sequential or parallel computing
-    switch(tmfc.defaults.parallel)
-        case 0  % Sequential
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
-            try
-            	waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            end           
-        case 1  % Parallel
-            try 
-                send(D,[]); 
-            end
+    % Update waitbar
+    elapsed_time = toc(start_time);
+    time_per_sub = elapsed_time/count_sub;
+    count_sub = count_sub + 1;
+    time_remaining = (nSub-iSub)*time_per_sub;
+    hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+    try
+        waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
     end
 
     clear SPM batch
@@ -419,25 +398,4 @@ end
 % Save SPM.mat files in parallel mode
 function tmfc_parsave_SPM(fname,SPM)
 	save(fname, 'SPM')
-end
-
-% Waitbar for parallel mode
-function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
-    persistent count h N start t1 t2
-    if nargin == 3
-        count = firstsub - 1;
-        h = waitbarHandle;
-        N = iterations;
-        start = tic;
-        t1 = 0; t2 = 0;
-    else
-        if isvalid(h)         
-            count = count + 1;
-            t1 = toc(start);
-            time = t1 - t2;
-            hms = fix(mod(((N-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(count/N, h, [num2str(count/N*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            t2 = toc(start);
-        end
-    end
 end

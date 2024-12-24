@@ -111,33 +111,11 @@ for iSess = 1:nSess
     PPI_sess = [PPI_sess, iSess*ones(1,sum(sess == sess_num(iSess)))];
 end
 
-% Initialize waitbar for sequential or parallel computations
-switch tmfc.defaults.parallel
-    case 0    % Sequential
-        w = waitbar(0,'Please wait...','Name','gPPI-FIR GLM estimation','Tag', 'tmfc_waitbar');
-        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
-    case 1    % Parallel
-        try   % Waitbar for MATLAB R2017a and higher
-            D = parallel.pool.DataQueue;             
-            w = waitbar(0,'Please wait...','Name','gPPI-FIR GLM estimation','Tag','tmfc_waitbar');
-            afterEach(D, @tmfc_parfor_waitbar);     
-            tmfc_parfor_waitbar(w,nSub,start_sub);     
-        catch % No waitbar for MATLAB R2016b and earlie
-            opts = struct('WindowStyle','non-modal','Interpreter','tex');
-            w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
-                'Please wait until all computations are completed.',[],...
-                'If you want to interrupt computations:',...
-                '   1) Do not close this window;',...
-                '   2) Select MATLAB main window;',...
-                '   3) Press Ctrl+C.'},'Please wait...',opts);
-        end
-        
-        cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
-        
-        try   % Bring TMFC main window to the front 
-            figure(findobj('Tag','TMFC_GUI'));
-        end
-end
+% Initialize waitbar
+w = waitbar(0,'Please wait...','Name','gPPI-FIR GLM estimation','Tag', 'tmfc_waitbar');
+start_time = tic;
+count_sub = 1;
+cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
 if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
     if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI'))
@@ -165,7 +143,6 @@ spm_jobman('initcfg');
 
 % Loop through subjects
 for iSub = start_sub:nSub
-    tic
     %=======================[ Specify gPPI GLM ]===========================
     SPM = load(tmfc.subjects(iSub).path);
 
@@ -288,6 +265,11 @@ for iSub = start_sub:nSub
             end
             
         case 1  % Parallel
+            try
+                parpool;
+                figure(findobj('Tag','TMFC_GUI'));
+            end
+
             parfor jROI = 1:nROI
                 spm('defaults','fmri');
                 spm_jobman('initcfg');
@@ -308,7 +290,6 @@ for iSub = start_sub:nSub
     end
 
     clear batch
-    pause(0.0001)
 
     %=======================[ Estimate gPPI GLM ]==========================
     
@@ -526,19 +507,15 @@ for iSub = start_sub:nSub
     rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')]),'s');
 
     sub_check(iSub) = 1;
-    pause(0.0001)
     
     % Update waitbar
-    switch tmfc.defaults.parallel
-        case 0  % Sequential
-            hms = fix(mod(((nSub-iSub)*toc), [0, 3600, 60]) ./ [3600, 60, 1]);
-            try
-                waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            end
-        case 1  % Parallel
-            try
-                send(D,[]);
-            end
+    elapsed_time = toc(start_time);
+    time_per_sub = elapsed_time/count_sub;
+    count_sub = count_sub + 1;
+    time_remaining = (nSub-iSub)*time_per_sub;
+    hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+    try
+        waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
     end
 
     clear SPM VOI
@@ -573,26 +550,5 @@ end
 
 % Save batches in parallel mode
 function tmfc_parsave_batch(fname,matlabbatch)
-	save(fname, 'matlabbatch')
-end
-
-% Waitbar for parallel mode
-function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
-    persistent count h N start t1 t2
-    if nargin == 3
-        count = firstsub - 1;
-        h = waitbarHandle;
-        N = iterations;
-        start = tic;
-        t1 = 0; t2 = 0;
-    else
-        if isvalid(h)         
-            count = count + 1;
-            t1 = toc(start);
-            time = t1 - t2;
-            hms = fix(mod(((N-count)*time), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(count/N, h, [num2str(count/N*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            t2 = toc(start);
-        end
-    end
+    save(fname, 'matlabbatch')
 end
