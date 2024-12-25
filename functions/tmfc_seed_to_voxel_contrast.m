@@ -414,4 +414,5 @@ function tmfc_BSC_after_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,im
     hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title];    
     image = NaN(SPM.SPM.xVol.DIM');
     image(iXYZ) = contrast;
+    spm_write_vol(hdr,image); 
 end
