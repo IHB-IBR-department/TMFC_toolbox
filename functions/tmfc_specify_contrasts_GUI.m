@@ -60,7 +60,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
     contrast_count = 1;
     new_contrasts = {};
 
-    SC_MW = figure('Name', 'Contrast manager', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.24 0.46],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off','CloseRequestFcn', @SC_MW_exit);
+    SC_MW = figure('Name', 'Contrast manager', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.24 0.46],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @SC_MW_exit);
     SC_MW_S1  = uicontrol(SC_MW,'Style','text','String', 'Define contrasts','Units', 'normalized', 'Position',[0.270 0.93 0.450 0.05],'fontunits','normalized', 'fontSize', 0.64,'backgroundcolor','w');
 
     SC_MW_S2  = uicontrol(SC_MW,'Style','text','String', 'Existing contrasts:','Units', 'normalized', 'Position',[0.045 0.86 0.300 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.62,'backgroundcolor','w');
@@ -322,7 +322,7 @@ function [title,weights] = specify_contrast(tmfc, ROI_set_number,TMFC_analysis)
     end
 
     % SW = Specify weights
-    SW_MW = figure('Name', 'Define new contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.64 0.46 0.25 0.22],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off', 'CloseRequestFcn', @MW_exit, 'WindowStyle','modal');
+    SW_MW = figure('Name', 'Define new contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.64 0.46 0.25 0.22],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on', 'CloseRequestFcn', @MW_exit, 'WindowStyle','modal');
 
     SW_MW_S1  = uicontrol(SW_MW,'Style','text','String', 'Define contrast title and contrast weights','Units', 'normalized', 'Position',[0.2 0.875 0.600 0.08],'fontunits','normalized', 'fontSize', 0.74,'backgroundcolor','w');
     SW_MW_S2 = uicontrol(SW_MW,'Style','text','String', 'Conditions of interest:','Units', 'normalized', 'Position',[0.04 0.75 0.28 0.07],'fontunits','normalized', 'fontSize', 0.79,'HorizontalAlignment', 'left','backgroundcolor','w');

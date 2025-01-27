@@ -52,7 +52,7 @@ function [conditions] = LSS_conditions_GUI(all_cond)
     end
 
     % Creation of GUI & its elements
-    LSS_MW = figure('Name', 'LSS: Select conditions', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.45 0.25 0.22 0.56],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off','WindowStyle','modal','CloseRequestFcn', @MW_exit);
+    LSS_MW = figure('Name', 'LSS: Select conditions', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.45 0.25 0.22 0.56],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','WindowStyle','modal','CloseRequestFcn', @MW_exit);
 
     LSS_MW_S1  = uicontrol(LSS_MW,'Style','text','String', 'Select conditions of interest','Units', 'normalized', 'Position',[0.270 0.93 0.460 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
     LSS_MW_S2  = uicontrol(LSS_MW,'Style','text','String', 'All conditions:','Units', 'normalized', 'Position',[0.045 0.88 0.450 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');

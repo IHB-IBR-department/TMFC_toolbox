@@ -46,7 +46,7 @@ RES_THRES_VAL_UNI = uicontrol(RES_GUI,'Style','edit','String', '','Units', 'norm
 RES_PERM_TXT = uicontrol(RES_GUI,'Style','text','String', 'Permutations: ','Units', 'normalized', 'Position',[0.098 0.165 0.38 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
 RES_PERM_VAL = uicontrol(RES_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.169 0.2 0.04],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w','enable', 'off');
 
-% The Almighty Run
+% The Run
 RES_RUN = uicontrol(RES_GUI, 'Style', 'pushbutton', 'String', 'Run','Units', 'normalized','Position',[0.4 0.05 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36);
 
 % Callback actions
@@ -89,6 +89,8 @@ function selection_caller(data)
             file_selector(M2, matrices_2, RES_lst_2, RES_L2_CTR,'right_samp_sel');
     end
 end
+
+
 % Function to Perform selection Action
 function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
     
@@ -243,17 +245,16 @@ function remove_caller(data)
             file_remove(selection_2, M2, RES_lst_2, RES_L2_CTR,'right_samp_sel');
     end
 end
+
 % Function to perform removal of files from Lists
 function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
 
-
    if isempty(sel_var) && isempty(M_VAR)
        warning('There are no files present to remove, please select .mat files to perform Results analysis');
+       
    elseif isempty(sel_var) && ~isempty(M_VAR)
         warning('There are no selected matrices to remove from the list, please select matrices once again');
    else
-       disp(M_VAR);
-       disp(sel_var);
        M_VAR(sel_var,:) = [];
        holder = size(sel_var);
        fprintf('Number of (.mat) files removed are: %d \n', holder(2));
@@ -269,34 +270,28 @@ function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
             S = whos(matObj);
             dims = S.size;
             roi_sub = [];
-           
-            % Update ROI x Subjects, for 2D case (ROI x ROI):
-            if length(dims) == 2
-                M0_ss_size = size(M_VAR);                  % Size of selected list
-                roi_sub = [dims(1), M0_ss_size(1)];     % Store dimensions as ROI x Subjects
-                set(disp_str, 'String', strcat(num2str(roi_sub(1)), ' ROIs x',32, num2str(roi_sub(2)),' subjects'));
-                set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI 
+            subs = 0;
+            
+            % Update ROI x Subjects
+            for i = 1:length(M_VAR)
+                matObj = matfile(M_VAR{i,:});          % Extract size of each variable per iteration
+                temp = whos(matObj);
+                temp_dim = temp.size;
 
-            elseif length(dims) == 3
-            % Update ROI x Subjects, for 3D case (ROI x ROI x Subjects): 
-                subs = 0;                               % variable to store size of subs
-                for i = 1:length(M_VAR)                    % loop accross all files
-                    matObj = matfile(M_VAR{i,:});          % Extract size of each variable per iteration
-                    temp = whos(matObj);
-                    temp_dim = temp.size;
+                if length(temp_dim) == 2
+                    subs = subs + 1;
+                elseif length(temp_dim) == 3
                     subs = subs + temp.size(3);
+                else
+                    warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
                 end
 
-                roi_sub = [dims(1), subs];              % Store ROI and subjects lengths
-                set(disp_str, 'String', strcat(num2str(roi_sub(1)), ' ROIs x',32, num2str(roi_sub(2)),' subjects'));
-                set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI
+            end
 
-            else
-                % Unlikely event, if this occurs, then there is an issue
-                % with the type of files uploaded (mostly, it may not be
-                % 2D or 3D formats. 
-                warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
-            end   
+            roi_sub = [dims(1), subs];
+            set(disp_str, 'String', strcat(num2str(roi_sub(1)), ' ROIs x',32, num2str(roi_sub(2)),' subjects'));
+            set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI 
+
        end
    end
   if isempty(M_VAR)
@@ -304,18 +299,31 @@ function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
         set(disp_str, 'ForegroundColor',[0.773, 0.353, 0.067]);
   end
    
+  selection_0 = '';
+  selection_1 = '';
+  selection_2 = '';
+  
   switch (case_maker)
       
       case 'one_samp_sel'
           M0 = M_VAR;
+          if isempty(M0)
+              M0 = {};
+          end
           
       case 'left_samp_sel'
           M1 = M_VAR;
+          if isempty(M1)
+              M1 = {};
+          end
           
       case 'right_samp_sel'
           M2 = M_VAR;
+          if isempty(M2)
+              M2 = {};
+          end
   end
-   
+     
 end
 
 
