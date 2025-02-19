@@ -90,8 +90,8 @@ nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
 nCond = length(cond_list);
 sess = []; sess_num = []; nSess = [];
-for iSub = 1:nCond
-    sess(iSub) = cond_list(iSub).sess;
+for iCond = 1:nCond
+    sess(iCond) = cond_list(iCond).sess;
 end
 sess_num = unique(sess);
 nSess = length(sess_num);
@@ -114,9 +114,13 @@ for iSub = start_sub:nSub
     SPM = load(tmfc.subjects(iSub).path);
     matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
     matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_conditions_of_interest';
-    weights = zeros(nCond,size(SPM.SPM.xX.X,2));
-    for jCond = 1:nCond
-        weights(jCond,SPM.SPM.Sess(cond_list(jCond).sess).col(cond_list(jCond).number)) = 1;
+    cond_col = [];
+    for iCond = 1:length(cond_list)
+        cond_col = [cond_col SPM.SPM.Sess(cond_list(iCond).sess).col(SPM.SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).i)];
+    end 
+    weights = zeros(length(cond_col),size(SPM.SPM.xX.X,2));
+    for iCond = 1:length(cond_col)
+        weights(iCond,cond_col(iCond)) = 1;
     end
     matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
     matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';

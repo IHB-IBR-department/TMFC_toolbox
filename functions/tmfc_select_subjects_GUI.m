@@ -427,12 +427,17 @@ function [file_dir] = check_file_dir(subject_full_path)
     for iSub = 1:length(subject_full_path)
         
         SPM = load(subject_full_path{iSub});
-        
+
+        if ~isfield(SPM.SPM, 'swd')
+            error('SPM.swd field does not exist. Check SPM.mat files. Try to estimate GLM.');
+        end
+
         if exist(SPM.SPM.swd, 'dir') 
             file_dir{iSub,1} = subject_full_path{iSub};
         else
             file_no_dir{iSub,1} = subject_full_path{iSub};
         end
+
         
         clear SPM
         
