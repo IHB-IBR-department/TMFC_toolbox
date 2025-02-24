@@ -1,7 +1,7 @@
-function parallel_estimate_GLM(stat_path,sots_path,exp_folder,N,TR,model)
+function tmfc_parallel_estimate_GLM(stat_path,sots_path,exp_folder,N,TR,model)
 
 % ========================================================================
-% Ruslan Masharipov, October, 2023
+% Ruslan Masharipov, 2025
 % email: ruslan.s.masharipov@gmail.com
 % ========================================================================
 

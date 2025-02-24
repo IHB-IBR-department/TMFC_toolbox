@@ -17,6 +17,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %                          - 3 (Seed-to-voxel analysis only)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
+%   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
 %   tmfc.ROI_set.ROIs.path_masked - Paths to the ROI images masked by group
@@ -32,7 +33,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified:
+% structure must be specified (see tmfc_conditions_GUI):
 %
 %   tmfc.LSS.conditions(1).sess   = 1;   
 %   tmfc.LSS.conditions(1).number = 1; - "Cond A", 1st session
@@ -43,9 +44,10 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %   tmfc.LSS.conditions(4).sess   = 2;
 %   tmfc.LSS.conditions(4).number = 2; - "Cond B", 2nd session
 %
-% Example of the ROI set:
+% Example of the ROI set (see tmfc_select_ROIs_GUI):
 %
 %   tmfc.ROI_set(1).set_name = 'two_ROIs';
+%   tmfc.ROI_set(1).type = 'binary_images';
 %   tmfc.ROI_set(1).ROIs(1).name = 'ROI_1';
 %   tmfc.ROI_set(1).ROIs(2).name = 'ROI_2';
 %   tmfc.ROI_set(1).ROIs(1).path_masked = 'C:\ROI_set\two_ROIs\ROI_1.nii';
@@ -67,7 +69,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -131,18 +133,21 @@ hdr.pinfo = SPM.SPM.Vbeta(1).pinfo;
 hdr.mat = SPM.SPM.Vbeta(1).mat;
 
 % Loading ROIs
-w = waitbar(0,'Please wait...','Name','Loading ROIs');
-
-for iROI = 1:nROI
-    ROIs(iROI).mask = spm_data_read(spm_data_hdr_read(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked),'xyz',XYZ);
-    ROIs(iROI).mask(ROIs(iROI).mask == 0) = NaN;
-    try
-        waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
-    end
-end
-
-try
-    delete(w)
+switch tmfc.ROI_set(ROI_set_number).type
+    case {'binary_images','fixed_spheres'}
+        w = waitbar(0,'Please wait...','Name','Loading ROIs');
+        for iROI = 1:nROI
+            ROIs(iROI).mask = spm_data_read(spm_data_hdr_read(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked),'xyz',XYZ);
+            ROIs(iROI).mask(ROIs(iROI).mask == 0) = NaN;
+            try
+                waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+            end
+        end
+        try
+            delete(w)
+        end
+    otherwise
+        ROIs = [];
 end
 
 % Sequential or parallel computing
@@ -238,7 +243,15 @@ end
 % Extract and correlate betas
 function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub)
     SPM = load(tmfc.subjects(iSub).path); 
-
+    
+    % Load individual ROIs
+    if isempty(ROIs)
+        for iROI = 1:nROI
+            ROIs(iROI).mask = spm_data_read(spm_data_hdr_read(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked(iSub).subjects),'xyz',XYZ);
+            ROIs(iROI).mask(ROIs(iROI).mask == 0) = NaN;
+        end
+    end
+        
     % Number of trials per condition
     nTrialCond = [];
     for jCond = 1:nCond

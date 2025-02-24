@@ -1,7 +1,7 @@
 function tmfc_results_GUI(thresholded,pval,tval,conval,alpha,correction)
 
 if nargin == 0 % Variant 1 CLI & Variant 2 GUI 
-   file = spm_select(1,'.mat','Select folders of all subjects',{},pwd,'.');
+   file = spm_select(1,'.mat','Select TMFC results *.mat file created by TMFC statistics',{},pwd,'.');
    
    if ~isempty(file)
        loaded_path = load(file);

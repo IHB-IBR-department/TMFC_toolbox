@@ -2,7 +2,7 @@ function tmfc_statistics_GUI()
 
 %% GUI Initialization
 RES_GUI = figure('Name', 'TMFC: Results', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.45 0.25 0.22 0.56],'MenuBar', 'none','ToolBar', 'none','color','w');
-    
+movegui(RES_GUI, 'center')    
 % Initializing Elements of the UI
 RES_T1  = uicontrol(RES_GUI,'Style','text','String', 'TMFC results','Units', 'normalized', 'Position',[0.270 0.93 0.460 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w', 'FontWeight', 'bold');
 
@@ -10,13 +10,10 @@ RES_T1  = uicontrol(RES_GUI,'Style','text','String', 'TMFC results','Units', 'no
 RES_POP_1  = uicontrol(RES_GUI,'Style','popupmenu','String', {'One-sample t-test', 'Paired t-test', 'Two-sample t-test'},'Units', 'normalized', 'Position',[0.045 0.87 0.91 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
  
 % List boxes to show (.mat) file selection
-RES_lst_0 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'Units', 'normalized', 'Position',[0.045 0.56 0.91 0.300],'fontunits','normalized', 'fontSize', 0.07);
-RES_lst_1 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'Units', 'normalized', 'Position',[0.045 0.56 0.440 0.300],'fontunits','normalized', 'fontSize', 0.07,'visible','off');
-RES_lst_2 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'Units', 'normalized', 'Position',[0.52 0.56 0.440 0.300],'fontunits','normalized', 'fontSize', 0.07,'visible','off');
+RES_lst_0 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.91 0.300],'fontunits','points', 'fontSize',11);
+RES_lst_1 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.440 0.300],'fontunits','points', 'fontSize', 11,'visible','off');
+RES_lst_2 = uicontrol(RES_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.52 0.56 0.440 0.300],'fontunits','points', 'fontSize',11,'visible','off');
 
-%strcat(num2str(len_subs_A1(1))
-% orange = [0.773, 0.353, 0.067]
-% green = [0.219, 0.341, 0.137]
 % Counter of subjects selected
 RES_L0_CTR = uicontrol(RES_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.295 0.51 0.44 0.04],'fontunits','normalized', 'fontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067]);
 RES_L1_CTR = uicontrol(RES_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.045 0.51 0.44 0.04],'fontunits','normalized', 'fontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067],'visible', 'off');
@@ -40,13 +37,13 @@ RES_ALP_val  = uicontrol(RES_GUI,'Style','edit','String', '','Units', 'normalize
 
 % Type of Threshold selection Pop Up menu and conditional value
 RES_THRES_TXT = uicontrol(RES_GUI,'Style','text','String', 'Threshold type: ','Units', 'normalized', 'Position',[0.098 0.298 0.38 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w');
-RES_THRES_POP = uicontrol(RES_GUI,'Style','popupmenu','String', {'Uncorrected (Parametric)', 'FDR (Parametric)', 'Bonferroni (Parametric)', 'Uncorrected (Non-Parametric)','FDR (Non-Parametric)','NBS FWE(Non-Parametric)','NBS TFCE(Non-Parametric)'},'Units', 'normalized', 'Position',[0.358 0.295 0.6 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
+RES_THRES_POP = uicontrol(RES_GUI,'Style','popupmenu','String', {'Uncorrected (Parametric)', 'FDR (Parametric)', 'Bonferroni (Parametric)', 'Uncorrected (Non-Parametric)','FDR (Non-Parametric)','NBS FWE (Non-Parametric)','NBS TFCE (Non-Parametric)'},'Units', 'normalized', 'Position',[0.358 0.295 0.6 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
 RES_THRES_VAL_TXT = uicontrol(RES_GUI,'Style','text','String', 'Primary Threshold Value (Pval): ','Units', 'normalized', 'Position',[0.098 0.23 0.5 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
 RES_THRES_VAL_UNI = uicontrol(RES_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.234 0.2 0.04],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w', 'enable', 'off');
 RES_PERM_TXT = uicontrol(RES_GUI,'Style','text','String', 'Permutations: ','Units', 'normalized', 'Position',[0.098 0.165 0.38 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
 RES_PERM_VAL = uicontrol(RES_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.169 0.2 0.04],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w','enable', 'off');
 
-% The Run
+% Run
 RES_RUN = uicontrol(RES_GUI, 'Style', 'pushbutton', 'String', 'Run','Units', 'normalized','Position',[0.4 0.05 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36);
 
 % Callback actions
@@ -128,7 +125,7 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
             elseif multi_check(M_VAR) == 1
                 % Warning if file has MULTIPLE VARIABLES within 
                 M_VAR = {};
-                warning('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable');
+                warning('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable.');
             end 
             
         end
@@ -175,12 +172,12 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                 try
                     new_matrices = cat(3,M(:).m);
                     if size(new_matrices,1) ~= size(new_matrices,2)
-                        warning('Matrices are not square')
+                        warning('Matrices are not square.')
                         clear M 
                         new_M_VAR = {};
                     end
                 catch
-                    warning('Matrices have different dimensions')
+                    warning('Matrices have different dimensions.')
                     clear M  
                     new_M_VAR = {};
                 end
@@ -199,16 +196,16 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                     set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI       
                     clear M new_M_VAR
                 catch
-                    warning('Matrices have different number of ROIs');
+                    warning('Matrices have different number of ROIs.');
                     clear new_matrices new_M_VAR M
                 end
             
             else
-                warning('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable');
+                warning('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable.');
             end
         % If no files are selected
         else          
-           disp('No files added');          
+           disp('No files added.');          
         end
     end
     
@@ -250,10 +247,10 @@ end
 function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
 
    if isempty(sel_var) && isempty(M_VAR)
-       warning('There are no files present to remove, please select .mat files to perform Results analysis');
+       warning('There are no files present to remove, please select .mat files to perform statistical analysis.');
        
    elseif isempty(sel_var) && ~isempty(M_VAR)
-        warning('There are no selected matrices to remove from the list, please select matrices once again');
+       warning('There are no selected matrices to remove from the list, please select matrices once again.');
    else
        M_VAR(sel_var,:) = [];
        holder = size(sel_var);
@@ -283,7 +280,7 @@ function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
                 elseif length(temp_dim) == 3
                     subs = subs + temp.size(3);
                 else
-                    warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+                    warning('Error, the files must have ROI x ROI x Subjects dimensions.');
                 end
 
             end
@@ -352,7 +349,7 @@ function test_type(~,~)
     if strcmp(contender, 'Paired t-test')
         
         % If Paired T Test is selected
-        disp('Selected Test Type: Paired t-test');
+        disp('Paired t-test selected.');
         
         % Reset GUI 
         set([RES_lst_0,RES_L0_CTR],'visible', 'off');        
@@ -382,7 +379,7 @@ function test_type(~,~)
     elseif strcmp(contender, 'One-sample t-test')
         
         % If One-sample T Test is selected
-        disp('Selected Test Type: One-sample t-test');
+        disp('One-sample t-test selected.');
         
         % Reset GUI
         set([RES_lst_0,RES_L0_CTR],'visible', 'on');        
@@ -412,7 +409,7 @@ function test_type(~,~)
     elseif strcmp(contender, 'Two-sample t-test')
         
         % If Two-sample T Test is selected
-        disp('Selected Test Type: Two-sample t-test');
+        disp('Two-sample t-test selected.');
         
         % Reset GUI 
         set([RES_lst_0,RES_L0_CTR],'visible', 'off');        
@@ -448,7 +445,7 @@ function threshold_type(~,~)
     
     approach = (RES_THRES_POP.String{RES_THRES_POP.Value});
     
-    if strcmp(approach, 'Uncorrected (Parametric)') || strcmp(approach, 'FDR (Parametric)') || strcmp(approach, 'Bonferroni (Parametric)') || strcmp(approach, 'NBS FWE(Non-Parametric)') || strcmp(approach, 'NBS TFCE(Non-Parametric)') 
+    if strcmp(approach, 'Uncorrected (Parametric)') || strcmp(approach, 'FDR (Parametric)') || strcmp(approach, 'Bonferroni (Parametric)') || strcmp(approach, 'NBS FWE (Non-Parametric)') || strcmp(approach, 'NBS TFCE (Non-Parametric)') 
         set(RES_PERM_TXT, 'enable', 'off');
         set(RES_PERM_VAL, 'enable', 'off');
         set(RES_PERM_VAL, 'String', []);
@@ -462,12 +459,30 @@ function threshold_type(~,~)
         set(RES_THRES_VAL_TXT, 'enable', 'off');
         set(RES_THRES_VAL_UNI, 'enable', 'off');
         set(RES_THRES_VAL_UNI, 'String', []);
-    elseif strcmp(approach, 'NBS FWE(Non-Parametric)') || strcmp(approach, 'NBS TFCE(Non-Parametric)') 
+
+    elseif strcmp(approach, 'NBS FWE (Non-Parametric)') 
         set(RES_THRES_VAL_TXT, 'enable', 'on');
         set(RES_THRES_VAL_UNI, 'enable', 'on');
         set(RES_THRES_VAL_UNI, 'String', []);
+        set(RES_PERM_TXT, 'enable', 'on');
+        set(RES_PERM_VAL, 'enable', 'on');
+        set(RES_PERM_VAL, 'String', []);
+
+    elseif strcmp(approach, 'NBS TFCE (Non-Parametric)') 
+        set(RES_THRES_VAL_TXT, 'enable', 'off');
+        set(RES_THRES_VAL_UNI, 'enable', 'off');
+        set(RES_THRES_VAL_UNI, 'String', []);
+        set(RES_PERM_TXT, 'enable', 'on');
+        set(RES_PERM_VAL, 'enable', 'on');
+        set(RES_PERM_VAL, 'String', []);
     end
     
+    if strcmp(approach, 'Uncorrected (Non-Parametric)') || strcmp(approach, 'FDR (Non-Parametric)') || strcmp(approach, 'NBS FWE (Non-Parametric)') || strcmp(approach, 'NBS TFCE (Non-Parametric)')
+        set(RES_RUN,'enable', 'off');
+        warning('Non-parametric analysis under development. Please wait for future updates.')
+    else
+        set(RES_RUN,'enable', 'on');
+    end
     
 end
 
@@ -500,22 +515,27 @@ function run(~,~)
                     if length(M1) == length(M2)
                         % Continue with contrast & alpha
                         CA_0 = CA_controller();
+
                         if CA_0 == 1
                             TP_0 = TP_check();
+
                             if TP_0 == 1
+
                                 set([RES_L0_CTR,RES_L1_CTR], 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI 
                                 max{1} = matrices_1;
                                 max{2} = matrices_2;
+
                                 [thresholded,pval,tval,conval] = tmfc_ttest(max,str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
+
                                 if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                                    fprintf('Generating Results graph...\n');
+                                    fprintf('Generating results...\n');
                                     tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 end
                                 clear thresholded pval tval conval max;
                             end
                         end
                     else
-                        warning('The number of selected (.mat) files are inconsistent to perform Paired T Test \n Matrice(s) List 1: %d \n Matrice(s) List 2: %d \n, please select consistent number of files', length(M1), length(M2));
+                        warning('The number of matrices are inconsistent to perform Paired t-test. \nMatrice(s) for RM1: %d \nMatrice(s) for RM2: %d \nThe number of matrices for two repeated measurements must be the same.', length(M1), length(M2));
                         set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                         set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                     end
@@ -531,14 +551,14 @@ function run(~,~)
                                 max{2} = matrices_2;
                                 [thresholded,pval,tval,conval] = tmfc_ttest(max,str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                                    fprintf('Generating Results graph...\n');
+                                    fprintf('Generating results...\n');
                                     tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 end
                                 clear thresholded pval tval conval max;
                             end
                         end
                     else
-                        warning('The number of selected (.mat) files are inconsistent to perform Paired T Test \n Matrice(s) List 1: %d \n Matrice(s) List 2: %d \n, please select consistent number of files', length(M1), dims_L2(3));
+                        warning('The number of matrices are inconsistent to perform Paired t-test. \nMatrice(s) for RM1: %d \nMatrice(s) for RM2: %d \nThe number of matrices for two repeated measurements must be the same.', length(M1), dims_L2(3));
                         set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                         set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                     end
@@ -554,14 +574,14 @@ function run(~,~)
                                 max{2} = matrices_2;
                                 [thresholded,pval,tval,conval] = tmfc_ttest(max,str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                                    fprintf('Generating Results graph...\n');
+                                    fprintf('Generating results...\n');
                                     tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 end
                                 clear thresholded pval tval conval max;
                             end
                         end
                     else
-                        warning('The number of selected (.mat) files are inconsistent to perform Paired T Test \n Matrice(s) List 1: %d \n Matrice(s) List 2: %d \n, please select consistent number of files', dims_L1(3), length(M2));
+                        warning('The number of matrices are inconsistent to perform Paired t-test. \nMatrice(s) for RM1: %d \nMatrice(s) for RM2: %d \nThe number of matrices for two repeated measurements must be the same.', dims_L1(3), length(M2));
                         set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                         set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                     end
@@ -577,37 +597,37 @@ function run(~,~)
                                 max{2} = matrices_2;
                                 [thresholded,pval,tval,conval] = tmfc_ttest(max,str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                                    fprintf('Generating Results graph...\n');
+                                    fprintf('Generating results...\n');
                                     tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                                 end
                                 clear thresholded pval tval conval max;
                             end
                         end
                     else
-                        warning('The number of selected (.mat) files are inconsistent to perform Paired T Test \n Matrice(s) List 1: %d \n Matrice(s) List 2: %d \n, please select consistent number of files', dims_L1(3), dims_L2(3));
+                        warning('The number of matrices are inconsistent to perform Paired t-test. \nMatrice(s) for RM1: %d \nMatrice(s) for RM2: %d \nThe number of matrices for two repeated measurements must be the same.', dims_L1(3), dims_L2(3));
                         set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                         set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                     end
 
                 else 
-                    warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+                    warning('Error, the files must have ROI x ROI x Subjects dimensions.');
                 end
 
             else
-               warning('The number of ROI x ROIs between the selections are inconsistent, please select matrices with consistent ROIs');
+               warning('The number of ROI x ROIs between the two lists are inconsistent, please select matrices with consistent number of ROIs.');
                set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
 
             end
 
         elseif ~isempty(M1) && isempty(M2)
-            warning('Please select SECOND set of Matrices to perform Paired t-test result evaluation');
+            warning('Please select SECOND set of Matrices to perform Paired t-test.');
 
         elseif isempty(M1) && ~isempty(M2)
-            warning('Please select FIRST set of Matrices to perform Paired t-test result evaluation');
+            warning('Please select FIRST set of Matrices to perform Paired t-test.');
             
         else
-            warning('Please select matrices files to perform Paired t-test result evaulation');
+            warning('Please select matrices files to perform Paired t-test.');
         end
 
     
@@ -616,14 +636,18 @@ function run(~,~)
         if ~isempty(M0)
             
             CA_1 = CA_controller();
+
             if CA_1 == 1
                 TP_1 = TP_check();
+
                 if TP_1 == 1
+
                     set([RES_L0_CTR,RES_L1_CTR], 'ForegroundColor',[0.219, 0.341, 0.137]); % Update GUI 
+
                     [thresholded,pval,tval,conval] = tmfc_ttest(matrices_0, str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));                   
                     
                     if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                        fprintf('Generating Results graph...\n');
+                        fprintf('Generating results...\n');
                         tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                     end
                     clear thresholded pval tval conval;
@@ -631,7 +655,7 @@ function run(~,~)
             end
             
         else
-            warning('Please select matrices files to perform One-sample t-test result evaulation');
+            warning('Please select matrices files to perform One-sample t-test.');
         end
         
 
@@ -659,30 +683,30 @@ function run(~,~)
                         max{2} = matrices_2;
                         [thresholded,pval,tval,conval] = tmfc_ttest2(max,str2num(RES_CONT_val.String),eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                         if ~isempty(thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}))
-                            fprintf('Generating Results graph...\n');
+                            fprintf('Generating results...\n');
                             tmfc_results_GUI(thresholded,pval,tval,conval,eval(get(RES_ALP_val, 'String')),thresh_ttest_adapter(RES_THRES_POP.String{RES_THRES_POP.Value}));
                         end
                         clear thresholded pval tval conval max;
                     end
                 end
             else
-               warning('The number of ROI x ROIs between the selections are inconsistent, please select matrices with consistent ROIs');
+               warning('The number of ROI x ROIs between the two lists are inconsistent, please select matrices with consistent number of ROIs.');
                set(RES_L1_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
                set(RES_L2_CTR, 'ForegroundColor',[0.773, 0.353, 0.067]); % Update GUI 
             end
 
         elseif ~isempty(M1) && isempty(M2)
-            warning('Please select SECOND set of Matrices to perform Paired t-test result evaluation');
+            warning('Please select SECOND set of Matrices to perform Paired t-test.');
 
         elseif isempty(M1) && ~isempty(M2)
-            warning('Please select FIRST set of Matrices to perform Paired t-test result evaluation');
+            warning('Please select FIRST set of Matrices to perform Paired t-test.');
             
         else
-            warning('Please select matrices files to perform Paired t-test result evaulation');
+            warning('Please select matrices files to perform Paired t-test.');
         end
         
     else
-        warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+        warning('Error, the files must have ROI x ROI x Subjects dimensions.');
     end
     
 
@@ -701,36 +725,34 @@ function flag = CA_controller(~,~)
     end
     
      if isempty(G2)
-         warning('Please enter numeric values for contrasts');
+         warning('Please enter numeric values for the contrast.');
      else
          if strcmp(G1, 'Paired t-test') || strcmp(G1, 'Two-sample t-test')
              if length(G2) < 2
-                 warning('Please enter TWO contrast values for computation');
+                 warning('Please enter TWO contrast values for computation.');
              elseif length(G2) > 2
-                 warning('Number of Contrast values cannot be greater than TWO, Please re-enter contrast values for computation');
+                 warning('Number of contrast values cannot be greater than TWO, please re-enter contrast values.');
              else
                   if isnan(G3)
-                     warning('Please enter a numeric Alpha value for computation');
+                     warning('Please enter a numeric alpha value for computation.');
                   else
                     if G3 > 1 || G3 < 0
-                        warning('Please re-enter Alpha value between (0.0, 1.0]');
+                        warning('Please re-enter alpha value between [0.0, 1.0].');
                     else
-                        fprintf('\n\nContrast values [%d , %d] & Alpha value of [%d] is accepted for computation\n',G2(1, 1), G2(1,2), G3);
                         flag = 1;
                     end
                  end
             end
         elseif strcmp(G1, 'One-sample t-test')
             if length(G2) >=2
-                warning('Number of Contrast values cannot exceed ONE, Please re-enter contrast value for computation');
+                warning('Number of contrast values cannot exceed ONE, please re-enter contrast value for computation.');
             else
                  if isnan(G3)
-                    warning('Please enter Alpha value for computation');
+                    warning('Please enter alpha value for computation.');
                  else
                     if (G3 > 1) || (G3 < 0)
-                        warning('Please re-enter Alpha value between (0.0, 1.0]');
+                        warning('Please re-enter alpha value between [0.0, 1.0].');
                     else
-                        fprintf('Contrast values [%d] & Alpha value of [%d] is accepted for computation\n',G2(1,1), G3);
                         flag = 1;
                     end
                  end
@@ -751,30 +773,34 @@ function flag = TP_check(~,~)
          % Check if permutations is a number and not a floating point value
          P_1 = str2num(RES_PERM_VAL.String);
          if ~isempty(P_1) && P_1 > 0
+             warning('Non-parametric analysis under development.');
              flag = 1;
          elseif P_1 <= 0
-             warning('Please enter a Postive numeric value for Number of Permutations');
+             warning('Please enter a postive numeric value for Number of Permutations.');
          else
-             warning('Please enter a numeric value for Number of Permutations');
+             warning('Please enter a numeric value for Number of Permutations.');
          end         
          
-     elseif strcmp(approach, 'NBS FWE(Non-Parametric)') || strcmp(approach, 'NBS TFCE(Non-Parametric)') 
+     elseif strcmp(approach, 'NBS FWE (Non-Parametric)') || strcmp(approach, 'NBS TFCE (Non-Parametric)') 
          P_1 = str2num(RES_PERM_VAL.String);
          P_2 = str2double(RES_THRES_VAL_UNI.String);
          if ~isnan(P_2) && P_2 > 0 && P_2 <=1.0
-                 flag = 1;
+             warning('Non-parametric analysis under development.');
+             flag = 1;
          elseif P_2 <= 0 || P_2 > 1.0
-             warning('Please enter a Primary Threshold value between (0.0, 1.0] for computation');
+             warning('Please enter a Primary Threshold value between [0.0, 1.0] for computation.');
          else
-             warning('Please enter a Primary Threshold value for computation');
+             warning('Please enter a Primary Threshold value for computation.');
          end       
      elseif strcmp(approach, 'Uncorrected (Parametric)') || strcmp(approach, 'FDR (Parametric)') || strcmp(approach, 'Bonferroni (Parametric)' )
          flag = 1;
      end
-
 end
 
-uiwait();
+if ~isempty(findobj('Tag', 'TMFC_GUI'))
+    uiwait();
+end
+
 end
 %%
 % Function to select (.mat) files from the user via spm_select
@@ -961,7 +987,7 @@ function flag = ROI_check(C, ralpher, new_files)
                            flag = 1;
                        end
                    else
-                       warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+                       warning('Error, the files must be ROI x ROI x Subjects format & dimensions');
                    end
 
                end
@@ -1016,7 +1042,7 @@ function flag = ROI_check(C, ralpher, new_files)
                            flag = 1;
                        end
                 else
-                       warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+                       warning('Error, the files must be ROI x ROI x Subjects format & dimensions');
                 end
                 
                 
@@ -1061,7 +1087,7 @@ function flag = ROI_check(C, ralpher, new_files)
                                flag = 1;
                            end
                    else
-                       warning('Fatal Error, the files must be ROI x ROI x Subjects format & dimensions');
+                       warning('Error, the files must be ROI x ROI x Subjects format & dimensions');
                    end                     
                 end  
            end

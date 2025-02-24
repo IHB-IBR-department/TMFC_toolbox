@@ -44,7 +44,7 @@ function [sub_check] = tmfc_FIR(tmfc,start_sub)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -110,11 +110,13 @@ for iSub = start_sub:nSub
         % Functional images
         if SPM_concat(iSub) == 0
             for kImage = 1:SPM.SPM.nscan(jSess)
-                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname;
+                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = [SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname ',' ...
+                                                                                  num2str(SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).n(1))];
             end
         else
             for kImage = 1:size(SPM.SPM.xY.VY,1)
-                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname;
+                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).scans{kImage,1} = [SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).fname ',' ...
+                                                                                  num2str(SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(kImage)).n(1))];
             end
         end
         

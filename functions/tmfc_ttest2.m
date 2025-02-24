@@ -28,7 +28,7 @@ function [thresholded,pval,tval,conval] = tmfc_ttest2(matrices,contrast,alpha,co
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ switch correction
         pval = [];
         tval = [];
         conval = [];
-        warning('Work in progress. Please wait for future updates');
+        warning('Work in progress. Please wait for future updates.');
 end
 end
 

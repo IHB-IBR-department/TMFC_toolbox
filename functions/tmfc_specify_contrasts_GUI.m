@@ -16,7 +16,7 @@ function [tmfc] = tmfc_specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -65,11 +65,11 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
 
     SC_MW_S2  = uicontrol(SC_MW,'Style','text','String', 'Existing contrasts:','Units', 'normalized', 'Position',[0.045 0.86 0.300 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.62,'backgroundcolor','w');
     SC_MW_S3 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No## :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.816 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
-    SC_MW_LB1 = uicontrol(SC_MW , 'Style', 'listbox', 'String', existing_contrasts,'Value', [],'Max', 100,'Units', 'normalized', 'Position',[0.045 0.62 0.920 0.200],'fontunits','normalized', 'fontSize', 0.15,'Enable','inactive');
+    SC_MW_LB1 = uicontrol(SC_MW , 'Style', 'listbox', 'String', existing_contrasts,'Value', [],'Max', 100,'Units', 'normalized', 'Position',[0.045 0.62 0.920 0.200],'fontunits','points', 'fontSize', 11,'Enable','inactive');
 
     SC_MW_S4  = uicontrol(SC_MW,'Style','text','String', 'Add new contrasts:','Units', 'normalized', 'Position',[0.045 0.535 0.450 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.62,'backgroundcolor','w');
     SC_MW_S5 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No## :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.492 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
-    SC_MW_LB2 = uicontrol(SC_MW , 'Style', 'listbox', 'String', new_contrasts,'Value', [],'Max',100,'Units', 'normalized', 'Position',[0.045 0.26 0.920 0.230],'fontunits','normalized', 'fontSize', 0.14,'callback', @MW_LB2_select);
+    SC_MW_LB2 = uicontrol(SC_MW , 'Style', 'listbox', 'String', new_contrasts,'Value', [],'Max',100,'Units', 'normalized', 'Position',[0.045 0.26 0.920 0.230],'fontunits','points', 'fontSize', 11,'callback', @MW_LB2_select);
 
     SC_MW_add = uicontrol(SC_MW,'Style','pushbutton','String', 'Add new','Units', 'normalized','Position',[0.045 0.15 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @MW_add);
     SC_MW_rem = uicontrol(SC_MW,'Style','pushbutton','String', 'Remove selected','Units', 'normalized','Position',[0.360 0.15 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36, 'callback', @MW_remove);
@@ -325,11 +325,11 @@ function [title,weights] = specify_contrast(tmfc, ROI_set_number,TMFC_analysis)
     SW_MW = figure('Name', 'Define new contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.64 0.46 0.25 0.22],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on', 'CloseRequestFcn', @MW_exit, 'WindowStyle','modal');
 
     SW_MW_S1  = uicontrol(SW_MW,'Style','text','String', 'Define contrast title and contrast weights','Units', 'normalized', 'Position',[0.2 0.875 0.600 0.08],'fontunits','normalized', 'fontSize', 0.74,'backgroundcolor','w');
-    SW_MW_S2 = uicontrol(SW_MW,'Style','text','String', 'Conditions of interest:','Units', 'normalized', 'Position',[0.04 0.75 0.28 0.07],'fontunits','normalized', 'fontSize', 0.79,'HorizontalAlignment', 'left','backgroundcolor','w');
+    SW_MW_S2 = uicontrol(SW_MW,'Style','text','String', 'Conditions of interest:','Units', 'normalized', 'Position',[0.04 0.75 0.3 0.07],'fontunits','normalized', 'fontSize', 0.83,'HorizontalAlignment', 'left','backgroundcolor','w');
     SW_MW_S3  = uicontrol(SW_MW,'Style','text','String', 'Title','Units', 'normalized', 'Position',[0.2105 0.34 0.10 0.07],'fontunits','normalized', 'fontSize', 0.80,'backgroundcolor','w');
     SW_MW_S4  = uicontrol(SW_MW,'Style','text','String', sample_weights_string,'Units', 'normalized', 'Position',[0.54 0.34 0.40 0.07],'fontunits','normalized', 'fontSize', 0.80,'backgroundcolor','w');
 
-    SW_MW_LB1 = uicontrol(SW_MW, 'Style','listbox', 'String', default_contrasts,'Max',100,'Units', 'normalized', 'Position',[0.04 0.45 0.920 0.280],'fontunits','normalized', 'fontSize', 0.18);
+    SW_MW_LB1 = uicontrol(SW_MW, 'Style','listbox', 'String', default_contrasts,'Max',100,'Units', 'normalized', 'Position',[0.04 0.45 0.920 0.280],'fontunits','points', 'fontSize', 11);
 
     %SW_MW_CT = Contrast Title
     %SW_MW_CW = Contrast Weight

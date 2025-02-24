@@ -17,14 +17,16 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
+%   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
 %   tmfc.ROI_set.ROIs.path_masked - Paths to the ROI images masked by group
 %                                   mean binary mask 
 %
-% Example of the ROI set:
+% Example of the ROI set (see tmfc_select_ROIs_GUI):
 %
 %   tmfc.ROI_set(1).set_name = 'two_ROIs';
+%   tmfc.ROI_set(1).type = 'binary_images';
 %   tmfc.ROI_set(1).ROIs(1).name = 'ROI_1';
 %   tmfc.ROI_set(1).ROIs(2).name = 'ROI_2';
 %   tmfc.ROI_set(1).ROIs(1).path_masked = 'C:\ROI_set\two_ROIs\ROI_1.nii';
@@ -40,7 +42,7 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -101,7 +103,12 @@ for iSub = start_sub:nSub
             matlabbatch{1}.spm.util.voi.adjust = NaN; % Adjust for everything 
             matlabbatch{1}.spm.util.voi.session = jSess;
             matlabbatch{1}.spm.util.voi.name = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
-            matlabbatch{1}.spm.util.voi.roi{1}.mask.image = {tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked};
+            switch tmfc.ROI_set(ROI_set_number).type
+                case {'binary_images','fixed_spheres'}
+                    matlabbatch{1}.spm.util.voi.roi{1}.mask.image = {tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked};
+                otherwise
+                    matlabbatch{1}.spm.util.voi.roi{1}.mask.image = {tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked(iSub).subjects};
+            end
             matlabbatch{1}.spm.util.voi.roi{1}.mask.threshold = 0.1;
             matlabbatch{1}.spm.util.voi.expression = 'i1';           
             batch{kROI} = matlabbatch;

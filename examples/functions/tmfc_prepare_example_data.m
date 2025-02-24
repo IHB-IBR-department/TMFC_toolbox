@@ -1,7 +1,7 @@
-function prepare_example_data(data)
+function tmfc_prepare_example_data(data)
 
 % ========================================================================
-% Ruslan Masharipov, August, 2024
+% Ruslan Masharipov, 2025
 % email: ruslan.s.masharipov@gmail.com
 % ========================================================================
 
@@ -23,14 +23,14 @@ save(sots_path,'activations','onsets','durations','names','rest_matrix','task_ma
 
 % Generate .nii functional images
 fprintf(['Generate *.nii images... \n']);
-generate_funct_images(data.stat_path,data.sim_path,exp_folder,data.SF,data.SNR,data.N,data.N_ROIs,data.dummy)
+tmfc_generate_funct_images(data.stat_path,data.sim_path,exp_folder,data.SF,data.SNR,data.N,data.N_ROIs,data.dummy)
 
 % Generate .nii ROI binary masks 
 fprintf(['Generate ROI masks... \n']);
-generate_ROI_masks(data.stat_path,exp_folder,data.N_ROIs)
+tmfc_generate_ROI_masks(data.stat_path,exp_folder,data.N_ROIs)
 
 % Estimate GLM
 tic
 fprintf(['Estimate basic GLMs... \n']);
-parallel_estimate_GLM(data.stat_path,sots_path,exp_folder,data.N,data.TR,data.model)
+tmfc_parallel_estimate_GLM(data.stat_path,sots_path,exp_folder,data.N,data.TR,data.model)
 fprintf(['Estimate basic GLMs :: Done in: ' num2str(toc) 's \n']);

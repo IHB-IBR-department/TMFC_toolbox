@@ -33,7 +33,7 @@ function [sub_check] = tmfc_LSS(tmfc,start_sub)
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified:
+% structure must be specified (see tmfc_conditions_GUI):
 %
 %   tmfc.LSS.conditions(1).sess   = 1;   
 %   tmfc.LSS.conditions(1).number = 1; - "Cond A", 1st session
@@ -52,7 +52,7 @@ function [sub_check] = tmfc_LSS(tmfc,start_sub)
 %
 % =========================================================================
 %
-% Copyright (C) 2023 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -167,11 +167,13 @@ for iSub = start_sub:nSub
             % Functional images
             if SPM_concat(iSub) == 0
                 for image = 1:SPM.SPM.nscan(sess_num(jSess))
-                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(jSess)).row(image)).fname;
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = [SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(jSess)).row(image)).fname ',' ...
+                                                                              num2str(SPM.SPM.xY.VY(SPM.SPM.Sess(sess_num(jSess)).row(image)).n(1))];       
                 end
             else
                 for image = 1:size(SPM.SPM.xY.VY,1)
-                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(image)).fname;
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = [SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(image)).fname ',' ...
+                                                                              num2str(SPM.SPM.xY.VY(SPM.SPM.Sess(jSess).row(image)).n(1))];
                 end
             end
     

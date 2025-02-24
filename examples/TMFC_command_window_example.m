@@ -31,7 +31,7 @@ data.sim_path = fullfile(pwd,'data','SIMULATED_BOLD_EVENT_RELATED_[2s_TR]_[1s_DU
 data.sots_path = fullfile(pwd,'data','TASK_DESIGN_EVENT_RELATED_[2s_TR]_[1s_DUR]_[6s_ISI]_[40_TRIALS].mat');
 
 % Generate *.nii images and calculate GLMs
-prepare_example_data(data)
+tmfc_prepare_example_data(data)
 
 % Change current directory to new TMFC project folder
 cd(data.stat_path)
@@ -81,7 +81,9 @@ clear SPM_check paths
 % data for all subjects. The dimensions, orientation, and voxel sizes of 
 % the masked ROI images will be adjusted according to the group binary mask
 %
-% Go to ROI_masks subfolder and select 100 ROIs
+% 1) Enter a name for the ROI set: "100_ROIs"
+% 2) Select ROI set type: binary images
+% 3) Go to ROI_masks subfolder and select 100 ROIs
 
 [ROI_set] = tmfc_select_ROIs_GUI(tmfc);
 tmfc.ROI_set(1) = ROI_set;
@@ -97,8 +99,8 @@ clear ROI_set
 % tmfc.LSS.conditions(2).sess   = 1;
 % tmfc.LSS.conditions(2).number = 2;
 
-% Alternatively, use tmfc_LSS_GUI to select conditions of interest
-[conditions] = tmfc_LSS_GUI(tmfc.subjects(1).path);
+% Alternatively, use tmfc_conditions_GUI to select conditions of interest
+[conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,3);
 tmfc.LSS.conditions = conditions;
 
 % Run LSS regression
@@ -131,6 +133,8 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 [sub_check] = tmfc_ROI_to_ROI_contrast(tmfc,type,contrast_number,ROI_set_number);
 [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI_set_number);
 
+%% BSC-LSS: Results
+
 % Load BSC-LSS matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
@@ -162,6 +166,8 @@ colormap(subplot(1,3,1),'redblue')
 set(findall(gcf,'-property','FontSize'),'FontSize',16)
 
 clear type contrasts contrast_number
+
+% Alternatively, use tmfc_statistics_GUI
 
 
 %% FIR task regression (regress out co-activations and save residual time series)

@@ -1,7 +1,7 @@
-function generate_ROI_masks(stat_path,exp_folder,N_ROIs)
+function tmfc_generate_ROI_masks(stat_path,exp_folder,N_ROIs)
 
 % ========================================================================
-% Ruslan Masharipov, October, 2023
+% Ruslan Masharipov, 2025
 % email: ruslan.s.masharipov@gmail.com
 % ========================================================================
 

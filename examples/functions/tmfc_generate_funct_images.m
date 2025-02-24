@@ -1,7 +1,7 @@
-function generate_funct_images(stat_path,sim_path,exp_folder,SF,SNR,N,N_ROIs,dummy)
+function tmfc_generate_funct_images(stat_path,sim_path,exp_folder,SF,SNR,N,N_ROIs,dummy)
 
 % ========================================================================
-% Ruslan Masharipov, October, 2023
+% Ruslan Masharipov, 2025
 % email: ruslan.s.masharipov@gmail.com
 % ========================================================================
 

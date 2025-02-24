@@ -56,7 +56,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified:
+% structure must be specified (see tmfc_conditions_GUI):
 %
 %   tmfc.LSS_after_FIR.conditions(1).sess   = 1;   
 %   tmfc.LSS_after_FIR.conditions(1).number = 1; - "Cond A", 1st session
@@ -75,7 +75,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by

@@ -40,7 +40,7 @@ function TMFC
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ if isempty(findobj('Tag', 'TMFC_GUI')) == 1
     main_GUI.TMFC_GUI_B12b = uicontrol('Style', 'pushbutton', 'String', 'Results', 'Units', 'normalized', 'Position', [0.54 0.16 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
     main_GUI.TMFC_GUI_B13a = uicontrol('Style', 'pushbutton', 'String', 'Open project', 'Units', 'normalized', 'Position', [0.06 0.08 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
     main_GUI.TMFC_GUI_B13b = uicontrol('Style', 'pushbutton', 'String', 'Save project', 'Units', 'normalized', 'Position', [0.54 0.08 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
-    main_GUI.TMFC_GUI_B14a = uicontrol('Style', 'pushbutton', 'String', 'Change paths', 'Units', 'normalized', 'Position', [0.06 0.02 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
+    main_GUI.TMFC_GUI_B14a = uicontrol('Style', 'pushbutton', 'String', 'Tools', 'Units', 'normalized', 'Position', [0.06 0.02 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
     main_GUI.TMFC_GUI_B14b = uicontrol('Style', 'pushbutton', 'String', 'Settings', 'Units', 'normalized', 'Position', [0.54 0.02 0.40 0.05],'FontUnits','normalized','FontSize',0.33);
     
     % String display
@@ -131,7 +131,7 @@ if isempty(findobj('Tag', 'TMFC_GUI')) == 1
     set(main_GUI.TMFC_GUI_B12b, 'callback',   {@results_GUI, main_GUI.TMFC_GUI});               
     set(main_GUI.TMFC_GUI_B13a, 'callback',   {@load_project_GUI, main_GUI.TMFC_GUI});
     set(main_GUI.TMFC_GUI_B13b, 'callback',   {@save_project_GUI, main_GUI.TMFC_GUI});
-    set(main_GUI.TMFC_GUI_B14a, 'callback',   {@change_paths_GUI, main_GUI.TMFC_GUI});
+    set(main_GUI.TMFC_GUI_B14a, 'callback',   {@tools_GUI, main_GUI.TMFC_GUI});
     set(main_GUI.TMFC_GUI_B14b, 'callback',   {@settings_GUI, main_GUI.TMFC_GUI});    
     warning('off','backtrace');
 else
@@ -240,6 +240,7 @@ function ROI_GUI(~,~,~)
             % Add a new ROI set info to TMFC structure & update main TMFC GUI
             if isstruct(new_ROI_set)
                 tmfc.ROI_set(nSet+1).set_name = new_ROI_set.set_name;
+                tmfc.ROI_set(nSet+1).type = new_ROI_set.type;
                 tmfc.ROI_set(nSet+1).ROIs = new_ROI_set.ROIs;
                 tmfc.ROI_set_number = nSet+1;
                 disp('New ROI set selected.');
@@ -394,7 +395,7 @@ function VOI_GUI(~,~,~)
 
     % Select gPPI conditions
     if define_gPPI_conditions == 1   
-        gPPI_conditions = tmfc_gPPI_GUI(tmfc.subjects(1).path);   
+        gPPI_conditions = tmfc_conditions_GUI(tmfc.subjects(1).path,2);   
         if isstruct(gPPI_conditions)
             if restart_VOI == 1 || continue_VOI == 0
                 tmfc = reset_gPPI(tmfc);
@@ -996,7 +997,7 @@ function LSS_GLM_GUI(~,~,~)
 
     % Select LSS conditions
     if define_LSS_conditions == 1   
-        LSS_conditions = tmfc_LSS_GUI(tmfc.subjects(1).path);   
+        LSS_conditions = tmfc_conditions_GUI(tmfc.subjects(1).path,3);   
         if isstruct(LSS_conditions)
             if restart_LSS == 1 || continue_LSS == 0
                 tmfc = reset_LSS(tmfc);
@@ -1564,7 +1565,7 @@ function LSS_FIR_GUI(~,~,~)
 
     % Select LSS_after_FIR conditions
     if define_LSS_after_FIR_conditions == 1   
-        LSS_after_FIR_conditions = tmfc_LSS_GUI(tmfc.subjects(1).path);   
+        LSS_after_FIR_conditions = tmfc_conditions_GUI(tmfc.subjects(1).path,3);   
         if isstruct(LSS_after_FIR_conditions)
             if restart_LSS_after_FIR == 1 || continue_LSS_after_FIR == 0
                 tmfc = reset_LSS_after_FIR(tmfc);
@@ -1851,17 +1852,51 @@ end
 
 %% ==========================[ Change paths ]==============================
 % Change paths in selected SPM.mat files
-function change_paths_GUI(~,~,~)
-    
-	disp('Select SPM.mat files to change paths...');
-    
-    % Select subject & do not check SPM.mat files
-    subjects = tmfc_select_subjects_GUI(0);  
+function tools_GUI(~,~,~)
 
-    if ~isempty(subjects)
-        tmfc_change_paths_GUI(subjects);  
-    else
-        disp('No SPM.mat files selected for path change.');
+    tmfc_tools_GUI = figure('Name', 'TMFC tools','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.180 0.35 0.200 0.200], 'color', 'w', 'Tag', 'TMFC_GUI_tools','resize', 'off','WindowStyle','modal');
+    tmfc_tools_denoise = uicontrol(tmfc_tools_GUI,'Style', 'pushbutton', 'String', 'Denoise', 'Units', 'normalized', 'Position', [0.180 0.70 0.65 0.19],'FontUnits','normalized','FontSize',0.35,'callback', @denoise);
+    tmfc_tools_change_paths = uicontrol(tmfc_tools_GUI,'Style', 'pushbutton', 'String', 'Change paths', 'Units', 'normalized', 'Position', [0.180 0.42 0.65 0.19],'FontUnits','normalized','FontSize',0.35,'callback', @change_paths);
+    tmfc_tools_gPPI_asm = uicontrol(tmfc_tools_GUI,'Style', 'pushbutton', 'String', 'gPPI asymmetry', 'Units', 'normalized', 'Position', [0.180 0.14 0.65 0.19],'FontUnits','normalized','FontSize',0.35,'callback', @gPPI_asm);
+    movegui(tmfc_tools_GUI,'center');
+    
+    % Denoising -----------------------------------------------------------
+    function denoise(~,~)
+        
+        % Close tool window
+        delete(tmfc_tools_GUI);
+        
+        disp('Work in progress. Please wait for future updates.');
+
+    end
+    
+    % Change Paths --------------------------------------------------------
+    function change_paths(~,~)
+
+        % Close tool window
+        delete(tmfc_tools_GUI);
+
+        disp('Select SPM.mat files to change paths...');
+
+        % Select subject & do not check SPM.mat files
+        subjects = tmfc_select_subjects_GUI(0);
+
+        if ~isempty(subjects)
+            tmfc_change_paths_GUI(subjects);
+        else
+            disp('No SPM.mat files selected for path change.');
+        end
+    end
+
+    % Estimate gPPI asymmetry ---------------------------------------------
+    function gPPI_asm(~,~)
+
+        % Close tool window
+        delete(tmfc_tools_GUI);
+
+        disp('Work in progress. Please wait for future updates.');
+        %tmfc_estimate_gPPI_asymmetry_GUI();
+
     end    
 end
 
@@ -2032,7 +2067,26 @@ function tmfc = update_tmfc_progress(tmfc)
         if ~isfield(tmfc,'ROI_set_number')  
             tmfc.ROI_set_number = 1;
         end
-        ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+        
+        if isfield(tmfc.ROI_set,'ROIs')
+            if ~isfield(tmfc.ROI_set,'ROI_type')
+                for iSet = 1:size(tmfc.ROI_set,2)
+                    if isfield(tmfc.ROI_set(iSet).ROIs,'path') && ~isfield(tmfc.ROI_set(iSet).ROIs,'radius')
+                        tmfc.ROI_set(iSet).type = 'binary_images';
+                    elseif ~isfield(tmfc.ROI_set(iSet).ROIs,'path') && isfield(tmfc.ROI_set(iSet).ROIs,'radius')
+                        tmfc.ROI_set(iSet).type = 'fixed_spheres';
+                    elseif isfield(tmfc.ROI_set(iSet).ROIs,'moving_radius')
+                        tmfc.ROI_set(iSet).type = 'moving_sphreres_inside_fixed_spheres';
+                    else
+                        tmfc.ROI_set(iSet).type = 'moving_sphreres_inside_binary_images';
+                    end
+                end
+            end
+            ROI_check = check_ROI_masks(tmfc,tmfc.ROI_set_number);
+        else
+            ROI_check = 0;
+        end
+        
         if ROI_check == 1
             set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(tmfc.ROI_set_number).set_name, ' (',num2str(length(tmfc.ROI_set(tmfc.ROI_set_number).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]); 
         else
@@ -2295,7 +2349,7 @@ function tmfc = update_tmfc_progress(tmfc)
     end
     
     %----------------------------------------------------------------------
-    %Update settings
+    % Update settings
     switch tmfc.defaults.parallel
         case 1
             set_computing = {'Parallel computing','Sequential computing',};           
@@ -2325,15 +2379,23 @@ end
 %% ========================[ Check ROI masks ]=============================
 function ROI_check = check_ROI_masks(tmfc,ROI_set_number)
     ROI_check = 1;
-    if isfield(tmfc.ROI_set(ROI_set_number),'ROIs')
-        for iROI = 1:size(tmfc.ROI_set(ROI_set_number).ROIs,2)
-            if ~exist(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked,'file')
-                ROI_check = 0;
-                break;
+    switch tmfc.ROI_set(ROI_set_number).type
+        case {'binary_images','fixed_spheres'}
+            for iROI = 1:size(tmfc.ROI_set(ROI_set_number).ROIs,2)
+                if ~exist(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked,'file')
+                    ROI_check = 0;
+                    break;
+                end
             end
-        end
-    else
-        ROI_check = 0;
+        otherwise
+            for iROI = 1:size(tmfc.ROI_set(ROI_set_number).ROIs,2)
+                for jSub = 1:size(tmfc.subjects,2)
+                    if ~exist(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked(jSub).subjects,'file')
+                        ROI_check = 0;
+                        break;
+                    end
+                end
+            end
     end
 end
 
@@ -2388,7 +2450,11 @@ function [tmfc] = update_gPPI(tmfc)
            
     if ~isfield(tmfc,'ROI_set_number')
         tmfc.ROI_set_number = 1;
-    end    
+    end
+
+    if isempty(findall(0,'type','figure','name','Updating TMFC project'))
+        w2 = waitbar(0,'Please wait...','Name','Updating TMFC project');
+    end
 
     nSub  = length(tmfc.subjects);
     nROI  = length(tmfc.ROI_set(tmfc.ROI_set_number).ROIs);
@@ -2405,6 +2471,9 @@ function [tmfc] = update_gPPI(tmfc)
     end
 
     % ------------------------[Update VOI progress]----------------------------
+    try
+        waitbar(1/4,w2,'Updating VOI progress...');
+    end
 
     % Update TMFC structure
     try
@@ -2442,6 +2511,9 @@ function [tmfc] = update_gPPI(tmfc)
     end
 
     % ------------------------[Update PPI progress]----------------------------
+    try
+        waitbar(2/4,w2,'Updating PPI progress...');
+    end
 
     % Update TMFC structure
     try
@@ -2480,6 +2552,9 @@ function [tmfc] = update_gPPI(tmfc)
     end
 
     % ------------------------[Update gPPI progress]---------------------------
+    try
+        waitbar(3/4,w2,'Updating gPPI progress...');
+    end
 
     % Update TMFC structure
     try
@@ -2506,6 +2581,9 @@ function [tmfc] = update_gPPI(tmfc)
     end
 
     % -----------------------[Update gPPI-FIR progress]------------------------
+    try
+        waitbar(4/4,w2,'Updating gPPI-FIR progress...');
+    end
 
     % Update TMFC structure
     try
@@ -2529,6 +2607,10 @@ function [tmfc] = update_gPPI(tmfc)
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).gPPI_FIR = double(~any(check_gPPI_FIR(:) == 0));
         end
+    end
+    
+    try
+        close(w2);
     end
 end
 
@@ -3052,15 +3134,14 @@ function [window, bins] = tmfc_FIR_GUI(cases)
             GUI_str_help = 'gPPI FIR: Help';
 	end
     
-    tmfc_FIR_BW_GUI = figure('Name', GUI_title, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.22 0.18],'Resize','off',...
-        'MenuBar', 'none', 'ToolBar', 'none','Tag','TMFC_WB_NUM', 'WindowStyle','modal','CloseRequestFcn', @tmfc_FIR_BW_GUI_Exit); 
-    set(gcf,'color','w');
+    tmfc_FIR_BW_GUI = figure('Name', GUI_title, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.28 0.18],'Resize','off',...
+        'MenuBar', 'none', 'ToolBar', 'none','Tag','TMFC_WB_NUM', 'WindowStyle','modal','color', 'w','CloseRequestFcn', @tmfc_FIR_BW_GUI_Exit); 
     tmfc_FIR_BW_GUI_S1 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_1,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40, 'Position',[0.08 0.62 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
     tmfc_FIR_BW_GUI_S2 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_2,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40,'Position',[0.08 0.37 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
     tmfc_FIR_BW_GUI_E1 = uicontrol(tmfc_FIR_BW_GUI,'Style','edit','Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'Position', [0.76 0.67 0.185 0.170], 'fontSize', 0.44);
     tmfc_FIR_BW_GUI_E2 = uicontrol(tmfc_FIR_BW_GUI,'Style','edit','Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'Position', [0.76 0.42 0.185 0.170], 'fontSize', 0.44);
     tmfc_FIR_BW_GUI_ok = uicontrol(tmfc_FIR_BW_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','fontunits','normalized','fontSize', 0.4, 'Position', [0.21 0.13 0.230 0.170],'callback', @tmfc_FIR_BW_extract);
-    tmfc_FIR_BW_GUI_help = uicontrol(tmfc_FIR_BW_GUI,'Style','pushbutton', 'String', 'Help','Units', 'normalized','fontunits','normalized','fontSize', 0.4, 'Position', [0.52 0.13 0.230 0.170],'callback', @tmfc_FIR_help_GUI);
+    tmfc_FIR_BW_GUI_help = uicontrol(tmfc_FIR_BW_GUI,'Style','pushbutton', 'String', 'Help','Units', 'normalized','fontunits','normalized','fontSize', 0.4, 'Position', [0.56 0.13 0.230 0.170],'callback', @tmfc_FIR_help_GUI);
     movegui(tmfc_FIR_BW_GUI,'center');
     
     %----------------------------------------------------------------------

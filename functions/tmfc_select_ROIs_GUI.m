@@ -9,6 +9,29 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 % voxel sizes of the masked ROI images will be adjusted according to the
 % group mean binary mask.
 %
+% -------------------------------------------------------------------------
+% Case 1: Select ROI binary images
+% Use binary images that are the same for all subjects. These images will 
+% be masked by the group mean binary image.
+% -------------------------------------------------------------------------
+% Case 2: Fixed spheres
+% Create spheres that are the same for all subjects. The center of the sphere
+% is fixed. These spheres will be masked by the group mean binary image.
+% -------------------------------------------------------------------------
+% Case 3: Moving spheres inside fixed spheres
+% Create spheres individual for each subject. The center of the sphere is 
+% moved to the local maximum* inside a fixed sphere of larger radius. These 
+% spheres will be masked by the group mean binary image.
+% -------------------------------------------------------------------------
+% Case 4: Moving spheres inside ROI binary images
+% Create spheres individual for each subject. The center of the sphere is
+% moved to the local maximum* inside a binary image. These spheres will be 
+% masked by selected binary images and the group mean binary image.
+% -------------------------------------------------------------------------
+% (*) - The local maximum is determined using the omnibus F-test and
+%       uncorrected threshold of 0.005.
+%
+%
 % FORMAT [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 %
 % Input:
@@ -20,7 +43,7 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 %
 % =========================================================================
 %
-% Copyright (C) 2024 Ruslan Masharipov
+% Copyright (C) 2025 Ruslan Masharipov
 % 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -49,175 +72,560 @@ elseif ~isfield(tmfc,'project_path')
 end
 
 % Specify ROI set name
-[ROI_set_name] = ROI_set_name_GUI();
+ROI_set_name = ROI_set_name_GUI();
 
 % Specify ROI set structure   
 if ~strcmp(ROI_set_name,'')
-    ROI_set = ROI_set_generation(ROI_set_name);  
+    ROI_type = ROI_type_GUI();
+    if ~strcmp(ROI_type, '')
+        ROI_set = ROI_set_generation(ROI_set_name,ROI_type);
+    else
+        ROI_set = [];
+        warning('ROIs not selected.');  return;
+    end
 else
-    warning('ROIs not selected.');
     ROI_set = [];
+    warning('ROIs not selected.');  return;
 end
-
+   
 % -------------------------------------------------------------------------
 % Select ROIs, create ROI masks and remove heavily cropped ROIs
-function [ROI_set] = ROI_set_generation(ROI_set_name)
+function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     
-    ROI_set.set_name = ROI_set_name;
-    SPM = load(tmfc.subjects(1).path);
-    XYZ  = SPM.SPM.xVol.XYZ;
-    XYZmm = SPM.SPM.xVol.M(1:3,:)*[XYZ; ones(1,size(XYZ,2))];
+    swd = pwd;
+    nSub = length(tmfc.subjects);
 
-    % Select ROIs
-    try
-        [ROI_paths] = spm_select(inf,'any','Select ROI masks',{},pwd);
-        for iROI = 1:size(ROI_paths,1)
-            [~, ROI_set.ROIs(iROI).name, ~] = fileparts(deblank(ROI_paths(iROI,:)));
-            ROI_set.ROIs(iROI).path = deblank(ROI_paths(iROI,:));
-            ROI_set.ROIs(iROI).path_masked = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_set.ROIs(iROI).name '_masked.nii']);
+    ROI_set.set_name = ROI_set_name;
+    ROI_set.type = ROI_type;
+
+    SPM = load(tmfc.subjects(1).path);
+    XYZ   = SPM.SPM.xVol.XYZ;
+    XYZmm = SPM.SPM.xVol.M(1:3,:)*[XYZ; ones(1,size(XYZ,2))];
+    
+    switch ROI_type
+        % -----------------------------------------------------------------
+        case 'binary_images'
+            ROI_paths = spm_select(inf,'any','Select ROI masks',{},pwd);
+            if ~isempty(ROI_paths)
+                for iROI = 1:size(ROI_paths,1)
+                    [~, ROI_set.ROIs(iROI).name, ~] = fileparts(deblank(ROI_paths(iROI,:)));
+                    ROI_set.ROIs(iROI).path = deblank(ROI_paths(iROI,:));
+                    ROI_set.ROIs(iROI).path_masked = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_set.ROIs(iROI).name '_masked.nii']);
+                end
+            else
+                ROI_set = [];
+                warning('ROIs not selected.');  return;
+            end     
+        % -----------------------------------------------------------------
+        case 'fixed_spheres'
+            ROI_FS = select_ROIs_case_2();
+            if ~isempty(ROI_FS)
+                for iROI = 1:size(ROI_FS,2)
+                    ROI_set.ROIs(iROI).name = ROI_FS(iROI).ROI_name;
+                    ROI_set.ROIs(iROI).path_masked = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_set.ROIs(iROI).name '_masked.nii']);
+                    ROI_set.ROIs(iROI).X = ROI_FS(iROI).X;
+                    ROI_set.ROIs(iROI).Y = ROI_FS(iROI).Y;
+                    ROI_set.ROIs(iROI).Z = ROI_FS(iROI).Z;
+                    ROI_set.ROIs(iROI).radius = ROI_FS(iROI).radius;    
+                end
+            else
+                ROI_set = [];
+                warning('ROIs not selected.');  return;
+            end
+        % -----------------------------------------------------------------
+        case 'moving_sphreres_inside_fixed_spheres'
+            ROI_MS = select_ROIs_case_3();
+            if ~isempty(ROI_MS)                
+                for iROI = 1:size(ROI_MS,2)
+                    ROI_set.ROIs(iROI).name = ROI_MS(iROI).ROI_name;
+                    for iSub = 1:nSub
+                        ROI_set.ROIs(iROI).path_masked(iSub).subjects = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',...
+                            ['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(iROI).name '_masked.nii']);
+                    end
+                    ROI_set.ROIs(iROI).X = ROI_MS(iROI).X;
+                    ROI_set.ROIs(iROI).Y = ROI_MS(iROI).Y;
+                    ROI_set.ROIs(iROI).Z = ROI_MS(iROI).Z;
+                    ROI_set.ROIs(iROI).moving_radius = ROI_MS(iROI).moving_radius;    
+                    ROI_set.ROIs(iROI).fixed_radius = ROI_MS(iROI).fixed_radius;    
+                end
+            else
+                ROI_set = [];
+                warning('ROIs not selected.');  return;
+            end
+        % -----------------------------------------------------------------
+        case 'moving_sphreres_inside_binary_images'
+            ROI_paths = spm_select(inf,'any','Select ROI masks',{},pwd);
+            if ~isempty(ROI_paths)
+                for iROI = 1:size(ROI_paths,1)
+                    [~, ROI_set.ROIs(iROI).name, ~] = fileparts(deblank(ROI_paths(iROI,:)));
+                    ROI_set.ROIs(iROI).path = deblank(ROI_paths(iROI,:));
+                    for iSub = 1:nSub
+                        ROI_set.ROIs(iROI).path_masked(iSub).subjects = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',...
+                            ['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(iROI).name '_masked.nii']);
+                    end
+                end
+            else
+                ROI_set = [];
+                warning('ROIs not selected.');  return;
+            end
+            radius_vector = select_ROIs_case_4(size(ROI_paths,1));
+            if ~isempty(radius_vector)
+                for iROI = 1:size(ROI_paths,1)
+                    ROI_set.ROIs(iROI).radius = radius_vector(iROI);
+                end
+            else
+                ROI_set = [];
+                warning('ROIs not selected.');  return;
+            end
+    end
+
+    % ---------------------------------------------------------------------
+    % Select omnibus F-contrast threshold
+    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+        [Fthresh, Fmask] = F_contrast_GUI();
+        if strcmp(Fthresh,'')
+            ROI_set = [];
+            warning('ROIs not selected.');  return;
         end
-    catch
-        warning('ROIs not selected.');
+    end
+
+    % ---------------------------------------------------------------------
+    % Clear & create 'Masked_ROIs' folder
+    if isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name))
+        rmdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name),'s');
     end
     
-    % Calculate ROI size and remove heavily cropped ROIs
-    if ~isempty(ROI_paths)
-        
-        % Clear & create 'Masked_ROIs' folder
-        if isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name))
-            rmdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name),'s');
+    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'))
+        mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'));
+    end
+
+    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+        for iSub = 1:nSub
+            mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')]));
         end
+    end
+
+    % ---------------------------------------------------------------------    
+    % Create group mean binary mask
+    for iSub = 1:nSub
+        sub_mask{iSub,1} = [tmfc.subjects(iSub).path(1:end-7) 'mask.nii'];
+    end
+    group_mask = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs','Group_mask.nii');
         
-        if ~isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'))
-            mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'));
+    if nSub == 1
+        copyfile(sub_mask{1,1},group_mask);
+    else
+        spm_imcalc(sub_mask,group_mask,'prod(X)',{1,0,1,2});
+    end
+
+    % ---------------------------------------------------------------------
+    % Calculate F-contrast for all conditions of interest
+    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+        % Contrast weights
+        [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
+        cond_col = [];
+        for iCond = 1:length(conditions)
+            cond_col = [cond_col SPM.SPM.Sess(conditions(iCond).sess).col(SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i)];
+        end 
+        weights = zeros(length(cond_col),size(SPM.SPM.xX.X,2));
+        for iCond = 1:length(cond_col)
+            weights(iCond,cond_col(iCond)) = 1;
         end
-        
-        % Create group mean binary mask
-        for iSub = 1:length(tmfc.subjects)
-            sub_mask{iSub,1} = [tmfc.subjects(iSub).path(1:end-7) 'mask.nii'];
-        end
-        group_mask = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs','Group_mask.nii');
-        
-        if length(tmfc.subjects) == 1
-            copyfile(sub_mask{1,1},group_mask);
-        else
-            spm_imcalc(sub_mask,group_mask,'prod(X)',{1,0,1,2});
-        end
-        
-        % Calculate ROI size before masking
-        w = waitbar(0,'Please wait...','Name','Calculating raw ROI sizes');
-        group_mask = spm_vol(group_mask);
-        nROI = numel(ROI_set.ROIs);
-        for iROI = 1:nROI
-            ROI_mask = spm_vol(ROI_set.ROIs(iROI).path);
-            Y = zeros(group_mask.dim(1:3));
-            % Loop through slices
-            for p = 1:group_mask.dim(3)
-                % Adjust dimensions, orientation, and voxel sizes to group mask
-                B = spm_matrix([0 0 -p 0 0 0 1 1 1]);
-                X = zeros(1,prod(group_mask.dim(1:2)));
-                M = inv(B * inv(group_mask.mat) * ROI_mask.mat);
-                d = spm_slice_vol(ROI_mask, M, group_mask.dim(1:2), 1);
-                d(isnan(d)) = 0;
-                X(1,:) = d(:)';
-                Y(:,:,p) = reshape(X,group_mask.dim(1:2));
-            end
-            % Raw ROI size (in voxels)
-            ROI_set.ROIs(iROI).raw_size = nnz(Y);
+        % Estimate contrasts
+        w = waitbar(0,'Please wait...','Name','Calculating F-contrasts');
+        for iSub = 1:nSub
+            matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
+            matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
+            matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
+            matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
+            matlabbatch{1}.spm.stats.con.delete = 0;
+            spm_get_defaults('cmdline',true);
+            spm_jobman('run',matlabbatch);
+            clear matlabbatch
             try
-                waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
             end
         end
-        
         try
             close(w);
         end
-        
-        % Mask the ROI images by the goup mean binary mask
-        w = waitbar(0,'Please wait...','Name','Masking ROIs by group mean mask');
-        input_images{1,1} = group_mask.fname;
-        for iROI = 1:nROI
-            input_images{2,1} = ROI_set.ROIs(iROI).path;
-            ROI_mask = ROI_set.ROIs(iROI).path_masked;
-            spm_imcalc(input_images,ROI_mask,'(i1>0).*(i2>0)',{0,0,1,2});
-            try
-                waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+    end
+
+    % ---------------------------------------------------------------------
+    % Create spheres
+    if ~strcmp(ROI_type,'binary_images')
+        w = waitbar(0,'Please wait...','Name','Creating spherical masks');
+    end
+
+    switch ROI_type
+        %------------------------------------------------------------------
+        case 'fixed_spheres' 
+            for iROI = 1:size(ROI_FS,2)
+                job.spmmat = {tmfc.subjects(1).path};
+                job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',ROI_FS(iROI).ROI_name);
+                job.roi{1}.sphere.centre = [ROI_FS(iROI).X ROI_FS(iROI).Y ROI_FS(iROI).Z];
+                job.roi{1}.sphere.radius = ROI_FS(iROI).radius;
+                job.roi{1}.sphere.move.fixed = 1;
+                job.expression = 'i1';
+                tmfc_create_spheres(job);
+                clear job
+                try
+                    waitbar(iROI/size(ROI_FS,2),w,['ROI No ' num2str(iROI,'%.f')]);
+                end
             end
+        %------------------------------------------------------------------  
+        case 'moving_sphreres_inside_fixed_spheres'
+            start_time = tic;
+            count_sub = 1;
+            cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+            for iSub = 1:nSub
+                SPM = load(tmfc.subjects(iSub).path);
+                for jROI = 1:size(ROI_MS,2)
+                    job.spmmat = {tmfc.subjects(iSub).path};
+                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_MS(jROI).ROI_name);
+                    job.roi{1}.spm.spmmat = {tmfc.subjects(iSub).path};
+                    job.roi{1}.spm.contrast = length(SPM.SPM.xCon);
+                    job.roi{1}.spm.conjunction = 1;
+                    job.roi{1}.spm.threshdesc = 'none';
+                    job.roi{1}.spm.thresh = Fthresh;
+                    job.roi{1}.spm.extent = 0;
+                    job.roi{1}.spm.mask = struct('contrast', {}, 'thresh', {}, 'mtype', {});
+                    job.roi{2}.sphere.centre =  [ROI_MS(jROI).X ROI_MS(jROI).Y ROI_MS(jROI).Z];
+                    job.roi{2}.sphere.radius = ROI_MS(jROI).fixed_radius;
+                    job.roi{2}.sphere.move.fixed = 1;
+                    job.roi{3}.sphere.centre = [0 0 0];
+                    job.roi{3}.sphere.radius = ROI_MS(jROI).moving_radius;
+                    job.roi{3}.sphere.move.global.spm = 1;
+                    job.roi{3}.sphere.move.global.mask = 'i2';
+                    if Fmask == 0
+                        job.expression = 'i3';
+                    elseif Fmask == 1
+                        job.expression = 'i1&i3';
+                    end
+                    jobs{jROI} = job;
+                    clear job
+                end
+                % Generate spheres
+                switch tmfc.defaults.parallel
+                    case 0 % Sequential
+                        for jROI = 1:size(ROI_MS,2)
+                            tmfc_create_spheres(jobs{jROI});
+                        end
+                    case 1 % Parallel
+                        parfor jROI = 1:size(ROI_MS,2)
+                            tmfc_create_spheres(jobs{jROI});
+                        end
+                end
+                % Update waitbar
+                elapsed_time = toc(start_time);
+                time_per_sub = elapsed_time/count_sub;
+                count_sub = count_sub + 1;
+                time_remaining = (nSub-iSub)*time_per_sub;
+                hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+                try
+                    waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+                end
+                clear SPM jobs
+            end
+        %-----------------------------------------------------------------
+        case 'moving_sphreres_inside_binary_images'
+            start_time = tic;
+            count_sub = 1;
+            cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+            for iSub = 1:nSub
+                SPM = load(tmfc.subjects(iSub).path);
+                for jROI = 1:size(ROI_paths,1)   
+                    job.spmmat = {tmfc.subjects(iSub).path};
+                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_set.ROIs(jROI).name);
+                    job.roi{1}.spm.spmmat = {''};
+                    job.roi{1}.spm.contrast = length(SPM.SPM.xCon);
+                    job.roi{1}.spm.conjunction = 1;
+                    job.roi{1}.spm.threshdesc = 'none';
+                    job.roi{1}.spm.thresh = Fthresh;
+                    job.roi{1}.spm.extent = 0;
+                    job.roi{1}.spm.mask = struct('contrast', {}, 'thresh', {}, 'mtype', {});
+                    job.roi{2}.mask.image = {ROI_set.ROIs(jROI).path};
+                    job.roi{2}.mask.threshold = 0.1;
+                    job.roi{3}.sphere.centre = [0 0 0];
+                    job.roi{3}.sphere.radius = radius_vector(jROI);
+                    job.roi{3}.sphere.move.global.spm = 1;
+                    job.roi{3}.sphere.move.global.mask = 'i2';
+                    if Fmask == 0
+                        job.expression = 'i2&i3';
+                    elseif Fmask == 1
+                        job.expression = 'i1&i2&i3';
+                    end
+                    jobs{jROI} = job;
+                    clear job
+                end
+                % Generate spheres
+                switch tmfc.defaults.parallel
+                    case 0 % Sequential
+                        for jROI = 1:size(ROI_paths,1)
+                            tmfc_create_spheres(jobs{jROI});
+                        end
+                    case 1 % Parallel
+                        parfor jROI = 1:size(ROI_paths,1)
+                            tmfc_create_spheres(jobs{jROI});
+                        end
+                end
+                % Update waitbar
+                elapsed_time = toc(start_time);
+                time_per_sub = elapsed_time/count_sub;
+                count_sub = count_sub + 1;
+                time_remaining = (nSub-iSub)*time_per_sub;
+                hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+                try
+                    waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+                end
+                clear SPM jobs
+            end
+    end
+
+    try
+        close(w);
+    end
+
+    % ---------------------------------------------------------------------
+    % Calculate ROI size before masking
+    w = waitbar(0,'Please wait...','Name','Calculating raw ROI sizes');
+    group_mask = spm_vol(group_mask);
+    nROI = numel(ROI_set.ROIs);
+    for iROI = 1:nROI
+        switch ROI_type
+            case 'binary_images'
+                ROI_mask = spm_vol(ROI_set.ROIs(iROI).path);
+                Y = zeros(group_mask.dim(1:3));
+                % Loop through slices
+                for p = 1:group_mask.dim(3)
+                    % Adjust dimensions, orientation, and voxel sizes to group mask
+                    B = spm_matrix([0 0 -p 0 0 0 1 1 1]);
+                    X = zeros(1,prod(group_mask.dim(1:2)));
+                    M = inv(B * inv(group_mask.mat) * ROI_mask.mat);
+                    d = spm_slice_vol(ROI_mask, M, group_mask.dim(1:2), 1);
+                    d(isnan(d)) = 0;
+                    X(1,:) = d(:)';
+                    Y(:,:,p) = reshape(X,group_mask.dim(1:2));
+                end
+                % Raw ROI size (in voxels)
+                ROI_set.ROIs(iROI).raw_size = nnz(Y);
+            case 'fixed_spheres'
+                binary_mask = [];
+                binary_mask = spm_data_read(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_FS(iROI).ROI_name '.nii']),'xyz',XYZ);
+                ROI_set.ROIs(iROI).raw_size = nnz(binary_mask);
+            otherwise
+                for jSub = 1:nSub
+                    binary_mask = [];
+                    binary_mask = spm_data_read(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(jSub,'%04.f')],[ROI_set.ROIs(iROI).name '.nii']),'xyz',XYZ);
+                    sub_size(jSub) = nnz(binary_mask);
+                end
+                ROI_set.ROIs(iROI).raw_size = min(sub_size);
+                clear sub_size
         end
-        
         try
-            close(w)
+            waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
         end
-        
-        % Calculate ROI size after masking
-        w = waitbar(0,'Please wait...','Name','Calculating masked ROI sizes');
-        for iROI = 1:nROI
-            binary_mask = [];
-            coord = [];
-            binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked,'xyz',XYZ);
-            ROI_set.ROIs(iROI).masked_size = nnz(binary_mask);
-            ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
-            % Calculate centroid coordinates
-            coord = XYZmm(:,(binary_mask ~= 0));
-            ROI_set.ROIs(iROI).X = mean(coord(1,:));
-            ROI_set.ROIs(iROI).Y = mean(coord(2,:));
-            ROI_set.ROIs(iROI).Z = mean(coord(3,:));
-            try
-                waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
-            end
-        end
-        
-        try
-            close(w)
-        end
-        
-        % Check for empty ROIs
-        empty_ROI_list = {};
-        empty_ROI_index = 1;
-        for iROI = 1:length(ROI_set.ROIs)
-            if ROI_set.ROIs(iROI).masked_size_percents == 0
-                empty_ROI_list{empty_ROI_index,1} = iROI;
-                empty_ROI_list{empty_ROI_index,2} = ROI_set.ROIs(iROI).name;
-                empty_ROI_index = empty_ROI_index + 1;
-            end
-        end
-        
-        % GUI interface for removing heavily cropped ROIs
-        if ~isempty(empty_ROI_list)
-            disp_empty_ROI_list = {};
-            for iROI = 1:size(empty_ROI_list,1)
-                ROI_string = horzcat('No ',num2str(empty_ROI_list{iROI,1}),': ',empty_ROI_list{iROI,2});
-                disp_empty_ROI_list = vertcat(disp_empty_ROI_list, ROI_string);
-            end
-            
-            % GUI to show empty ROIs
-            ROI_remove_empty_GUI(disp_empty_ROI_list);
-            
-            % Removing the empty ROIs
-            ROI_index = 0;
-            for iROI = 1:size(empty_ROI_list,1)
-                ROI_set.ROIs(empty_ROI_list{iROI,1}-ROI_index) = [];
-                ROI_index = ROI_index +1;
-            end
-            
-            % Ask user to remove heavily cropped ROIs
-            if isempty(ROI_set.ROIs)
-                warning('All ROIs are empty. Select different ROIs.');
-            else
-                ROI_set = ROI_remove_crop(ROI_set);
-            end
-        else
-            ROI_set = ROI_remove_crop(ROI_set);
-        end
-    else
-        warning('ROIs not selected.');
     end
     
+    try
+        close(w);
+    end
+        
+    % ---------------------------------------------------------------------
+    % Mask ROI images by the goup mean binary mask
+    w = waitbar(0,'Please wait...','Name','Masking ROIs by group mean mask');
+    input_images{1,1} = group_mask.fname;
+    
+    switch ROI_type
+        case 'binary_images'
+            for iROI = 1:nROI
+                input_images{2,1} = ROI_set.ROIs(iROI).path;
+                ROI_mask = ROI_set.ROIs(iROI).path_masked;
+                spm_imcalc(input_images,ROI_mask,'(i1>0).*(i2>0)',{0,0,1,2});
+                try
+                    waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+                end
+            end
+        case 'fixed_spheres'
+            for iROI = 1:nROI
+                input_images{2,1} = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_FS(iROI).ROI_name '.nii']);
+                ROI_mask = ROI_set.ROIs(iROI).path_masked;
+                spm_imcalc(input_images,ROI_mask,'(i1>0).*(i2>0)',{0,0,1,2});
+                delete(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',[ROI_FS(iROI).ROI_name '.nii']));
+                try
+                    waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+                end
+            end
+        otherwise
+            start_time = tic;
+            count_sub = 1;
+            cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+            for iSub = 1:nSub
+                switch tmfc.defaults.parallel
+                    case 0 % Sequential
+                        for jROI = 1:nROI
+                            tmfc_mask_moving_spheres(input_images,tmfc,ROI_set_name,iSub,ROI_set,jROI);
+                        end
+                    case 1 % Parallel
+                        parfor jROI = 1:nROI
+                            tmfc_mask_moving_spheres(input_images,tmfc,ROI_set_name,iSub,ROI_set,jROI);
+                        end
+                end
+                % Update waitbar
+                elapsed_time = toc(start_time);
+                time_per_sub = elapsed_time/count_sub;
+                count_sub = count_sub + 1;
+                time_remaining = (nSub-iSub)*time_per_sub;
+                hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+                try
+                    waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+                end
+            end
+    end
+   
+    try
+        close(w)
+    end
+    
+    % ---------------------------------------------------------------------
+    % Calculate ROI size after masking
+    w = waitbar(0,'Please wait...','Name','Calculating masked ROI sizes');
+    for iROI = 1:nROI
+        switch ROI_type
+            case 'binary_images'
+                binary_mask = [];
+                coord = [];
+                binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked,'xyz',XYZ);
+                ROI_set.ROIs(iROI).masked_size = nnz(binary_mask);
+                ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
+                % Calculate centroid coordinates
+                coord = XYZmm(:,(binary_mask ~= 0));
+                ROI_set.ROIs(iROI).X = mean(coord(1,:));
+                ROI_set.ROIs(iROI).Y = mean(coord(2,:));
+                ROI_set.ROIs(iROI).Z = mean(coord(3,:));
+            case 'fixed_spheres'
+                binary_mask = [];
+                binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked,'xyz',XYZ);
+                ROI_set.ROIs(iROI).masked_size = nnz(binary_mask);
+                ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
+            case 'moving_sphreres_inside_fixed_spheres'
+                for jSub = 1:nSub
+                    binary_mask = [];
+                    binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked(jSub).subjects,'xyz',XYZ);
+                    sub_size(jSub) = nnz(binary_mask);
+                end
+                sub_size(isnan(sub_size)) = 0;
+                ROI_set.ROIs(iROI).masked_size = min(sub_size);
+                ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
+                clear sub_size
+            case 'moving_sphreres_inside_binary_images'
+                for jSub = 1:nSub
+                    binary_mask = [];
+                    coord = [];
+                    binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked(jSub).subjects,'xyz',XYZ);
+                    sub_size(jSub) = nnz(binary_mask);
+                    coord = XYZmm(:,(binary_mask ~= 0));
+                    sub_X(jSub) = mean(coord(1,:));
+                    sub_Y(jSub) = mean(coord(2,:));
+                    sub_Z(jSub) = mean(coord(3,:));
+                end
+                sub_size(isnan(sub_size)) = 0;
+                ROI_set.ROIs(iROI).masked_size = min(sub_size);
+                ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
+                ROI_set.ROIs(iROI).X = mean(sub_X);
+                ROI_set.ROIs(iROI).Y = mean(sub_Y);
+                ROI_set.ROIs(iROI).Z = mean(sub_Z);
+                clear sub_size sub_X sub_Y sub_Z
+        end
+        if isnan(ROI_set.ROIs(iROI).masked_size_percents)
+            ROI_set.ROIs(iROI).masked_size_percents = 0;
+        end
+        try
+            waitbar(iROI/nROI,w,['ROI No ' num2str(iROI,'%.f')]);
+        end
+    end
+    
+    try
+        close(w)
+    end
+        
+    % ---------------------------------------------------------------------
+    % Check for empty ROIs
+    empty_ROI_list = {};
+    empty_ROI_index = 1;
+    for iROI = 1:length(ROI_set.ROIs)
+        if ROI_set.ROIs(iROI).masked_size_percents == 0
+            empty_ROI_list{empty_ROI_index,1} = iROI;
+            empty_ROI_list{empty_ROI_index,2} = ROI_set.ROIs(iROI).name;
+            empty_ROI_index = empty_ROI_index + 1;
+        end
+    end
+        
+    % ---------------------------------------------------------------------
+    % GUI interface for removing heavily cropped ROIs
+    if ~isempty(empty_ROI_list)
+        disp_empty_ROI_list = {};
+        for iROI = 1:size(empty_ROI_list,1)
+            ROI_string = horzcat('No ',num2str(empty_ROI_list{iROI,1}),': ',empty_ROI_list{iROI,2});
+            disp_empty_ROI_list = vertcat(disp_empty_ROI_list, ROI_string);
+        end
+        
+        % Display empty ROIs
+        remove_empty_ROIs_GUI(disp_empty_ROI_list);
+
+        % If all ROIs are empty
+        if size(empty_ROI_list,1) == length(ROI_set.ROIs)
+            warning('All ROIs are empty. Select different ROIs.');
+            ROI_set = []; cd(swd); return;
+        end
+        
+        % Remove empty ROIs
+        ROI_index = 0;
+        for iROI = 1:size(empty_ROI_list,1)
+            ROI_set.ROIs(empty_ROI_list{iROI,1}-ROI_index) = [];
+            ROI_index = ROI_index +1;
+        end
+        
+        % Ask user to remove heavily cropped ROIs
+        if isempty(ROI_set.ROIs)
+            warning('All ROIs are empty. Select different ROIs.');
+        else
+            ROI_set = remove_cropped_ROIs_GUI(ROI_set);
+        end
+    else
+        ROI_set = remove_cropped_ROIs_GUI(ROI_set);
+    end
+
+    % ---------------------------------------------------------------------
     if ~isfield(ROI_set,'set_name') || ~isfield(ROI_set,'ROIs')
         ROI_set = [];
     end
-end   
+
+    cd(swd)
+
+    % ---------------------------------------------------------------------
+    function unfreeze_after_ctrl_c()    
+        try
+            delete(findall(0,'type','figure','Tag', 'tmfc_waitbar'));
+            GUI = guidata(findobj('Tag','TMFC_GUI')); 
+            set([GUI.TMFC_GUI_B1, GUI.TMFC_GUI_B2, GUI.TMFC_GUI_B3, GUI.TMFC_GUI_B4,...
+               GUI.TMFC_GUI_B5a, GUI.TMFC_GUI_B5b, GUI.TMFC_GUI_B6, GUI.TMFC_GUI_B7,...
+               GUI.TMFC_GUI_B8, GUI.TMFC_GUI_B9, GUI.TMFC_GUI_B10, GUI.TMFC_GUI_B11,...
+               GUI.TMFC_GUI_B12a,GUI.TMFC_GUI_B12b,GUI.TMFC_GUI_B13a,GUI.TMFC_GUI_B13b,...
+               GUI.TMFC_GUI_B14a, GUI.TMFC_GUI_B14b], 'Enable', 'on');
+        end
+    end
 end
+end
+
+% -------------------------------------------------------------------------
+function tmfc_mask_moving_spheres(input_images,tmfc,ROI_set_name,iSub,ROI_set,jROI)
+    input_images{2,1} = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(jROI).name '.nii']);
+    individual_ROI_mask = ROI_set.ROIs(jROI).path_masked(iSub).subjects;
+    spm_imcalc(input_images,individual_ROI_mask,'(i1>0).*(i2>0)',{0,0,1,2});
+    delete(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(jROI).name '.nii']));
+end
+ 
 
 %% ====================[ Specify ROI set name GUI ]========================
 function [ROI_set_name] = ROI_set_name_GUI(~,~)
@@ -244,7 +652,8 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
     %----------------------------------------------------------------------
     function check_ROI_set_name(~,~)
         tmp_name = get(ROI_set_name_MW_E, 'String');
-        if ~strcmp(tmp_name,'') && ~strcmp(tmp_name(1),' ')    
+        tmp_name = strrep(tmp_name,' ','');
+        if ~strcmp(tmp_name,'')   
         	fprintf('Name of ROI set: %s.\n', tmp_name);
             delete(ROI_set_name_MW);      
             ROI_set_name = tmp_name;     
@@ -275,8 +684,67 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
     uiwait();
 end
 
-%% ================ [ GUI window to remove empty ROIs ]====================
-function ROI_remove_empty_GUI(empty_ROI_list)
+%% ======================[ Select ROI type GUI ]===========================
+function [ROI_type] = ROI_type_GUI(~,~)
+
+    select_ROI_type_GUI = figure('Name', 'Select ROIs','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.30 0.300 0.500], 'color', 'w', 'Tag', 'TMFC_Select_ROIs','resize', 'on','WindowStyle','modal', 'CloseRequestFcn', @close_ROI_type);
+
+    sel_ROI_MP1 = uipanel(select_ROI_type_GUI ,'Units', 'normalized','Position',[0.03 0.775 0.94 0.195],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');
+    sel_ROI_MP2 = uipanel(select_ROI_type_GUI ,'Units', 'normalized','Position',[0.03 0.55 0.94 0.195],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');
+    sel_ROI_MP3 = uipanel(select_ROI_type_GUI ,'Units', 'normalized','Position',[0.03 0.315 0.94 0.205],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');
+    sel_ROI_MP4 = uipanel(select_ROI_type_GUI ,'Units', 'normalized','Position',[0.03 0.082 0.94 0.21],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');
+
+    txt_1 = {'Use binary images that are the same for all subjects. These images will be masked by the group mean binary image.'};
+    txt_2 = {'Create spheres that are the same for all subjects. The center of the sphere is fixed. These spheres will be masked by the group mean binary image.'};
+    txt_3 = {'Create spheres individual for each subject. The center of the sphere moves to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.'};
+    txt_4 = {'Create spheres individual for each subject. The center of the sphere moves to the local maximum inside a binary image. These spheres will be masked by selected binary images and the group mean binary image.'};
+
+    sel_ROI_B1 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Select ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.875 0.90 0.074],'FontUnits','normalized','FontSize',0.33, 'callback', @binary_images);
+    sel_ROI_B2 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.648 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @fixed_spheres);
+    sel_ROI_B3 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.428 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_inside_fixed_spheres);
+    sel_ROI_B4 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.195 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_indise_binary_images);
+
+    sel_ROI_txt_1 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_1,'Units', 'normalized', 'Position',[0.05 0.78 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_2 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_2,'Units', 'normalized', 'Position',[0.05 0.555 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_3 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_3,'Units', 'normalized', 'Position',[0.05 0.32 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_4 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_4,'Units', 'normalized', 'Position',[0.05 0.085 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24, 'HorizontalAlignment','left','backgroundcolor','w');
+    movegui(select_ROI_type_GUI,'center');
+    
+    
+    function binary_images(~,~)
+        ROI_type = 'binary_images';
+        delete(select_ROI_type_GUI);
+    end
+
+    function fixed_spheres(~,~)
+        ROI_type = 'fixed_spheres';
+        delete(select_ROI_type_GUI);
+    end
+
+
+    function moving_inside_fixed_spheres(~,~)
+        ROI_type = 'moving_sphreres_inside_fixed_spheres';
+        delete(select_ROI_type_GUI);
+    end
+
+
+    function moving_indise_binary_images(~,~)
+        ROI_type = 'moving_sphreres_inside_binary_images';
+        delete(select_ROI_type_GUI);
+    end
+
+
+    function close_ROI_type(~,~)
+        delete(select_ROI_type_GUI);
+        ROI_type = '';
+    end
+    
+    uiwait();
+    
+end
+
+%% =====================[ Remove empty ROIs GUI ]==========================
+function remove_empty_ROIs_GUI(empty_ROI_list)
 
     ROI_remove_string = {'Warning, the following ROIs do not',...
                          'contain data for at least one subject and',...
@@ -284,7 +752,7 @@ function ROI_remove_empty_GUI(empty_ROI_list)
 
     ROI_remove_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.40 0.28 0.35],'Resize','on','color','w','MenuBar', 'none','ToolBar', 'none');
 
-    ROI_remove_MW_list = uicontrol(ROI_remove_MW , 'Style', 'listbox', 'String', empty_ROI_list,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.22 0.91 0.40],'fontunits','normalized', 'fontSize', 0.105,'Value', []);
+    ROI_remove_MW_list = uicontrol(ROI_remove_MW , 'Style', 'listbox', 'String', empty_ROI_list,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.22 0.91 0.40],'fontunits','points', 'fontSize', 12,'Value', []);
     ROI_remove_MW_S1 = uicontrol(ROI_remove_MW,'Style','text','String',ROI_remove_string,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.22,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.20 0.73 0.600 0.2]);
     ROI_remove_MW_S2 = uicontrol(ROI_remove_MW,'Style','text','String', 'Empty ROIs:','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.55,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.04 0.62 0.200 0.08]);    
     ROI_remove_MW_OK = uicontrol(ROI_remove_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4, 'Position',[0.38 0.07 0.28 0.10],'callback', @ROI_remove_MW_close);
@@ -301,9 +769,8 @@ function ROI_remove_empty_GUI(empty_ROI_list)
     uiwait();  
 end
 
-
-%% =============[ GUI window to remove heavily cropped ROIs ]==============
-function [ROI_set_crop] = ROI_remove_crop(ROI_set)
+%% ================[ Remove heavily cropped ROIs GUI ]=====================
+function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
 
     ROI_string = {};
     ROI_set_crop = []; 
@@ -323,8 +790,8 @@ function [ROI_set_crop] = ROI_remove_crop(ROI_set)
     ROI_crop_MW_IND2 = {};         
 
     ROI_crop_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.40 0.32 0.55],'Resize','on','color','w','MenuBar', 'none','ToolBar', 'none','Windowstyle', 'Modal','CloseRequestFcn', @ROI_crop_MW_EXIT);
-    ROI_crop_MW_LB1 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L1(:,2,1),'Max', 100,'Units', 'normalized', 'Position',[0.048 0.565 0.91 0.30],'fontunits','normalized', 'fontSize', 0.098, 'Value', [], 'callback', @LB1_SEL);
-    ROI_crop_MW_LB2 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L2,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.14 0.91 0.25],'fontunits','normalized', 'fontSize', 0.119, 'Value', [], 'callback', @LB2_SEL);
+    ROI_crop_MW_LB1 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L1(:,2,1),'Max', 100,'Units', 'normalized', 'Position',[0.048 0.565 0.91 0.30],'fontunits','points', 'fontSize', 11, 'Value', [], 'callback', @LB1_SEL);
+    ROI_crop_MW_LB2 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L2,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.14 0.91 0.25],'fontunits','points', 'fontSize', 11, 'Value', [], 'callback', @LB2_SEL);
 
     ROI_crop_MW_S1 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO1,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.54,'Position',[0.10 0.92 0.8 0.05],'backgroundcolor',get(ROI_crop_MW,'color'));
     ROI_crop_MW_S2 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO2,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment', 'left','Position',[0.048 0.87 0.91 0.040],'backgroundcolor',get(ROI_crop_MW,'color'));
@@ -336,7 +803,7 @@ function [ROI_set_crop] = ROI_remove_crop(ROI_set)
     ROI_crop_MW_OK = uicontrol(ROI_crop_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4,'Position',[0.047 0.056 0.24 0.063], 'callback', @confirm_selection);
 
     ROI_crop_MW_return_selected = uicontrol(ROI_crop_MW,'Style','pushbutton', 'String', 'Return selected','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4,'Position',[0.39 0.056 0.24 0.063], 'callback', @return_selected);
-    ROI_crop_MW_return_all = uicontrol(ROI_crop_MW,'Style','pushbutton', 'String', 'Return all','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4,'Position',[0.72 0.056 0.24 0.063], 'callback', @retern_all);
+    ROI_crop_MW_return_all = uicontrol(ROI_crop_MW,'Style','pushbutton', 'String', 'Return all','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4,'Position',[0.72 0.056 0.24 0.063], 'callback', @return_all);
     ROI_crop_MW_thr = uicontrol(ROI_crop_MW,'Style','edit','String',[],'Units', 'normalized','fontunits','normalized', 'fontSize', 0.42,'HorizontalAlignment','center','Position',[0.74 0.48 0.1 0.06]);
     movegui(ROI_crop_MW,'center');    
 
@@ -565,7 +1032,7 @@ function [ROI_set_crop] = ROI_remove_crop(ROI_set)
     end
 
     %----------------------------------------------------------------------
-    function retern_all(~,~)
+    function return_all(~,~)
         if isempty(ROI_crop_MW_L2)
             warning('No ROIs present to return.');
         else
@@ -600,5 +1067,831 @@ function [ROI_set_crop] = ROI_remove_crop(ROI_set)
     uiwait();
 end
 
+%% =========================[Fixed spheres GUI]============================
+function [ROI_select] = select_ROIs_case_2()
+
+    ROI_string = {}; % variable to show ROIs via GUI
+    ROI_select = []; % variable to export ROIs to ROI selection window
+    ROI_index = {};  % variable to select ROIs from list index
+        
+    FS_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.34 0.24 0.32 0.5],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @no_select_exit);
+    FS_txt_1 = uicontrol(FS_GUI,'Style','text','String', 'Define fixed spheres','Units', 'normalized', 'Position',[0.270 0.925 0.450 0.05],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
+    FS_txt_2 = uicontrol(FS_GUI , 'Style', 'text', 'String', 'No # :: ROI name :: Center coordinates [x y z] :: Radius ','Units', 'normalized', 'Position',[0.045 0.855 0.900 0.045],'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment','left','backgroundcolor','w');  
+    FS_lst = uicontrol(FS_GUI , 'Style', 'listbox', 'String', '','Value', [],'Max', 100000,'Units', 'normalized', 'Position',[0.045 0.40 0.910 0.450],'fontunits','points', 'fontSize', 12,'Enable','inactive', 'callback', @list_select);
+    
+    FS_add = uicontrol(FS_GUI,'Style','pushbutton','String', 'Add new','Units', 'normalized','Position',[0.044 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @add_ROI);
+    FS_rem = uicontrol(FS_GUI,'Style','pushbutton','String', 'Remove selected','Units', 'normalized','Position',[0.355 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36, 'callback', @remove);
+    FS_rem_all = uicontrol(FS_GUI,'Style','pushbutton','String', 'Remove all','Units', 'normalized','Position',[0.667 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @remove_all);
+    FS_sel = uicontrol(FS_GUI,'Style','pushbutton','String', 'Select from (*.mat, *.xlsx, *.csv, *.txt) file','Units', 'normalized','Position',[0.044 0.2 0.912 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @select_ROI);
+    FS_conf = uicontrol(FS_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.045 0.05 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @export);
+    FS_help = uicontrol(FS_GUI,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.667 0.05 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @help_window);    
+    movegui(FS_GUI,'center');
+    
+    function no_select_exit(~,~)
+        ROI_select = [];
+        delete(FS_GUI);
+        disp('ROIs not selected');
+    end
+
+    function list_select(~,~)
+        index = get(FS_lst, 'Value');  
+        ROI_index = index;      
+    end
+
+    function add_ROI(~,~)
+        
+        [ROI_name, coord, radius] = add_fixed_shpere_GUI();
+        
+        if ~isempty(ROI_name)
+            
+            new_index = size(ROI_string,1)+1;
+
+            full_string = horzcat('No ',num2str(new_index),': ', char(ROI_name), ' :: ',...
+                            '[',num2str(coord{1}),' ', num2str(coord{2}), ' ',num2str(coord{3}),...
+                            '] :: ', num2str(radius), ' mm');
+
+            ROI_string = vertcat(ROI_string, full_string);
+            ROI_select(new_index).ROI_name = char(ROI_name);
+            ROI_select(new_index).X = coord{1};
+            ROI_select(new_index).Y = coord{2};
+            ROI_select(new_index).Z = coord{3};
+            ROI_select(new_index).radius = radius;
+            
+            fprintf('Custom ROI added to list. Number of ROIs present are: %d \n',new_index);
+            set(FS_lst, 'String', ROI_string);
+            set(FS_lst, 'Enable', 'On');           
+        else
+            disp('Custom ROI not added.');
+        end
+    end
+
+    function select_ROI(~,~) 
+        
+        ROI_path = spm_select(1,{'.csv','.txt','.mat','.xlsx'},'Select ROI masks',{},pwd);
+        
+        if ~isempty(ROI_path)
+            %ROI_paths = cellstr(ROI_paths);
+            
+            if strfind(ROI_path, '.mat') > 0
+                
+                % Loading data into workspace
+                
+                % NEED TO ADD ERROR CASE FOR EMPTY VARIABLES OR NON
+                % Compatible files
+                try
+                    temp_var = load(ROI_path);
+                    var_names=fieldnames(temp_var);
+                    sub_var_name=var_names{1};
+                    values = temp_var.(sub_var_name);
+                    
+                    % Condition if there are existing ROIs in list
+                    if isempty(ROI_string)
+                        ROI_string = {};
+                        ROI_select = struct;
+                        extend_index = 0;
+                    else
+                        extend_index = size(ROI_string, 1);
+                    end
+                    
+                    % Cell Type
+                    if iscell(values)
+                        for iROI = 1:size(values, 1)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values{iROI, 1}), ' :: ',...
+                            '[',num2str(values{iROI, 2}),' ', num2str(values{iROI, 3}), ' ',num2str(values{iROI, 4}),...
+                            '] :: ', num2str(values{iROI, 5}), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values{iROI, 1});
+                            ROI_select(iROI+extend_index).X = values{iROI, 2};
+                            ROI_select(iROI+extend_index).Y = values{iROI, 3};
+                            ROI_select(iROI+extend_index).Z = values{iROI, 4};
+                            ROI_select(iROI+extend_index).radius = values{iROI, 5};
+                        end
+                        
+                    % Struct type
+                    elseif isstruct(values)
+                        
+                        list_fields = fieldnames(values);                        
+                        for iROI = 1:size(values,2)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values(iROI).(list_fields{1})), ' :: ',...
+                            '[',num2str(values(iROI).(list_fields{2})),' ', num2str(values(iROI).(list_fields{3})), ' ',...
+                            num2str(values(iROI).(list_fields{4})),'] :: ', num2str(values(iROI).(list_fields{5})), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values(iROI).(list_fields{1}));
+                            ROI_select(iROI+extend_index).X = values(iROI).(list_fields{2});
+                            ROI_select(iROI+extend_index).Y = values(iROI).(list_fields{3});
+                            ROI_select(iROI+extend_index).Z = values(iROI).(list_fields{4});
+                            ROI_select(iROI+extend_index).radius = values(iROI).(list_fields{5});
+                        end
+                        
+                    % table type
+                    else
+                        for iROI = 1:size(values, 1)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values{iROI, 1}), ' :: ',...
+                            '[',num2str(values{iROI, 2}),' ', num2str(values{iROI, 3}), ' ',num2str(values{iROI, 4}),...
+                            '] :: ', num2str(values{iROI, 5}), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values{iROI, 1});
+                            ROI_select(iROI+extend_index).X = values{iROI, 2};
+                            ROI_select(iROI+extend_index).Y = values{iROI, 3};
+                            ROI_select(iROI+extend_index).Z = values{iROI, 4};
+                            ROI_select(iROI+extend_index).radius = values{iROI, 5};
+                        end                        
+                    end
+                
+                catch 
+                    error('The selected .mat file is not in format, please try again');
+                end
+
+            else
+                % Reading .csv , .xlsx, .txt files with ROIs
+                % NOT WORKING FOR .csv and .txt in 2014a version
+                temp_table = readtable(ROI_path);
+                
+                % Condition if there are existing ROIs in list
+                if isempty(ROI_string)
+                    ROI_string = {};
+                    ROI_select = struct;
+                    extend_index = 0;
+                else
+                    extend_index = size(ROI_string, 1);
+                end
+                
+                for iROI = 1:size(temp_table, 1)
+                    full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(temp_table{iROI, 1}), ' :: ',...
+                        '[',num2str(temp_table{iROI, 2}),' ', num2str(temp_table{iROI, 3}), ' ',num2str(temp_table{iROI, 4}),...
+                        '] :: ', num2str(temp_table{iROI, 5}), ' mm');
+                    ROI_string = vertcat(ROI_string, full_string);
+                    ROI_select(iROI+extend_index).ROI_name = char(temp_table{iROI, 1});
+                    ROI_select(iROI+extend_index).X = temp_table{iROI, 2};
+                    ROI_select(iROI+extend_index).Y = temp_table{iROI, 3};
+                    ROI_select(iROI+extend_index).Z = temp_table{iROI, 4};
+                    ROI_select(iROI+extend_index).radius = temp_table{iROI, 5};
+                    
+                end
+                
+            end                
+            
+            fprintf('Number of ROIs added: %d \n', size(ROI_string, 1));
+            clear temp_table iROI jROI full_string temp_var
+            set(FS_lst, 'String', ROI_string);
+            set(FS_lst, 'Enable', 'On');
+        else
+            disp('ROIs not selected');
+        end
+        
+    end
+    
+    function remove_all(~,~)
+        if isempty(ROI_string)
+            warning('No ROIs present to remove.');
+        else
+            ROI_string = {};
+            ROI_select = [];
+            ROI_index = {};
+            set(FS_lst, 'String', ROI_string);
+            set(FS_lst, 'Enable', 'inactive');
+            set(FS_lst, 'value', []);
+            disp('All ROIs have been removed');
+        end
+    end
+
+    function remove(~,~)
+        
+        if isempty(ROI_string)
+            warning('No ROIs present to remove');
+            
+        elseif isempty(ROI_index)
+            warning('No ROIs seleted remove.');
+            
+        else   
+            ROI_string = {};
+            len_ROI_removed = length(ROI_index);
+            ROI_select(ROI_index) = [];
+            ROI_index = {};
+            
+            % Reset display list string
+            for iROI = 1:size(ROI_select, 2)
+                full_string = horzcat('No ',num2str(iROI),': ', ROI_select(iROI).ROI_name, ' :: ',...
+                            '[',num2str(ROI_select(iROI).X),' ', num2str(ROI_select(iROI).Y), ' ',num2str(ROI_select(iROI).Z),...
+                            '] :: ', num2str(ROI_select(iROI).radius), ' mm');
+                ROI_string = vertcat(ROI_string, full_string);
+            end
+            
+            %REMOVE SELECTED ROIs
+            set(FS_lst, 'String', ROI_string);
+            set(FS_lst,'Value',[]);
+            fprintf('Number of ROIs removed: %d \n', len_ROI_removed);            
+        end
+    end
+
+    function help_window(~,~)
+        FS_ROI_HW = figure('Name', 'Define fixed spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.35 0.28 0.28],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on', 'WindowStyle', 'modal', 'CloseRequestFcn',@close_GUI);
+        
+        FS_str_1 = {'Define fixed spheres manually or select them from the coordinate table (*.mat, *.xlsx, *.csv, *.txt file). The coordinate table must contain the following columns:',...
+            '','1) ROI name', '2) Fixed center coordinate: X','3) Fixed center coordinate: Y','4) Fixed center coordinate: Z', '5) Fixed sphere radius (inner radius)','',...
+            'For examples of coordinate tables, see the TMFC_toolbox folder.'};
+        movegui(FS_ROI_HW, 'center');
+        
+        FS_ROI_HW_txt_1 = uicontrol(FS_ROI_HW,'Style','text','String', FS_str_1,'Units', 'normalized', 'Position',[0.05 0.22 0.90 0.75],'fontunits','normalized', 'fontSize', 0.075, 'HorizontalAlignment', 'left','backgroundcolor','w');
+        FS_ROI_HW_OK = uicontrol(FS_ROI_HW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.36 0.08 0.250 0.11],'fontunits','normalized', 'fontSize', 0.40,'callback', @close_GUI);
+        
+        function close_GUI(~,~)
+            delete(FS_ROI_HW); 
+        end
+
+        uiwait(FS_ROI_HW);
+    end
+        
+    function export(~,~)
+        if ~isempty(ROI_select)
+            fprintf('\n Number of ROIs exported are: %d\n', size(ROI_select,2));
+            delete(FS_GUI);
+        else
+            fprintf('No ROIs added to export\n');
+        end
+    end
+ 
+    uiwait();
+
+end
+
+%% ==================[Add custom fixed sphrere GUI]========================
+function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
+
+    % Variables to store new ROI from user
+    ROI_name = '';
+    center_coordinates = '';
+    radius = '';
+    
+    % GUI to add fixed sphere ROI from user
+    add_NS_GUI = figure('Name', 'Add new sphere', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.22 0.25],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @close_new_ROI, 'WindowStyle', 'modal');
+    add_NS_txt_1 = uicontrol(add_NS_GUI,'Style','text','String', 'Define fixed spheres','Units', 'normalized', 'Position',[0.272 0.88 0.450 0.1],'fontunits','normalized', 'fontSize', 0.66,'backgroundcolor','w');
+    add_NS_txt_2 = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'ROI name','Units', 'normalized', 'Position',[0.272 0.76 0.450 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NS_txt_3 = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'Center coordinates, mm','Units', 'normalized', 'Position',[0.095 0.52 0.550 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NS_txt_X = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'X','Units', 'normalized', 'Position',[0.125 0.44 0.1 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NS_txt_Y = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'Y','Units', 'normalized', 'Position',[0.32 0.44 0.1 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NS_txt_Z = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'Z','Units', 'normalized', 'Position',[0.515 0.44 0.1 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NS_txt_4 = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'Radius, mm','Units', 'normalized', 'Position',[0.68 0.44 0.22 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
+    
+    FS_E1 = uicontrol(add_NS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.0955 0.65 0.800 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    FS_E2_X = uicontrol(add_NS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.0955 0.32 0.16 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    FS_E2_Y = uicontrol(add_NS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.29 0.32 0.16 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    FS_E2_Z = uicontrol(add_NS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.485 0.32 0.16 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    FS_E3 = uicontrol(add_NS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.695 0.32 0.20 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    FS_OK = uicontrol(add_NS_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.31 0.08 0.35 0.13],'fontunits','normalized', 'fontSize', 0.36,'callback', @ok_data);
+    movegui(add_NS_GUI,'center');
+    
+    % Function to close GUI when ROI is not entered
+    function close_new_ROI(~,~)
+        ROI_name = '';
+        center_coordinates = '';
+        radius = '';
+        delete(add_NS_GUI);
+    end
+    
+    % Function to check and export created ROI
+    function ok_data(~,~)
+        
+        % Extracting ROI name
+        tmp_name = get(FS_E1, 'String');
+        
+        % Checking if name is empty
+        if ~strcmp(tmp_name,'') && ~strcmp(tmp_name(1),' ')                
+            
+            % Set ROI name
+            ROI_name = tmp_name;
+            
+            % Extracting Center Coordinates [X Y Z]
+            tmp_center_X = str2double(get(FS_E2_X, 'String'));
+            tmp_center_Y = str2double(get(FS_E2_Y, 'String'));
+            tmp_center_Z = str2double(get(FS_E2_Z, 'String'));           
+            
+            % Check for empty coordinates
+            if ~isnan(tmp_center_X) && ~isnan(tmp_center_Y) && ~isnan(tmp_center_Z)
+                
+                % Check if Coordinates are natural numbers
+                if (isreal(tmp_center_X)) && (isreal(tmp_center_Y)) && (isreal(tmp_center_Z))
+                    
+                    center_coordinates = {tmp_center_X, tmp_center_Y, tmp_center_Z};
+                    
+                    % Extracting Radius of Fixed Sphere
+                    tmp_rad = str2double(get(FS_E3, 'String'));
+                    
+                    % Check for empty Radius value
+                    if ~isnan(tmp_rad)
+                        
+                        % Check if Radius is natural number
+                        if ~(isreal(tmp_rad))
+                            warning('Please enter natural number for Radius of spheres.');
+                        elseif tmp_rad <= 0 
+                            warning('Please enter positive number for Radius of spheres.');
+                        else
+                            % Exporting selected variables
+                            radius = tmp_rad;     
+                            fprintf('Name of ROI: %s.\n', ROI_name);   
+                            fprintf('Coordinates (X, Y, Z) %d %d %d\n', center_coordinates{1}, center_coordinates{2}, center_coordinates{3});
+                            fprintf('Radius of Fixed sphere: %d.\n', radius);
+                            delete(add_NS_GUI);
+                        end
+                    else
+                        warning('Fixed sphere radius not entered or is invalid, please re-enter.'); 
+                    end
+                else
+                    warning('Please enter natural number for coordinates.');
+                end
+            else 
+                warning('Coordinates are not entered or is invalid, please re-enter.');                
+            end
+        else
+            warning('ROI Name not entered or is invalid, please re-enter.');
+        end
+    end
+
+    uiwait();
+    
+end
+
+%% ===============[Moving spheres inside fixed spheres GUI]================
+function [ROI_select] = select_ROIs_case_3()
+
+    ROI_string = {}; % variable to show ROIs via GUI
+    ROI_select = []; % variable to export ROIs to ROI selection window
+    ROI_index = {};  % variable to select ROIs from list index
+    
+    MS_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.29 0.29 0.40 0.5],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @no_select_exit);
+    MS_txt_1 = uicontrol(MS_GUI,'Style','text','String', 'Define moving spheres','Units', 'normalized', 'Position',[0.270 0.925 0.450 0.05],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
+    MS_txt_2 = uicontrol(MS_GUI , 'Style', 'text', 'String', '№ # :: ROI name :: Fixed center coordinates [x y z] :: Moving sphere radius :: Fixed sphere radius','Units', 'normalized', 'Position',[0.045 0.855 0.900 0.045],'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment','left','backgroundcolor','w');
+    MS_lst = uicontrol(MS_GUI , 'Style', 'listbox', 'String', '','Value', [],'Max', 100000,'Units', 'normalized', 'Position',[0.045 0.40 0.910 0.450],'fontunits','points', 'fontSize', 12,'Enable','inactive', 'callback', @list_select);
+    
+    MS_add = uicontrol(MS_GUI,'Style','pushbutton','String', 'Add new','Units', 'normalized','Position',[0.044 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @add_ROI);
+    MS_rem = uicontrol(MS_GUI,'Style','pushbutton','String', 'Remove selected','Units', 'normalized','Position',[0.355 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36, 'callback', @remove);
+    MS_rem_all = uicontrol(MS_GUI,'Style','pushbutton','String', 'Remove all','Units', 'normalized','Position',[0.667 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @remove_all);
+    MS_sel = uicontrol(MS_GUI,'Style','pushbutton','String', 'Select from (*.mat, *.xlsx, *.csv, *.txt) file','Units', 'normalized','Position',[0.044 0.2 0.912 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @select_ROI);
+    MS_conf = uicontrol(MS_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.045 0.05 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @export);
+    MS_help = uicontrol(MS_GUI,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.667 0.05 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @help_window);    
+    movegui(MS_GUI,'center');
+    
+    function no_select_exit(~,~)
+        ROI_select = [];
+        delete(MS_GUI);
+        disp('ROIs not selected');
+    end
+    
+    function list_select(~,~)
+        index = get(MS_lst, 'Value');  
+        ROI_index = index;      
+    end
+
+    function add_ROI(~,~)
+        
+        [ROI_name, coord, radius] = add_moving_shpere_GUI();
+        
+        if ~isempty(ROI_name)
+            
+            new_index = size(ROI_string,1)+1;
+
+            full_string = horzcat('No ',num2str(new_index),': ', char(ROI_name), ' :: ',...
+                            '[',num2str(coord{1}),' ', num2str(coord{2}), ' ',num2str(coord{3}),...
+                            '] :: ', num2str(radius{1}), ' mm :: ', num2str(radius{2}), ' mm');
+
+            ROI_string = vertcat(ROI_string, full_string);
+            ROI_select(new_index).ROI_name = char(ROI_name);
+            ROI_select(new_index).X = coord{1};
+            ROI_select(new_index).Y = coord{2};
+            ROI_select(new_index).Z = coord{3};
+            ROI_select(new_index).moving_radius = radius{1};
+            ROI_select(new_index).fixed_radius = radius{2};
+            
+            fprintf('Custom ROI added to list. Number of ROIs present are: %d \n',new_index);
+            set(MS_lst, 'String', ROI_string);
+            set(MS_lst, 'Enable', 'On');           
+        else
+            disp('Custom ROI not added.');
+        end
+    end
+
+    function select_ROI(~,~) 
+        
+        ROI_path = spm_select(1,{'.csv','.txt','.mat','.xlsx'},'Select ROI masks',{},pwd);
+        
+        if ~isempty(ROI_path)
+            %ROI_paths = cellstr(ROI_paths);
+            
+            if strfind(ROI_path, '.mat') > 0
+                
+                % Loading data into workspace
+                
+                % NEED TO ADD ERROR CASE FOR EMPTY VARIABLES OR NaN
+                % Compatible files
+                try
+                    temp_var = load(ROI_path);
+                    var_names=fieldnames(temp_var);
+                    sub_var_name=var_names{1};
+                    values = temp_var.(sub_var_name);
+                    
+                    % Condition if there are existing ROIs in list
+                    if isempty(ROI_string)
+                        ROI_string = {};
+                        ROI_select = struct;
+                        extend_index = 0;
+                    else
+                        extend_index = size(ROI_string, 1);
+                    end
+                    
+                    % Cell Type
+                    if iscell(values)
+                        for iROI = 1:size(values, 1)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values{iROI, 1}), ' :: ',...
+                            '[',num2str(values{iROI, 2}),' ', num2str(values{iROI, 3}), ' ',num2str(values{iROI, 4}),...
+                            '] :: ', num2str(values{iROI, 5}), ' mm :: ', num2str(values{iROI, 6}), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values{iROI, 1});
+                            ROI_select(iROI+extend_index).X = values{iROI, 2};
+                            ROI_select(iROI+extend_index).Y = values{iROI, 3};
+                            ROI_select(iROI+extend_index).Z = values{iROI, 4};
+                            ROI_select(iROI+extend_index).moving_radius = values{iROI, 5};
+                            ROI_select(iROI+extend_index).fixed_radius = values{iROI, 6};
+                        end
+                        
+                    % Struct type
+                    elseif isstruct(values)
+                        
+                        list_fields = fieldnames(values);                        
+                        for iROI = 1:size(values,2)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values(iROI).(list_fields{1})), ' :: ',...
+                            '[',num2str(values(iROI).(list_fields{2})),' ', num2str(values(iROI).(list_fields{3})), ' ',...
+                            num2str(values(iROI).(list_fields{4})),'] :: ', num2str(values(iROI).(list_fields{5})), ' mm :: ',...
+                            num2str(values(iROI).(list_fields{6})), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values(iROI).(list_fields{1}));
+                            ROI_select(iROI+extend_index).X = values(iROI).(list_fields{2});
+                            ROI_select(iROI+extend_index).Y = values(iROI).(list_fields{3});
+                            ROI_select(iROI+extend_index).Z = values(iROI).(list_fields{4});
+                            ROI_select(iROI+extend_index).moving_radius = values(iROI).(list_fields{5});
+                            ROI_select(iROI+extend_index).fixed_radius = values(iROI).(list_fields{6});
+                        end
+                        
+                    % table type
+                    else
+                        for iROI = 1:size(values, 1)
+                            full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(values{iROI, 1}), ' :: ',...
+                            '[',num2str(values{iROI, 2}),' ', num2str(values{iROI, 3}), ' ',num2str(values{iROI, 4}),...
+                            '] :: ', num2str(values{iROI, 5}), ' mm :: ', num2str(values{iROI, 6}), ' mm');
+                            ROI_string = vertcat(ROI_string, full_string);
+                            ROI_select(iROI+extend_index).ROI_name = char(values{iROI, 1});
+                            ROI_select(iROI+extend_index).X = values{iROI, 2};
+                            ROI_select(iROI+extend_index).Y = values{iROI, 3};
+                            ROI_select(iROI+extend_index).Z = values{iROI, 4};
+                            ROI_select(iROI+extend_index).moving_radius = values{iROI, 5};
+                            ROI_select(iROI+extend_index).fixed_radius = values{iROI, 6};
+                        end                        
+                    end
+                
+                catch 
+                    error('The selected .mat file is not in format, please try again');
+                end
+
+            else
+                % Reading .csv , .xlsx, .txt files with ROIs
+                temp_table = readtable(ROI_path);
+                % Condition if there are existing ROIs in list
+                if isempty(ROI_string)
+                    ROI_string = {};
+                    ROI_select = struct;
+                    extend_index = 0;
+                else
+                    extend_index = size(ROI_string, 1);
+                end
+                
+                for iROI = 1:size(temp_table, 1)
+                    full_string = horzcat('No ',num2str(iROI+extend_index),': ', char(temp_table{iROI, 1}), ' :: ',...
+                        '[',num2str(temp_table{iROI, 2}),' ', num2str(temp_table{iROI, 3}), ' ',num2str(temp_table{iROI, 4}),...
+                        '] :: ', num2str(temp_table{iROI, 5}), ' mm :: ', num2str(temp_table{iROI, 6}), ' mm');
+                    ROI_string = vertcat(ROI_string, full_string);
+                    ROI_select(iROI+extend_index).ROI_name = char(temp_table{iROI, 1});
+                    ROI_select(iROI+extend_index).X = temp_table{iROI, 2};
+                    ROI_select(iROI+extend_index).Y = temp_table{iROI, 3};
+                    ROI_select(iROI+extend_index).Z = temp_table{iROI, 4};
+                    ROI_select(iROI+extend_index).moving_radius = temp_table{iROI, 5};
+                    ROI_select(iROI+extend_index).fixed_radius = temp_table{iROI, 6};
+
+                end
+                
+            end                
+            
+            fprintf('Number of ROIs present: %d \n', size(ROI_string, 1));
+            clear temp_table iROI jROI full_string temp_var
+            set(MS_lst, 'String', ROI_string);
+            set(MS_lst, 'Enable', 'On');
+        else
+            disp('ROIs not selected');
+        end
+        
+    end
+    
+    function remove_all(~,~)
+        if isempty(ROI_string)
+            warning('No ROIs present to remove.');
+        else
+            ROI_string = {};
+            ROI_select = [];
+            ROI_index = {};
+            set(MS_lst, 'String', ROI_string);
+            set(MS_lst, 'Enable', 'inactive');
+            set(MS_lst, 'value', []);
+            disp('All ROIs have been removed');
+        end
+    end
+
+    function remove(~,~)
+        
+        if isempty(ROI_string)
+            warning('No ROIs present to remove');
+            
+        elseif isempty(ROI_index)
+            warning('No ROIs seleted remove.');
+            
+        else
+            ROI_string = {};
+            len_ROI_removed = length(ROI_index);
+            ROI_select(ROI_index) = [];
+            ROI_index = {};
+            
+            for iROI = 1:size(ROI_select, 2)
+                full_string = horzcat('No ',num2str(iROI),': ', ROI_select(iROI).ROI_name, ' :: ',...
+                            '[', num2str(ROI_select(iROI).X),' ', num2str(ROI_select(iROI).Y), ' ',num2str(ROI_select(iROI).Z),...
+                            '] :: ', num2str(ROI_select(iROI).moving_radius), ' mm :: ', num2str(ROI_select(iROI).moving_radius), ' mm');        
+                ROI_string = vertcat(ROI_string, full_string);
+            end
+
+            set(MS_lst, 'String', ROI_string);
+            set(MS_lst,'Value',[]);
+            fprintf('Number of ROIs removed: %d \n', len_ROI_removed);        
+        end
+    end
+
+    function help_window(~,~)
+        string_info = {'Define moving spheres manually or select them from the coordinate table (*.mat, *.xlsx, *.csv, *.txt file). The coordinate table must contain the following columns:',...
+                    '','1) ROI name','2) Fixed center coordinate: X','3) Fixed center coordinate: Y','4) Fixed center coordinate: Z','5) Moving sphere radius (inner radius)','6) Fixed sphere radius (outer radius)',...
+                    '','For examples of coordinate tables, see the TMFC_toolbox folder.','','The center of the sphere will be moved to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.',...
+                    '','Local maxima are determined using the omnibus F-contrast for the selected conditions of interest. ','','Additionally, moving spheres can be masked by the thresholded F-map of an individual subject. This can significantly reduce ROI size.'};
+        
+        MS_ROI_HW = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.22 0.50],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off', 'WindowStyle', 'Modal', 'CloseRequestFcn',@MS_HW_close);
+        
+        MS_HW_txt = uicontrol(MS_ROI_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.16 0.89 0.80], 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.0351,'backgroundcolor','w');
+        MS_HW_OK = uicontrol(MS_ROI_HW,'Style','pushbutton','String', 'OK','Units', 'normalized', 'Position', [0.34 0.06 0.30 0.06],'callback', @MS_HW_close,'fontunits','normalized', 'fontSize', 0.35);
+        movegui(MS_ROI_HW,'center');
+        
+        function MS_HW_close(~,~)
+            delete(MS_ROI_HW);
+        end
+        
+        uiwait(MS_ROI_HW);        
+    end
+
+    function export(~,~)
+        if ~isempty(ROI_select)
+            fprintf('\n Number of ROIs exported are: %d\n', size(ROI_select,2));
+            delete(MS_GUI);
+        else
+            fprintf('No ROIs added to export\n');
+        end
+    end
+
+    uiwait();
+
+end
+
+%% ===================[Add custom moving sphere GUI]=======================
+function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
+
+    % Variables to store new ROI info from user
+    ROI_name = '';
+    center_coordinates = '';
+    radius = '';
+        
+    add_NMS_GUI = figure('Name', 'Add new sphere', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.27 0.32 0.28],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @close_new_ROI, 'WindowStyle', 'modal');
+    add_NMS_txt_1 = uicontrol(add_NMS_GUI,'Style','text','String', 'Define moving sphere inside fixed sphere','Units', 'normalized', 'Position',[0.08 0.84 0.85 0.1],'fontunits','normalized', 'fontSize', 0.55,'backgroundcolor','w');
+    add_NMS_txt_2 = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', 'ROI name','Units', 'normalized', 'Position',[0.272 0.74 0.450 0.08],'fontunits','normalized', 'fontSize', 0.65,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_3 = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', {'Center coordinates of fixed sphere', ''},'Units', 'normalized', 'Position',[0.07 0.395 0.450 0.14],'fontunits','normalized', 'fontSize', 0.35,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_3_X = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', 'X','Units', 'normalized', 'Position',[0.1 0.385 0.05 0.08],'fontunits','normalized', 'fontSize', 0.63,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_3_Y = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', 'Y','Units', 'normalized', 'Position',[0.265 0.385 0.05 0.08],'fontunits','normalized', 'fontSize', 0.63,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_3_Z = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', 'Z','Units', 'normalized', 'Position',[0.44 0.385 0.05 0.08],'fontunits','normalized', 'fontSize', 0.63,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_4 = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', {'Moving sphere', 'radius, mm'},'Units', 'normalized', 'Position',[0.549 0.395 0.20 0.14],'fontunits','normalized', 'fontSize', 0.35,'HorizontalAlignment','center','backgroundcolor','w');
+    add_NMS_txt_5 = uicontrol(add_NMS_GUI , 'Style', 'text', 'String', {'Fixed sphere', 'radius, mm'},'Units', 'normalized', 'Position',[0.753 0.395 0.20 0.14],'fontunits','normalized', 'fontSize', 0.35,'HorizontalAlignment','center','backgroundcolor','w');
+    
+    MS_E1 = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.048 0.63 0.90 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_E2_X = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.049 0.28 0.15 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_E2_Y = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.219 0.28 0.15 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_E2_Z = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.39 0.28 0.15 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_E3 = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.563 0.28 0.180 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_E4 = uicontrol(add_NMS_GUI , 'Style', 'edit', 'String', '','Units', 'normalized', 'Position',[0.768 0.28 0.180 0.115],'fontunits','normalized', 'fontSize', 0.45);
+    MS_OK = uicontrol(add_NMS_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.36 0.06 0.30 0.13],'fontunits','normalized', 'fontSize', 0.36,'callback', @ok_data);
+    movegui(add_NMS_GUI,'center');
+
+        
+    % Function to close GUI when ROI is not entered
+    function close_new_ROI(~,~)
+        ROI_name = '';
+        center_coordinates = '';
+        radius = '';
+        delete(add_NMS_GUI);
+    end
+
+    % Function to check and export created ROI
+    function ok_data(~,~)
+        
+        % Extracting ROI name
+        tmp_name = get(MS_E1, 'String');
+        
+        % Checking if name is empty
+        if ~strcmp(tmp_name,'') && ~strcmp(tmp_name(1),' ')                
+            
+            % Set ROI name
+            ROI_name = tmp_name;
+            
+            % Extracting Center Coordinates [X Y Z]
+            tmp_center_X = str2double(get(MS_E2_X, 'String'));
+            tmp_center_Y = str2double(get(MS_E2_Y, 'String'));
+            tmp_center_Z = str2double(get(MS_E2_Z, 'String'));           
+            
+            % Check for empty coordinates
+            if ~isnan(tmp_center_X) && ~isnan(tmp_center_Y) && ~isnan(tmp_center_Z)
+                
+                % Check if Coordinates are natural numbers
+                if (isreal(tmp_center_X)) && (isreal(tmp_center_Y)) && (isreal(tmp_center_Z))
+                    
+                    center_coordinates = {tmp_center_X, tmp_center_Y, tmp_center_Z};
+                    
+                    % Extracting Radius of Fixed Sphere
+                    tmp_rad_m = str2double(get(MS_E3, 'String'));
+                    tmp_rad_f = str2double(get(MS_E4, 'String'));
+                    
+                    % Check for empty Radius value
+                    if isnan(tmp_rad_m)
+                        warning('Moving sphere radius not entered or is invalid, please re-enter.'); 
+                    elseif isnan(tmp_rad_f)
+                        warning('Fixed sphere radius not entered or is invalid, please re-enter.'); 
+                    else                        
+                        % Check if Radius is natural number
+                        if ~(isreal(tmp_rad_m))
+                            warning('Please enter natural number for radius of (inner) moving spheres.');
+                        elseif tmp_rad_m <= 0 
+                            warning('Please enter positive number for radius of (inner) moving spheres.');
+                        elseif ~(isreal(tmp_rad_f))
+                            warning('Please enter natural number for radius of (outer) fixed spheres.');
+                        elseif tmp_rad_f <= 0 
+                            warning('Please enter positive number for radius of (outer) fixed spheres.');
+                        elseif tmp_rad_m >= tmp_rad_f
+                            warning('The radius of (inner) moving spheres cannot be smaller or equal to the radius of (outer) fixed spheres, please re-enter.'); 
+                        else                     
+                            % Exporting selected variables
+                            radius = {tmp_rad_m, tmp_rad_f};     
+                            fprintf('Name of ROI: %s.\n', ROI_name);   
+                            fprintf('Coordinates (X, Y, Z) %d %d %d\n', center_coordinates{1}, center_coordinates{2}, center_coordinates{3});
+                            fprintf('Radius of Moving sphere: %d.\n', radius{1});
+                            fprintf('Radius of Fixed sphere: %d.\n', radius{2});
+                            delete(add_NMS_GUI);
+                        end
+                    end
+                else
+                    warning('Please enter natural number for coordinates.');
+                end
+            else 
+                warning('Coordinates are not entered or is invalid, please re-enter.');                
+            end
+        else
+            warning('ROI Name not entered or is invalid, please re-enter.');
+        end
+    end
+
+    uiwait();
+end
+
+%% ============[Moving spheres inside ROI binary images GUI]===============
+function [radius_vector] = select_ROIs_case_4(nROI)
+
+radius_vector = {};
+vec_rad_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.22 0.18],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @exit);
+vec_rad_txt = uicontrol(vec_rad_GUI,'Style','text','String', 'Enter vector for radii of moving spheres','Units', 'normalized', 'Position',[0.075 0.64 0.85 0.18],'fontunits','normalized', 'fontSize', 0.54,'HorizontalAlignment', 'center','backgroundcolor','w');
+vec_rad_edit = uicontrol(vec_rad_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.075 0.44 0.85 0.2],'fontunits','normalized', 'fontSize', 0.46,'backgroundcolor','w');
+vec_rad_OK = uicontrol(vec_rad_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.074 0.12 0.35 0.19],'fontunits','normalized', 'fontSize', 0.36,'callback', @extract_vector);
+vec_rad_help = uicontrol(vec_rad_GUI,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.575 0.12 0.35 0.19],'fontunits','normalized', 'fontSize', 0.36,'callback', @help_win);
+movegui(vec_rad_GUI,'center');
+
+    function extract_vector(~,~)
+        tmp_vector = get(vec_rad_edit, 'String');
+        
+        if isnan(tmp_vector) 
+            warning('Vector contain NaN values, please try again');            
+        else
+            try
+                radius_vector = eval(tmp_vector);
+                if length(radius_vector) == nROI
+                    delete(vec_rad_GUI);
+                else
+                    warning('The length of the radius vector must be equal to the number of selected ROI binary images.');
+                end
+            catch
+                warning('Entered vector is incorrect or invalid, please try again.');
+            end
+        end
+    end
+
+    function exit(~,~)
+        radius_vector = {};
+        delete(vec_rad_GUI);
+    end
 
 
+    function help_win(~,~)
+        
+        help_text = {'Suppose you select 100 ROI masks. You need to define the radius of moving spheres inside each of these 100 ROI masks.',...
+            '','If you want to use the same radii for all spheres (e.g. 5 mm), enter the vector [5*ones(1,100)] or enter the scalar [5].',...
+            '','If you want to use 5 mm radii for the first 50 ROIs and 4 mm radii for the last 50 ROIs, enter the vector: [5*ones(1,50) 4*ones(1,50)].',...
+            '','You can also copy and paste the radius vector from an external file (*.mat, *.xlsx, *.csv, *.txt).',...
+            '','The length of the vector should be equal to the number of selected ROI masks.'};
+        
+        vr_help = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.25 0.22 0.45],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off','WindowStyle','modal');
+        vr_help_txt = uicontrol(vr_help,'Style','text','String', help_text,'Units', 'normalized', 'Position',[0.07 0.18 0.86 0.75],'fontunits','normalized', 'fontSize', 0.045,'HorizontalAlignment', 'left','backgroundcolor','w');
+        vr_help_ok = uicontrol(vr_help,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.29 0.08 0.40 0.08],'fontunits','normalized', 'fontSize', 0.36,'callback', @close_help);
+        movegui(vr_help,'center');
+        function close_help(~,~)
+            delete(vr_help);
+        end
+                
+    end
+
+uiwait();
+
+end
+
+%% ===================[ F-contrast threshold GUI ]=========================
+function [threshold, mask_status] = F_contrast_GUI
+
+threshold = 0.005;
+mask_status = 0;
+
+F_contrast_MW = figure('Name', 'Select ROIs: F-contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.22 0.18],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+
+MW_txt_1 = uicontrol(F_contrast_MW,'Style','text','String', 'Omnibus F-Contrast will be used to move spheres to local maxima','Units', 'normalized', 'Position',[0.030 0.8 0.95 0.1],'fontunits','normalized', 'fontSize', 0.69,'backgroundcolor','w');
+MW_txt_2 = uicontrol(F_contrast_MW,'Style','text','String', 'Enter a threshold for F-contrast:','Units' ,'normalized', 'Position',[0.150 0.6 0.480 0.1],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
+MW_txt_3 = uicontrol(F_contrast_MW,'Style','text','String', 'Mask ROI images by thresholded F-map:','Units', 'normalized', 'Position',[0.08 0.38 0.60 0.1],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
+
+MW_E1 = uicontrol(F_contrast_MW , 'Style', 'edit', 'String', threshold,'Units', 'normalized', 'Position',[0.7 0.59 0.180 0.115],'fontunits','normalized', 'fontSize', 0.58);
+MW_E2 = uicontrol(F_contrast_MW , 'Style', 'popupmenu', 'String', {'No', 'Yes'},'Units', 'normalized', 'Position',[0.7 0.35 0.180 0.15],'fontunits','normalized', 'fontSize', 0.45);
+    
+MW_OK = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.2 0.1 0.25 0.15],'fontunits','normalized', 'fontSize', 0.4,'callback', @read_data);
+MW_HELP = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.55 0.1 0.25 0.15],'fontunits','normalized', 'fontSize', 0.4,'callback', @help_window);
+
+    % Read and exit data
+    function read_data(~,~)
+        tmp_thresh = str2double(get(MW_E1, 'String'));
+        tmp_mask = str2double(get(MW_E2, 'String'));
+        
+        if ~isnan(tmp_thresh) && isreal(tmp_thresh) && tmp_thresh >= 0 && tmp_thresh <= 1
+            
+            if ~strcmp(tmp_thresh, 0.005)
+                threshold = tmp_thresh;
+            end
+            
+            if ~strcmp(tmp_mask, 'No')
+                mask_status = 1;
+            end
+            
+            fprintf('Selected threshold for F-contrast: %d', threshold);
+            
+            delete(F_contrast_MW);
+            
+        else
+            warning('Please enter a threshold value between 0.0 and 1.0');
+        end        
+        
+    end
+
+    function help_window(~,~)
+        F_contrast_HW = figure('Name', 'F-contrast: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.30 0.44 0.28 0.25],'Resize','off','MenuBar', 'none', 'ToolBar', 'none', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @close_HW); 
+        
+        string_help = {'The center of the moving sphere will be moved to the local maximum inside a fixed sphere of larger radius.','',...
+            'Local maxima are determined using the omnibus F-contrast for the selected conditions of interest.','',...
+            'Additionally, moving spheres can be masked by the thresholded F-map of an individual subject. This can significantly reduce ROI size.',''};
+        
+        FC_HW_txt = uicontrol(F_contrast_HW,'Style','text','String', string_help,'Units', 'normalized', 'Position',[0.055 0.2 0.9 0.75],'fontunits','normalized', 'fontSize', 0.087, 'horizontalAlignment', 'left','backgroundcolor','w');
+        FC_HW_OK = uicontrol(F_contrast_HW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.37 0.05 0.25 0.14],'fontunits','normalized', 'fontSize', 0.4,'callback', @close_HW);
+        movegui(F_contrast_HW, 'center');
+    
+        function close_HW(~,~)
+            delete(F_contrast_HW);
+        end
+        uiwait(F_contrast_HW);
+    end
+
+    % If exit, do we return default values or ''
+    function exit_MW(~,~)
+        threshold = '';
+        mask_status = '';
+        delete(F_contrast_MW);
+    end
+
+uiwait();
+end
