@@ -253,7 +253,7 @@ clear type contrasts contrast_number
 %% gPPI
 
 % Define conditions of interest
-[conditions] = tmfc_gPPI_GUI(tmfc.subjects(1).path);
+[conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,2);
 tmfc.ROI_set(ROI_set_number).gPPI.conditions = conditions;
 clear conditions
 
