@@ -186,6 +186,7 @@ switch tmfc.defaults.parallel
             afterEach(D, @tmfc_parfor_waitbar);    
             tmfc_parfor_waitbar(w,nSub,1);     
         catch % No waitbar for MATLAB R2016b and earlier
+            D = [];
             opts = struct('WindowStyle','non-modal','Interpreter','tex');
             w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
                 'Please wait until all computations are completed.',[],...

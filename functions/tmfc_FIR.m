@@ -271,7 +271,7 @@ switch tmfc.defaults.parallel
 
         % Update TMFC GUI window
         try                                
-            set(main_GUI.TMFC_GUI_S8,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'), 'ForegroundColor', [0.219, 0.341, 0.137]); 
+            set(main_GUI.TMFC_GUI_S8,'String', strcat(num2str(nSub), '/', num2str(nSub), ' done'), 'ForegroundColor', [0.219, 0.341, 0.137]); 
         end
 
         % Close waitbar
