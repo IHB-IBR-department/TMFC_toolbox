@@ -2,11 +2,11 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Extracts mean beta series from selected ROIs. Correlates beta series for
-% conditions of interest. Saves individual correlational matrices 
-% (ROI-to-ROI analysis) and correlational images (seed-to-voxel analysis)
-% for each condition of interest. These refer to default contrasts, which 
-% can then be multiplied by linear contrast weights.
+% Extracts average (mean or first eigenvariate) beta series from selected
+% ROIs. Correlates beta series for conditions of interest. Saves individual
+% correlational matrices (ROI-to-ROI analysis) and correlational images
+% (seed-to-voxel analysis)for each condition of interest. These refer to
+% default contrasts, which can then be multiplied by linear contrast weights.
 %
 % FORMAT [sub_check,contrasts] = tmfc_BSC(tmfc)
 %
@@ -17,6 +17,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %                          - 3 (Seed-to-voxel analysis only)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
+%   tmfc.ROI_set.BSC              - 'mean' or 'first_eigenvariate'(default)
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
@@ -87,10 +88,16 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 % Contact email: masharipov@ihb.spb.ru
     
 if nargin == 1
-   ROI_set_number = 1;
-   clear_BSC = 1;
+    ROI_set_number = 1;
+    clear_BSC = 1;
 elseif nargin == 2
-   clear_BSC = 1;
+    clear_BSC = 1;
+end
+
+if ~isfield(tmfc.ROI_set(ROI_set_number),'BSC')
+    tmfc.ROI_set(ROI_set_number).BSC = 'first_eigenvariate';
+elseif isempty(tmfc.ROI_set(ROI_set_number).BSC)
+    tmfc.ROI_set(ROI_set_number).BSC = 'first_eigenvariate';
 end
 
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
@@ -262,19 +269,43 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
     % Conditions of interest
     for jCond = 1:nCond
 
-        % Extract mean beta series from ROIs
-        disp(['Extracting mean beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
+        % Extract average beta series from ROIs
+        disp(['Extracting average beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
+        
         for kTrial = 1:nTrialCond(jCond)
             betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
                 ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
-            for kROI = 1:nROI
-                beta_series(jCond).ROI_mean(kTrial,kROI) = nanmean(ROIs(kROI).mask.*betas(kTrial,:));
+        end
+
+        for kROI = 1:nROI
+            betas_masked = betas;
+            betas_masked(:,isnan(ROIs(kROI).mask)) = []; 
+            if strcmp(tmfc.ROI_set(ROI_set_number).BSC,'mean')
+                beta_series(jCond).ROI_average(:,kROI) = mean(betas_masked,2);
+            elseif strcmp(tmfc.ROI_set(ROI_set_number).BSC,'first_eigenvariate')
+                betas_masked = betas_masked - mean(betas_masked,1);
+                [m,n]   = size(betas_masked);
+                if m > n
+                    [v,s,v] = svd(betas_masked'*betas_masked);
+                    s       = diag(s);
+                    v       = v(:,1);
+                    u       = betas_masked*v/sqrt(s(1));
+                else
+                    [u,s,u] = svd(betas_masked*betas_masked');
+                    s       = diag(s);
+                    u       = u(:,1);
+                    v       = betas_masked'*u/sqrt(s(1));
+                end
+                d       = sign(sum(v));
+                u       = u*d;
+                beta_series(jCond).ROI_average(:,kROI) = (u*sqrt(s(1)/n))'; 
+                clear betas_masked v s u d
             end
         end
 
         % ROI-to-ROI correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
-            z_matrix = atanh(corr(beta_series(jCond).ROI_mean));
+            z_matrix = atanh(corr(beta_series(jCond).ROI_average));
             z_matrix(1:size(z_matrix,1)+1:end) = nan;     
 
             % Save BSC matrices
@@ -287,7 +318,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
         % Seed-to-voxel correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 3
             for kROI = 1:nROI
-                BSC_image(kROI).z_value = atanh(corr(beta_series(jCond).ROI_mean(:,kROI),betas));
+                BSC_image(kROI).z_value = atanh(corr(beta_series(jCond).ROI_average(:,kROI),betas));
             end
 
             % Save BSC images
@@ -307,7 +338,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
         clear betas  
     end
 
-    % Save mean beta-series
+    % Save average beta-series
     save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','Beta_series', ...
         ['Subject_' num2str(iSub,'%04.f') '_beta_series.mat']),'beta_series');
 end

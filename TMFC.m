@@ -533,7 +533,18 @@ function PPI_GUI(~,~,~)
     % Compute PPIs
     if calculate_PPI == 1
         disp('Initiating PPI computation...');
-        try
+        try 
+            % Define mean centering
+            if start_sub == 1
+                centering = PPI_centering_GUI;
+                if isempty(centering)
+                    freeze_GUI(0);
+                    return;
+                end
+                tmfc.ROI_set(tmfc.ROI_set_number).PPI = centering;
+                save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
+            end
+            % Run PPI calculation
             sub_check = tmfc_PPI(tmfc,tmfc.ROI_set_number,start_sub);
             for iSub = start_sub:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).PPI = sub_check(iSub);
@@ -1088,6 +1099,12 @@ function BSC_GUI(~,~,~)
         disp('Initiating BSC LSS computation...');   
         try
             % Processing BSC LSS & generation of default contrasts
+            summary = BSC_extraction_GUI;
+            if isempty(summary)
+                freeze_GUI(0);
+                return;
+            end
+            tmfc.ROI_set(tmfc.ROI_set_number).BSC = summary;
             [sub_check, contrasts] = tmfc_BSC(tmfc,tmfc.ROI_set_number);
 
             % Update BSC progress & BSC contrasts in TMFC structure
@@ -1146,6 +1163,12 @@ function BSC_GUI(~,~,~)
     else
         disp('Initiating BSC LSS computation...');
         try
+            summary = BSC_extraction_GUI;
+            if isempty(summary)
+                freeze_GUI(0);
+                return;
+            end
+            tmfc.ROI_set(tmfc.ROI_set_number).BSC = summary;
             sub_check = tmfc_BSC(tmfc,tmfc.ROI_set_number);
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC = sub_check(iSub);
@@ -1657,6 +1680,12 @@ function BSC_after_FIR_GUI(~,~,~)
 
         try
             % Processing BSC after FIR & generation of default contrasts
+            summary = BSC_extraction_GUI;
+            if isempty(summary)
+                freeze_GUI(0);
+                return;
+            end
+            tmfc.ROI_set(tmfc.ROI_set_number).BSC_after_FIR = summary;
             [sub_check, contrasts] = tmfc_BSC_after_FIR(tmfc,tmfc.ROI_set_number);
 
             % Update BSC after FIR progress & BSC after FIR contrasts in TMFC structure
@@ -1715,6 +1744,12 @@ function BSC_after_FIR_GUI(~,~,~)
     else
         disp('Initiating BSC LSS after FIR computation...');
         try
+            summary = BSC_extraction_GUI;
+            if isempty(summary)
+                freeze_GUI(0);
+                return;
+            end
+            tmfc.ROI_set(tmfc.ROI_set_number).BSC_after_FIR = summary;
             sub_check = tmfc_BSC_after_FIR(tmfc,tmfc.ROI_set_number);
             for iSub = 1:nSub
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).BSC_after_FIR = sub_check(iSub);
@@ -2397,6 +2432,69 @@ function ROI_check = check_ROI_masks(tmfc,ROI_set_number)
                 end
             end
     end
+end
+
+%% ========================[ PPI centering GUI ]===========================
+function [centering] = PPI_centering_GUI
+
+    centering = 'with_mean_centering';
+    
+    PPI_GUI_MW = figure('Name', 'Psycho-physiological interaction', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.42 0.25 0.18],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+    
+    info_string = {'Apply mean centering of the psychological regressor','prior to the PPI term calculation and deconvolution:'};
+    MW_txt_1 = uicontrol(PPI_GUI_MW,'Style','text','String', info_string,'Units', 'normalized', 'Position',[0.02 0.65 0.95 0.25],'fontunits','normalized', 'fontSize', 0.37,'backgroundcolor','w'); 
+    MW_E1 = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', {'Enable mean centering', 'Disable mean centering'},'Units', 'normalized', 'Position',[0.28 0.36 0.45 0.22],'fontunits','normalized', 'fontSize', 0.40);     
+    MW_OK = uicontrol(PPI_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.38 0.14 0.25 0.18],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
+    
+    % Read & Sync Data
+    function read_data(~,~)
+       temp_var = get(MW_E1, 'value'); 
+    
+       if temp_var == 2
+           centering = 'no_mean_centering';
+       end      
+       delete(PPI_GUI_MW);
+    
+    end
+    
+    % If exit, we return cancel operation & return ''
+    function exit_MW(~,~)
+        centering = '';
+        delete(PPI_GUI_MW);
+    end
+    
+    uiwait();
+end
+
+%% =======================[ BSC extraction GUI ]===========================
+function [summary] = BSC_extraction_GUI
+
+    summary = 'first_eigenvariate';
+    
+    BSC_GUI_MW = figure('Name', 'Beta series correlation', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.42 0.25 0.18],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+    
+    MW_txt_1 = uicontrol(BSC_GUI_MW,'Style','text','String', 'Select averaging to extract beta series from ROIs:','Units', 'normalized', 'Position',[0.02 0.72 0.95 0.16],'fontunits','normalized', 'fontSize', 0.565,'backgroundcolor','w'); 
+    MW_E1 = uicontrol(BSC_GUI_MW , 'Style', 'popupmenu', 'String', {'First eigenvariate', 'Mean'},'Units', 'normalized', 'Position',[0.29 0.42 0.45 0.22],'fontunits','normalized', 'fontSize', 0.40);     
+    MW_OK = uicontrol(BSC_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.39 0.20 0.25 0.18],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
+    
+    % Read & Sync Data
+    function read_data(~,~)
+       temp_var = get(MW_E1, 'value'); 
+
+       if temp_var == 2
+           summary = 'mean';
+       end      
+       delete(BSC_GUI_MW);
+
+    end
+
+    % If exit, we return cancel operation & return ''
+    function exit_MW(~,~)
+        summary = '';
+        delete(BSC_GUI_MW);
+    end
+    
+    uiwait();
 end
 
 %% =================[ Freeze/unfreeze main TMFC GUI ]======================

@@ -1832,22 +1832,23 @@ function [threshold, mask_status] = F_contrast_GUI
 threshold = 0.005;
 mask_status = 0;
 
-F_contrast_MW = figure('Name', 'Select ROIs: F-contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.22 0.18],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+F_contrast_MW = figure('Name', 'Select ROIs: F-contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.28 0.2],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
 
-MW_txt_1 = uicontrol(F_contrast_MW,'Style','text','String', 'Omnibus F-Contrast will be used to move spheres to local maxima','Units', 'normalized', 'Position',[0.030 0.8 0.95 0.1],'fontunits','normalized', 'fontSize', 0.69,'backgroundcolor','w');
-MW_txt_2 = uicontrol(F_contrast_MW,'Style','text','String', 'Enter a threshold for F-contrast:','Units' ,'normalized', 'Position',[0.150 0.6 0.480 0.1],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
-MW_txt_3 = uicontrol(F_contrast_MW,'Style','text','String', 'Mask ROI images by thresholded F-map:','Units', 'normalized', 'Position',[0.08 0.38 0.60 0.1],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
+MW_txt_1 = uicontrol(F_contrast_MW,'Style','text','String', 'Omnibus F-Contrast will be used to move spheres to local maxima','Units', 'normalized', 'Position',[0.02 0.8 0.95 0.12],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w');
+MW_txt_2 = uicontrol(F_contrast_MW,'Style','text','String', 'Enter a threshold for F-contrast:','Units' ,'normalized', 'Position',[0.150 0.58 0.55 0.12],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w');
+MW_txt_3 = uicontrol(F_contrast_MW,'Style','text','String', 'Mask ROI images by thresholded F-map:','Units', 'normalized', 'Position',[0.03 0.37 0.68 0.12],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w');
 
 MW_E1 = uicontrol(F_contrast_MW , 'Style', 'edit', 'String', threshold,'Units', 'normalized', 'Position',[0.7 0.59 0.180 0.115],'fontunits','normalized', 'fontSize', 0.58);
 MW_E2 = uicontrol(F_contrast_MW , 'Style', 'popupmenu', 'String', {'No', 'Yes'},'Units', 'normalized', 'Position',[0.7 0.35 0.180 0.15],'fontunits','normalized', 'fontSize', 0.45);
     
 MW_OK = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.2 0.1 0.25 0.15],'fontunits','normalized', 'fontSize', 0.4,'callback', @read_data);
 MW_HELP = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.55 0.1 0.25 0.15],'fontunits','normalized', 'fontSize', 0.4,'callback', @help_window);
+movegui(F_contrast_MW, 'center');
 
     % Read and exit data
     function read_data(~,~)
         tmp_thresh = str2double(get(MW_E1, 'String'));
-        tmp_mask = str2double(get(MW_E2, 'String'));
+        tmp_mask = get(MW_E2, 'value');
         
         if ~isnan(tmp_thresh) && isreal(tmp_thresh) && tmp_thresh >= 0 && tmp_thresh <= 1
             
@@ -1855,7 +1856,7 @@ MW_HELP = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'Help','Units',
                 threshold = tmp_thresh;
             end
             
-            if ~strcmp(tmp_mask, 'No')
+            if tmp_mask == 2
                 mask_status = 1;
             end
             
@@ -1895,3 +1896,4 @@ MW_HELP = uicontrol(F_contrast_MW,'Style','pushbutton','String', 'Help','Units',
 
 uiwait();
 end
+

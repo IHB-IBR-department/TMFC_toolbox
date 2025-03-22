@@ -12,6 +12,10 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
+%   tmfc.ROI_set.PPI              - Apply mean centering of psychological
+%                                   regressor (PSY) prior to deconvolution:
+%                                   'with_mean_centering' (default)
+%                                   or 'no_mean_centering'
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
@@ -80,6 +84,12 @@ elseif nargin == 2
    start_sub = 1;
 end
 
+if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI')
+    tmfc.ROI_set(ROI_set_number).PPI = 'with_mean_centering';
+elseif isempty(tmfc.ROI_set(ROI_set_number).PPI)
+    tmfc.ROI_set(ROI_set_number).PPI = 'with_mean_centering';
+end
+
 try
     main_GUI = guidata(findobj('Tag','TMFC_GUI'));                           
     set(main_GUI.TMFC_GUI_S4,'String', 'Updating...','ForegroundColor',[0.772, 0.353, 0.067]);       
@@ -103,7 +113,6 @@ spm('defaults','fmri');
 spm_jobman('initcfg');
 
 for iSub = start_sub:nSub
-    SPM = load(tmfc.subjects(iSub).path);
 
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]),'s');
@@ -115,47 +124,20 @@ for iSub = start_sub:nSub
 
     % Conditions of interest
     for jCond = 1:length(cond_list)
-        for kROI = 1:nROI
-            matlabbatch{1}.spm.stats.ppi.spmmat = {tmfc.subjects(iSub).path};
-            matlabbatch{1}.spm.stats.ppi.type.ppi.voi = {fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-                ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(cond_list(jCond).sess) '.mat'])};
-            matlabbatch{1}.spm.stats.ppi.type.ppi.u = [cond_list(jCond).number 1 1];
-            matlabbatch{1}.spm.stats.ppi.name = ['[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name];
-            matlabbatch{1}.spm.stats.ppi.disp = 0;
-            batch{kROI} = matlabbatch;
-            clear matlabbatch
-        end
-        
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for kROI = 1:nROI
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
-                    spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.SPM.swd,['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']),...
-                        fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')], ...
-                        ['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']));
+                    tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI);
                 end
-                
             case 1  % Parallel
                 try
                     parpool;
                     figure(findobj('Tag','TMFC_GUI'));
                 end
-
                 parfor kROI = 1:nROI
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
-                    spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.SPM.swd,['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']), ...
-                        fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')], ...
-                        ['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']));
+                    tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI);
                 end
         end
-
-        clear batch
     end
     
     sub_check(iSub) = 1;
@@ -175,8 +157,6 @@ for iSub = start_sub:nSub
     try
         waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
     end
-
-    clear SPM
 end
 
 % Close waitbar
@@ -184,6 +164,7 @@ try
     delete(w)
 end
 
+% -------------------------------------------------------------------------
 function unfreeze_after_ctrl_c()    
     try
         delete(findall(0,'type','figure','Tag', 'tmfc_waitbar'));
@@ -195,4 +176,143 @@ function unfreeze_after_ctrl_c()
            GUI.TMFC_GUI_B14a, GUI.TMFC_GUI_B14b], 'Enable', 'on');
     end 
 end
+end
+
+%==========================================================================
+function tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI)
+    
+% Load SPM 
+SPM = load(tmfc.subjects(iSub).path);
+
+% Load VOI
+VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
+      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(cond_list(jCond).sess) '.mat']);
+p   = load(deblank(VOI(1,:)),'xY');
+
+xY(1) = p.xY;
+Sess  = SPM.SPM.Sess(xY(1).Sess);
+
+PPI.name = ['[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name];
+
+% Define Uu
+U.name = {};
+U.u    = [];
+U.w    = [];
+Uu = [cond_list(jCond).number 1 1];
+for i = 1:size(Uu,1)
+    U.u           = [U.u Sess.U(Uu(i,1)).u(33:end,Uu(i,2))];
+    U.name{end+1} = Sess.U(Uu(i,1)).name{Uu(i,2)};
+    U.w           = [U.w Uu(i,3)];
+end
+
+% See spm_peb_ppi:
+
+% Setup variables
+%--------------------------------------------------------------------------
+RT      = SPM.SPM.xY.RT;
+dt      = SPM.SPM.xBF.dt;
+NT      = round(RT/dt);
+fMRI_T0 = SPM.SPM.xBF.T0;
+N       = length(xY(1).u);
+k       = 1:NT:N*NT;                       % microtime to scan time indices
+
+% Setup other output variables
+%--------------------------------------------------------------------------
+PPI.xY = xY;
+PPI.RT = RT;
+PPI.dt = dt;  
+
+% Create basis functions and hrf in scan time and microtime
+%--------------------------------------------------------------------------
+hrf = spm_hrf(dt);
+
+% Create convolved explanatory {Hxb} variables in scan time
+%--------------------------------------------------------------------------
+xb  = spm_dctmtx(N*NT + 128,N);
+Hxb = zeros(N,N);
+for i = 1:N
+    Hx       = conv(xb(:,i),hrf);
+    Hxb(:,i) = Hx(k + 128);
+end
+xb = xb(129:end,:);
+
+% Get confounds (in scan time) and constant term
+%--------------------------------------------------------------------------
+X0 = xY(1).X0;
+M  = size(X0,2);
+
+% Get response variable
+%--------------------------------------------------------------------------
+for i = 1:size(xY,2)
+    Y(:,i) = xY(i).u;
+end
+
+% Remove confounds and save Y in ouput structure
+%--------------------------------------------------------------------------
+Yc    = Y - X0*inv(X0'*X0)*X0'*Y;
+PPI.Y = Yc(:,1);
+if size(Y,2) == 2
+    PPI.P = Yc(:,2);
+end
+
+% Specify covariance components; assume neuronal response is white
+% treating confounds as fixed effects
+%--------------------------------------------------------------------------
+Q = speye(N,N)*N/trace(Hxb'*Hxb);
+Q = blkdiag(Q, speye(M,M)*1e6  );
+
+% Get whitening matrix (NB: confounds have already been whitened)
+%--------------------------------------------------------------------------
+W = SPM.SPM.xX.W(Sess.row,Sess.row);
+
+% Create structure for spm_PEB
+%--------------------------------------------------------------------------
+clear P
+P{1}.X = [W*Hxb X0];        % Design matrix for lowest level
+P{1}.C = speye(N,N)/4;      % i.i.d assumptions
+P{2}.X = sparse(N + M,1);   % Design matrix for parameters (0's)
+P{2}.C = Q;
+
+C  = spm_PEB(Y,P);
+xn = xb*C{2}.E(1:N);
+xn = spm_detrend(xn);
+
+% Setup psychological variable from inputs and contrast weights
+%----------------------------------------------------------------------
+PSY = zeros(N*NT,1);
+for i = 1:size(U.u,2)
+    PSY = PSY + full(U.u(:,i) * U.w(i));
+end
+
+% Mean centering
+if strcmp(tmfc.ROI_set(ROI_set_number).PPI,'with_mean_centering')
+    PSY = spm_detrend(PSY);
+end
+
+% Multiply psychological variable by neural signal
+%----------------------------------------------------------------------
+PSYxn = PSY.*xn;
+
+% Convolve, convert to scan time, and account for slice timing shift
+%----------------------------------------------------------------------
+ppi = conv(PSYxn,hrf);
+ppi = ppi((k-1) + fMRI_T0);
+
+% Convolve psych effect, convert to scan time, and account for slice
+% timing shift
+%----------------------------------------------------------------------
+PSYHRF = conv(PSY,hrf);
+PSYHRF = PSYHRF((k-1) + fMRI_T0);
+
+% Save psychological variables
+%----------------------------------------------------------------------
+PPI.psy = U;
+PPI.P   = PSYHRF;
+PPI.xn  = xn;
+PPI.ppi = spm_detrend(ppi);
+
+% Save PPI *.mat file
+%----------------------------------------------------------------------
+save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')], ...
+    ['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']),'PPI');
 end

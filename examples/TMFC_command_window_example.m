@@ -112,7 +112,11 @@ clear conditions
 
 %% BSC-LSS
 
-% Extract and correlate mean beta series for conditions of interest
+% Extract and correlate average beta series for conditions of interest
+% First eigenvariate is extracted by default
+% To extract mean beta series, enter the following line: 
+% tmfc.ROI_set(ROI_set_number).BSC = 'mean';
+
 ROI_set_number = 1;                 % Select ROI set
 [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number);
 
@@ -192,7 +196,11 @@ tmfc.LSS_after_FIR.conditions = tmfc.LSS.conditions;
 
 %% BSC-LSS after FIR task regression (use residual time series)
 
-% Extract and correlate mean beta series for conditions of interest
+% Extract and correlate average beta series for conditions of interest
+% First eigenvariate is extracted by default
+% To extract mean beta series, enter the following line: 
+% tmfc.ROI_set(ROI_set_number).BSC_after_FIR = 'mean';
+
 ROI_set_number = 1;                 % Select ROI set
 [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number);
 
@@ -261,6 +269,10 @@ clear conditions
 [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub);
 
 % PPI calculation
+% Mean centering is enabled by default
+% To disable mean centering of PSY regressor prior to PPI term calculation,
+% enter the following line: 
+% tmfc.ROI_set(ROI_set_number).PPI = 'no_mean_centering';
 [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub);
 
 % gPPI calculation
