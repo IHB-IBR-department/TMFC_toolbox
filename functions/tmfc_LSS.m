@@ -14,6 +14,10 @@ function [sub_check] = tmfc_LSS(tmfc,start_sub)
 % 1st-level GLM with canonical HRF) to specify and estimate 1st-level GLMs
 % for each individual trial of interest (LSS approach).
 %
+% Note: If the original GLMs contain parametric or time modulators, they
+% will be removed from the LSS GLMs. If the original GLMs contain time and
+% dispersion derivatives, they will be removed from the LSS GLMs.
+%
 % FORMAT [sub_check] = tmfc_LSS(tmfc)
 % Run a function starting from the first subject in the list.
 %
@@ -25,24 +29,43 @@ function [sub_check] = tmfc_LSS(tmfc,start_sub)
 %   tmfc.defaults.resmem   - true or false (store temporaty files during
 %                            GLM estimation in RAM or on disk)
 %
-%   tmfc.LSS.conditions        - List of conditions of interest
-%   tmfc.LSS.conditions.sess   - Session number (as specified in SPM.Sess)
-%   tmfc.LSS.conditions.number - Condition number (as specified in SPM.Sess.U)
+%   tmfc.LSS.conditions           - List of conditions of interest
+%   tmfc.LSS.conditions.sess      - Session number 
+%                                   (as specified in SPM.Sess)
+%   tmfc.LSS.conditions.number    - Condition number
+%                                   (as specified in SPM.Sess.U)
+%   tmfc.LSS.conditions.name      - Condition name
+%                                   (as specified in SPM.Sess.U.name)
+%   tmfc.LSS.conditions.file_name - Condition-specific file names:
+%   (['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' ...
+%    regexprep(char(SPM.Sess(iSess).U(jCond).name(1)),' ','_') ']'];)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified (see tmfc_conditions_GUI):
+% structure must be specified (see tmfc_conditions_GUI, nested function:
+% [cond_list] = generate_conditions(SPM_path)):
 %
-%   tmfc.LSS.conditions(1).sess   = 1;   
-%   tmfc.LSS.conditions(1).number = 1; - "Cond A", 1st session
+%   tmfc.LSS.conditions(1).sess   = 1;     
+%   tmfc.LSS.conditions(1).number = 1; 
+%   tmfc.LSS.conditions(1).name = 'Cond_A';
+%   tmfc.LSS.conditions(1).file_name = '[Sess_1]_[Cond_1]_[Cond_A]';  
+%
 %   tmfc.LSS.conditions(2).sess   = 1;
-%   tmfc.LSS.conditions(2).number = 2; - "Cond B", 1st session
+%   tmfc.LSS.conditions(2).number = 2;
+%   tmfc.LSS.conditions(2).name = 'Cond_B';
+%   tmfc.LSS.conditions(2).file_name = '[Sess_1]_[Cond_2]_[Cond_B]';  
+%
 %   tmfc.LSS.conditions(3).sess   = 2;
-%   tmfc.LSS.conditions(3).number = 1; - "Cond A", 2nd session
+%   tmfc.LSS.conditions(3).number = 1;
+%   tmfc.LSS.conditions(3).name = 'Cond_A';
+%   tmfc.LSS.conditions(3).file_name = '[Sess_2]_[Cond_1]_[Cond_A]';  
+%
 %   tmfc.LSS.conditions(4).sess   = 2;
-%   tmfc.LSS.conditions(4).number = 2; - "Cond B", 2nd session
+%   tmfc.LSS.conditions(4).number = 2;
+%   tmfc.LSS.conditions(4).name = 'Cond_B';
+%   tmfc.LSS.conditions(4).file_name = '[Sess_2]_[Cond_2]_[Cond_B]'; 
 %
 % FORMAT [sub_check] = tmfc_LSS(tmfc, start_sub)
 % Run the function starting from a specific subject in the path list.
@@ -260,13 +283,13 @@ for iSub = start_sub:nSub
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
                         fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
-                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
+                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
 
                     % Save GLM_batch.mat file
                     tmfc_parsave_batch(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches',...
-                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
+                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
 
-                    % Remove temporal LSS directory
+                    % Remove temporary LSS directory
                     rmdir(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');
                     
                     pause(0.01)
@@ -297,13 +320,13 @@ for iSub = start_sub:nSub
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
                         fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
-                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
+                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
 
                     % Save GLM_batch.mat file
                     tmfc_parsave_batch(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches',...
-                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
+                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
 
-                    % Remove temporal LSS directory
+                    % Remove temporary LSS directory
                     rmdir(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');
                     
                     trials(kTrial) = 1;                   

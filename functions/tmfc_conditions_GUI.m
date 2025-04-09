@@ -1,4 +1,4 @@
-function [conditions] = tmfc_conditions_GUI(SPM_path, input_case)
+function [conditions] = tmfc_conditions_GUI(SPM_path,input_case)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
@@ -34,7 +34,7 @@ all_cond = generate_conditions(SPM_path);
 
 % Check if SPM.mat is not empty
 if isempty(all_cond)
-    error('Selected SPM.mat file is empty.');
+    error('Selected SPM.mat file is empty or invalid.');
 else
     % Select conditions via GUI
     conditions = conditions_GUI(all_cond, input_case);
@@ -50,26 +50,23 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     conditions_MW_SE1 = {};   % Variable to store the selected list of conditions in BOX 1(as INDEX)
     conditions_MW_SE2 = {};   % Variable to store the selected list of conditions in BOX 2(as INDEX)
 
-    for iCond = 1:length(all_cond)
-        cond_L1 = vertcat(cond_L1, all_cond(iCond).list_name);        
-    end
-
     switch(input_case)
-        
         case 1
             MW_string = 'Select ROIs: Select conditions';
             HW_string = 'Select ROIs: Help';
-            
         case 2
             MW_string = 'gPPI: Select conditions';
-            HW_string = 'gPPI: Help';
-            
+            HW_string = 'gPPI: Help';  
         case 3
             MW_string = 'LSS: Select conditions';
             HW_string = 'LSS: Help';
-        
+            all_cond([all_cond(:).pmod]~=1)=[];
     end
 
+
+    for iCond = 1:length(all_cond)
+        cond_L1 = vertcat(cond_L1, all_cond(iCond).list_name);        
+    end
     
     conditions_MW = figure('Name', MW_string, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.45 0.25 0.22 0.56],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','WindowStyle','modal','CloseRequestFcn', @MW_exit);
 
@@ -186,6 +183,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
                    if match == 1
                        cond(n_cond).sess = all_cond(jCond).sess;
                        cond(n_cond).number = all_cond(jCond).number;
+                       cond(n_cond).pmod = all_cond(jCond).pmod;
                        cond(n_cond).name = all_cond(jCond).name;
                        cond(n_cond).list_name = all_cond(jCond).list_name;
                        cond(n_cond).file_name = all_cond(jCond).file_name;
@@ -279,19 +277,21 @@ function [cond_list] = generate_conditions(SPM_path)
     cond_list = {}; 
     try
         load(SPM_path);
-        n_cond = 1;
+        kCond = 1;
         for iSess = 1:length(SPM.Sess)
-            for jCond = 1:length({SPM.Sess(iSess).U(:).name})
-                cond_list(n_cond).sess = iSess;
-                cond_list(n_cond).number = jCond;
-                cond_list(n_cond).name = char(SPM.Sess(iSess).U(jCond).name);
-                cond_list(n_cond).list_name = [char(SPM.Sess(iSess).U(jCond).name) ' (Sess' num2str(iSess) ', Cond' num2str(jCond) ')'];
-                cond_list(n_cond).file_name = ['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' ...
-                                          regexprep(char(SPM.Sess(iSess).U(jCond).name),' ','_') ']'];
-                n_cond = n_cond + 1;
+            for jCond = 1:length(SPM.Sess(iSess).U)
+                for kPmod = 1:length(SPM.Sess(iSess).U(jCond).name)
+                    cond_list(kCond).sess = iSess;
+                    cond_list(kCond).number = jCond;
+                    cond_list(kCond).pmod = kPmod;
+                    cond_list(kCond).name = char(SPM.Sess(iSess).U(jCond).name(kPmod));
+                    cond_list(kCond).list_name = [char(SPM.Sess(iSess).U(jCond).name(kPmod)) ' (Sess' num2str(iSess) ', Cond' num2str(jCond) ')'];
+                    cond_list(kCond).file_name = ['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' ...
+                                                 regexprep(char(SPM.Sess(iSess).U(jCond).name(kPmod)),' ','_') ']'];
+                    kCond = kCond + 1;
+                end
             end 
         end
-        clear SPM n_cond; 
     catch 
         disp('Selected SPM.mat file does not exist or invalid.');
         cond_list = {};

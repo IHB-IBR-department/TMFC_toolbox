@@ -22,8 +22,11 @@ function TMFC
 %   tmfc.subjects.LSS             - 1 or 0 (completed or not)
 %   tmfc.subjects.LSS_after_FIR   - 1 or 0 (completed or not)
 %
-%   tmfc.ROI_set:          - information about the selected ROI set
+%   tmfc.ROI_set           - Information about the selected ROI set
 %                            and completed TMFC procedures
+%                            (see tmfc_select_ROIs_GUI)
+%
+%   tmfc.ROI_set_number    - The number of the ROI set currently selected
 %
 %   tmfc.FIR.window        - FIR window length [seconds]
 %   tmfc.FIR.bins          - Number of FIR time bins
@@ -34,9 +37,20 @@ function TMFC
 %   tmfc.LSS_after_FIR.conditions   - Conditions of interest for LSS 
 %                                     regression after FIR regression
 %                                     (based on residual time series)
-%
 %   tmfc.ROI_set(i).gPPI.conditions - Conditions of interest for gPPI and
 %                                     gPPI-FIR regression
+%                                     (see tmfc_conditions_GUI,
+%                                      nested function: [cond_list] = 
+%                                      generate_conditions(SPM_path))
+%
+%   tmfc.ROI_set(i).BSC              - 'mean' or 'first_eigenvariate'
+%   tmfc.ROI_set(i).BSC_afrer_FIR    - 'mean' or 'first_eigenvariate'
+%
+%   tmfc.ROI_set(i).PPI - 'with_mean_centering' or 'no_mean_centering'
+%
+%   tmfc.ROI_set(i).gPPI_FIR.window - FIR window length [seconds]
+%   tmfc.ROI_set(i).gPPI_FIR.bins   - Number of FIR time bins
+%                                     (for gPPI-FIR GLM)
 %
 % =========================================================================
 %
@@ -464,7 +478,6 @@ function PPI_GUI(~,~,~)
     % Update TMFC structure   
     w = waitbar(0,'Please wait...','Name','Updating PPI progress');
     for iSub = 1:nSub
-        SPM = load(tmfc.subjects(iSub).path);
         check_PPI = zeros(nROI,nCond);
         for jROI = 1:nROI
             for kCond = 1:nCond
@@ -475,7 +488,6 @@ function PPI_GUI(~,~,~)
             end
         end
         tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).PPI = double(~any(check_PPI(:) == 0));
-        clear SPM
         try
             waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
         end
@@ -646,10 +658,25 @@ function gPPI_GUI(~,~,~)
         calculate_gPPI = 0;
         fprintf('\ngPPI was calculated for all subjects, %d Session(s) and %d Condition(s). \n', ...
             max([tmfc.ROI_set(tmfc.ROI_set_number).gPPI.conditions.sess]), size(tmfc.ROI_set(tmfc.ROI_set_number).gPPI.conditions,2));
-        disp('To calculate gPPI for different conditions, recompute VOIs and PPIs with desired conditions.');         
+        disp('To calculate gPPI for different conditions, recompute VOIs and PPIs with desired conditions.');       
+
+        % Default contrasts were calculated, but contrast info was not stored in tmfc structure
+        if isempty(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI(1).title)
+            for cond_PPI = 1:nCond
+                contrasts(cond_PPI).title = cond_list(cond_PPI).file_name;
+                contrasts(cond_PPI).weights = zeros(1,nCond);
+                contrasts(cond_PPI).weights(1,cond_PPI) = 1;
+            end
+            for iCon = 1:length(contrasts)
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI(iCon).title = contrasts(iCon).title;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI(iCon).weights = contrasts(iCon).weights;
+            end
+            clear contrasts
+        end
 
         % Number of previously calculated contrasts
-        nCon = length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI);   
+        nCon = length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI);
+
         try
             % Specify new contrasts
             tmfc = tmfc_specify_contrasts_GUI(tmfc,tmfc.ROI_set_number,1);      
@@ -801,7 +828,21 @@ function gPPI_FIR_GUI(~,~,~)
         calculate_gPPI_FIR = 0;
         fprintf('\ngPPI-FIR was calculated for all subjects, %d Session(s) and %d Condition(s). \n', ...
             max([tmfc.ROI_set(tmfc.ROI_set_number).gPPI.conditions.sess]), size(tmfc.ROI_set(tmfc.ROI_set_number).gPPI.conditions,2));
-        disp('To calculate gPPI-FIR for different conditions, recompute VOIs and PPIs with desired conditions.');         
+        disp('To calculate gPPI-FIR for different conditions, recompute VOIs and PPIs with desired conditions.');
+
+        % Default contrasts were calculated, but contrast info was not stored in tmfc structure
+        if isempty(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR(1).title)
+            for cond_PPI = 1:nCond
+                contrasts(cond_PPI).title = cond_list(cond_PPI).file_name;
+                contrasts(cond_PPI).weights = zeros(1,nCond);
+                contrasts(cond_PPI).weights(1,cond_PPI) = 1;
+            end
+            for iCon = 1:length(contrasts)
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR(iCon).title = contrasts(iCon).title;
+                tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR(iCon).weights = contrasts(iCon).weights;
+            end
+            clear contrasts
+        end
 
         % Number of previously calculated contrasts
         nCon = length(tmfc.ROI_set(tmfc.ROI_set_number).contrasts.gPPI_FIR);
@@ -913,7 +954,7 @@ function LSS_GLM_GUI(~,~,~)
                 for kTrial = 1:nTrial
                     if exist(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                             ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' ...
+                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                             num2str(trial.number(kTrial)) '].mat']), 'file')
                        condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                     else           
@@ -1493,7 +1534,7 @@ function LSS_FIR_GUI(~,~,~)
                 for kTrial = 1:nTrial
                     if exist(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                             ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' ...
+                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                             num2str(trial.number(kTrial)) '].mat']), 'file')
                        condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                     else           
@@ -2172,7 +2213,7 @@ function tmfc = update_tmfc_progress(tmfc)
                     for kTrial = 1:nTrial
                         if exist(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                                 ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' ...
+                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                                 num2str(trial.number(kTrial)) '].mat']), 'file')
                            condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                         else           
@@ -2317,7 +2358,7 @@ function tmfc = update_tmfc_progress(tmfc)
                     for kTrial = 1:nTrial
                         if exist(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                                 ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name),' ','_') ']_[Trial_' ...
+                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                                 num2str(trial.number(kTrial)) '].mat']), 'file')
                            condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                         else           
@@ -2616,7 +2657,6 @@ function [tmfc] = update_gPPI(tmfc)
     % Update TMFC structure
     try
         for iSub = 1:nSub
-            SPM = load(tmfc.subjects(iSub).path);
             check_PPI = zeros(nROI,nCond);
             for jROI = 1:nROI
                 for kCond = 1:nCond
@@ -2627,7 +2667,6 @@ function [tmfc] = update_gPPI(tmfc)
                 end
             end
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).PPI = double(~any(check_PPI(:) == 0));
-            clear SPM
         end
     end 
 
@@ -2743,6 +2782,9 @@ function [tmfc] = reset_gPPI(tmfc)
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'gPPI_FIR'))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'gPPI_FIR'),'s');
     end
+    
+    % Clear mean centering 
+    tmfc.ROI_set(tmfc.ROI_set_number).PPI = [];
 
     % Clear contrasts
     try
@@ -2782,6 +2824,9 @@ function [tmfc] = reset_LSS(tmfc)
             rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS'),'s');
         end
     end
+    
+    % Clear BSC averaging
+    tmfc.ROI_set(tmfc.ROI_set_number).BSC = [];
 
     % Clear BSC contrasts
     try
@@ -2818,6 +2863,9 @@ function [tmfc] = reset_LSS_after_FIR(tmfc)
             rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BSC_LSS_after_FIR'),'s');
         end
     end
+
+    % Clear BSC after FIR averaging
+    tmfc.ROI_set(tmfc.ROI_set_number).BSC_after_FIR = [];
 
     % Clear BSC after FIR contrasts
     try

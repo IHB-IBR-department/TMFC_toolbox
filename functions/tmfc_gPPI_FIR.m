@@ -12,6 +12,10 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 % conditions of no interest. The FIR model allows to model activations
 % with any possible hemodynamic response shape.
 %
+% Note: If the original GLMs contain parametric or time modulators, they
+% will be included in the gPPI-FIR GLMs. If the original GLMs contain time
+% and dispersion derivatives, they will be removed from the gPPI-FIR GLMs.
+%
 % FORMAT [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc)
 % Run a function starting from the first subject in the list.
 %
@@ -37,21 +41,53 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions        - List of conditions of interest
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions.sess   - Session number (as specified in SPM.Sess)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions.number - Condition number (as specified in SPM.Sess.U)
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.pmod   - Parametric/Time modulator number (see SPM.Sess.U.P)
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.name   - Condition name (as specified in SPM.Sess.U.name(kPmod))
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.file_name - Condition-specific file names:
+%   (['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' ...
+%    regexprep(char(SPM.Sess(iSess).U(jCond).name(1)),' ','_') ']'];)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified (see tmfc_conditions_GUI):
+% structure must be specified (see tmfc_conditions_GUI, nested function:
+% [cond_list] = generate_conditions(SPM_path)):
 %
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(1).sess   = 1;   
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(1).number = 1; - "Cond A", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(2).sess   = 1;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(2).number = 2; - "Cond B", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(3).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(3).number = 1; - "Cond A", 2nd session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(4).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(4).number = 2; - "Cond B", 2nd session
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).sess   = 1;   
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).number = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).name = 'Cond_A'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).file_name = '[Sess_1]_[Cond_1]_[Cond_A]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).sess   = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).name = 'Cond_B'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).file_name = '[Sess_1]_[Cond_1]_[Cond_B]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).sess   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).number = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).name = 'Cond_A'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).file_name = '[Sess_2]_[Cond_1]_[Cond_A]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).sess   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).pmod   = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).name = 'Cond_B'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).file_name = '[Sess_2]_[Cond_2]_[Cond_B]';
+%
+% If GLMs contain parametric or time modulators, add the following fields:
+% e.g. first modulator for fourth condition:
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).sess   = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).pmod   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).name = 'Cond_BxModulator1^1';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator1^1]'; 
+% e.g. second modulator for second condition:
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).sess   = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).number = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).pmod = 3; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).name = 'Cond_BxModulator2^1'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator2^1]'; 
 %
 % Example of the ROI set (see tmfc_select_ROIs_GUI):
 %
@@ -101,7 +137,6 @@ nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
 nCond = length(cond_list);
-SPM = load(tmfc.subjects(1).path);
 sess = []; sess_num = []; nSess = []; PPI_num = []; PPI_sess = [];
 for cond_PPI = 1:nCond
     sess(cond_PPI) = cond_list(cond_PPI).sess;
@@ -195,8 +230,16 @@ for iSub = start_sub:nSub
                 matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).onset = SPM.SPM.Sess(sess_num(kSess)).U(cond).ons;
                 matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).duration = SPM.SPM.Sess(sess_num(kSess)).U(cond).dur;
                 matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).tmod = 0;
-                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).pmod = struct('name', {}, 'param', {}, 'poly', {});
-                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).orth = 1;
+                if length(SPM.SPM.Sess(sess_num(kSess)).U(cond).name)>1
+                    for PM_number = 1:length(SPM.SPM.Sess(sess_num(kSess)).U(cond).P)
+                        matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).pmod(PM_number).name = SPM.SPM.Sess(sess_num(kSess)).U(cond).P(PM_number).name;
+                        matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).pmod(PM_number).param = SPM.SPM.Sess(sess_num(kSess)).U(cond).P(PM_number).P;
+                        matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).pmod(PM_number).poly = SPM.SPM.Sess(sess_num(kSess)).U(cond).P(PM_number).h;
+                    end
+                else
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).pmod = struct('name', {}, 'param', {}, 'poly', {});
+                end
+                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).cond(cond).orth = SPM.SPM.Sess(sess_num(kSess)).U(cond).orth;
             end
 
             % Add PPI regressors          
@@ -324,10 +367,7 @@ for iSub = start_sub:nSub
 
                     % Save PPI beta images
                     for cond_PPI = 1:nCond
-                        copyfile(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')], ... 
-                            tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,['beta_' num2str(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),'%04.f') '.nii']), ...
-                            fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name, ...
-                            ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(cond_PPI,'%04.f') '_' cond_list(cond_PPI).file_name '.nii']));
+                        tmfc_save_gPPI_FIR_betas(tmfc,ROI_set_number,iSub,jROI,cond_PPI,PPI_num,PPI_sess,cond_list,SPM);
                     end
                 end
                 
@@ -343,10 +383,7 @@ for iSub = start_sub:nSub
 
                     % Save PPI beta images
                     for cond_PPI = 1:nCond
-                        copyfile(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')], ... 
-                            tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,['beta_' num2str(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),'%04.f') '.nii']), ...
-                            fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name, ...
-                            ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(cond_PPI,'%04.f') '_' cond_list(cond_PPI).file_name '.nii']));
+                        tmfc_save_gPPI_FIR_betas(tmfc,ROI_set_number,iSub,jROI,cond_PPI,PPI_num,PPI_sess,cond_list,SPM);
                     end
                 end
         end
@@ -377,7 +414,7 @@ for iSub = start_sub:nSub
         % Save PPI beta matrices
         SPM = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(1).name,'SPM.mat'));
         for cond_PPI = 1:nCond
-            ppi_matrix = squeeze(beta(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),:,:));
+            ppi_matrix = squeeze(beta(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + SPM.SPM.Sess(PPI_sess(cond_PPI)).Fc(end).i(end),:,:));
             ppi_matrix(1:size(ppi_matrix,1)+1:end) = nan;
             symm_ppi_matrix =(ppi_matrix + ppi_matrix')/2;
             save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','asymmetrical', ...
@@ -443,7 +480,7 @@ for iSub = start_sub:nSub
         % Save PPI beta matrices
         SPM = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')],tmfc.ROI_set(ROI_set_number).ROIs(1).name,'SPM.mat'));
         for cond_PPI = 1:nCond
-            ppi_matrix = squeeze(beta(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),:,:));
+            ppi_matrix = squeeze(beta(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + SPM.SPM.Sess(PPI_sess(cond_PPI)).Fc(end).i(end),:,:));
             ppi_matrix(1:size(ppi_matrix,1)+1:end) = nan;
             symm_ppi_matrix =(ppi_matrix + ppi_matrix')/2;
             save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','asymmetrical', ...
@@ -479,10 +516,7 @@ for iSub = start_sub:nSub
 
                     % Save PPI beta images
                     for cond_PPI = 1:nCond
-                        copyfile(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')], ... 
-                            tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,['beta_' num2str(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),'%04.f') '.nii']), ...
-                            fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name, ...
-                            ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(cond_PPI,'%04.f') '_' cond_list(cond_PPI).file_name '.nii']));
+                        tmfc_save_gPPI_FIR_betas(tmfc,ROI_set_number,iSub,jROI,cond_PPI,PPI_num,PPI_sess,cond_list,SPM);
                     end
                 end
                 
@@ -498,16 +532,13 @@ for iSub = start_sub:nSub
 
                     % Save PPI beta images
                     for cond_PPI = 1:nCond
-                        copyfile(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')], ... 
-                            tmfc.ROI_set(ROI_set_number).ROIs(jROI).name,['beta_' num2str(PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + tmfc.ROI_set(ROI_set_number).gPPI_FIR.bins*length(SPM.SPM.Sess(PPI_sess(cond_PPI)).U),'%04.f') '.nii']), ...
-                            fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(jROI).name, ...
-                            ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(cond_PPI,'%04.f') '_' cond_list(cond_PPI).file_name '.nii']));
+                        tmfc_save_gPPI_FIR_betas(tmfc,ROI_set_number,iSub,jROI,cond_PPI,PPI_num,PPI_sess,cond_list,SPM);
                     end
                 end
         end 
     end
     
-    % Remove temporal gPPI directories
+    % Remove temporary gPPI directories
     rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',['Subject_' num2str(iSub,'%04.f')]),'s');
 
     sub_check(iSub) = 1;
@@ -556,3 +587,14 @@ end
 function tmfc_parsave_batch(fname,matlabbatch)
     save(fname, 'matlabbatch')
 end
+
+% Save gPPI-FIR beta files
+function tmfc_save_gPPI_FIR_betas(tmfc,ROI_set_number,iSub,jROI,cond_PPI,PPI_num,PPI_sess,cond_list,SPM)
+    gPPI_FIR_path = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR');
+    ROI_name = tmfc.ROI_set(ROI_set_number).ROIs(jROI).name;
+    beta_number = PPI_num(cond_PPI) - 1 + SPM.SPM.Sess(PPI_sess(cond_PPI)).col(1) + SPM.SPM.Sess(PPI_sess(cond_PPI)).Fc(end).i(end);
+    orig_path = fullfile(gPPI_FIR_path,['Subject_' num2str(iSub,'%04.f')],ROI_name,['beta_' num2str(beta_number,'%04.f') '.nii']);
+    new_path =  fullfile(gPPI_FIR_path,'Seed_to_voxel',ROI_name,['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(cond_PPI,'%04.f') '_' cond_list(cond_PPI).file_name '.nii']);
+    copyfile(orig_path,new_path);                 
+end
+

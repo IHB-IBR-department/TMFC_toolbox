@@ -23,6 +23,9 @@ function [sub_check] = tmfc_FIR(tmfc,start_sub)
 % two cases: (1) to calculate background connectivity (BGFC), (2) to
 % calculate LSS GLMs after FIR regression and use them for BSC after FIR.
 %
+% Note: If the original GLMs contain parametric or time modulators, they
+% will be removed from the FIR GLMs.
+%
 % FORMAT [sub_check] = FIR_regress(tmfc)
 % Run a function starting from the first subject in the list.
 %

@@ -1,4 +1,4 @@
- function [paths] = tmfc_select_subjects_GUI(SPM_check)
+ function [SPM_paths, subject_paths, SPM_subfolder] = tmfc_select_subjects_GUI(SPM_check)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
@@ -12,7 +12,13 @@
 %
 % FORMAT [paths] = tmfc_select_subjects_GUI(SPM_check)
 %
+%   Inputs: 
 %   SPM_check         - 0 or 1 (don't check or check SPM.mat files)
+%
+%   Outputs:
+%   SPM_paths         - Full paths to selected SPM.mat files
+%   subject_paths     - Paths to selected subjects
+%   SPM_subfolder     - Subfolder for SPM.mat files
 %
 % =========================================================================
 %
@@ -51,11 +57,11 @@ SS_MW_conf = uicontrol(SS_MW,'Style','pushbutton', 'String', 'OK','Units', 'norm
 movegui(SS_MW,'center');
 
 % Temporary variables
-subject_dir = {};             % Variable to store subject path
-subject_full_path = {};       % Variable to store full path 
+subject_paths = {};           % Variable to store subject paths
+subject_full_path = {};       % Variable to store full paths
 SPM_mat_path = {};            % Varaible to store subfolder for SPM.mat file
 selected_sub = {};            % Variable to store the selected list of paths (as INDEX)
-add_new_subs = {};            % Variable used to create & merge new subjects
+add_new_subs = {};            % Variable used to add new subjects
 
 %--------------------------------------------------------------------------
 % Select subjects from the list
@@ -69,28 +75,28 @@ end
 function select_sub(~,~)
     
 	set(SS_MW_LB1, 'String', '');              
-    subject_dir = add_subjects();             
+    subject_paths = add_subjects();             
 
-    if isempty(subject_dir)
+    if isempty(subject_paths)
     	disp('TMFC Subjects: 0 Subjects selected');
         set(SS_MW_S1,'String','Not selected','ForegroundColor','red');
         set(SS_MW_S2,'String','Not selected','ForegroundColor','red');
         SPM_mat_path = {};
         subject_full_path = {};
     else
-        fprintf('TMFC Subjects: Subjects selected are: %d \n', size(subject_dir,1));
+        fprintf('TMFC Subjects: Subjects selected are: %d \n', size(subject_paths,1));
         disp('TMFC Subjects: Select SPM.mat file for the first subject.');
-        set(SS_MW_S1,'String', strcat(num2str(size(subject_dir,1)),' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);    
+        set(SS_MW_S1,'String', strcat(num2str(size(subject_paths,1)),' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);    
         set(SS_MW_S2,'String','Not selected','ForegroundColor','red');
         SPM_mat_path = {};
         subject_full_path = {};
     end
     
-    if isempty(subject_full_path) && isempty(SPM_mat_path) && isempty(subject_dir)
+    if isempty(subject_full_path) && isempty(SPM_mat_path) && isempty(subject_paths)
         warning('No subjects selected.');
         SPM_mat_path = {}; 
         subject_full_path = {}; 
-        subject_dir = {}; 
+        subject_paths = {}; 
         set(SS_MW_S1,'String','Not selected','ForegroundColor','red');
         set(SS_MW_S2,'String','Not selected','ForegroundColor','red');
     end 
@@ -99,20 +105,21 @@ end
 %--------------------------------------------------------------------------
 % Select SPM.mat file
 function select_SPM_mat(~,~)
-    if isempty(subject_dir)
+    if isempty(subject_paths)
         warning('TMFC Subjects: Please select subject folders.');        
         
-    elseif isempty(subject_full_path) && isempty(subject_dir)
+    elseif isempty(subject_full_path) && isempty(subject_paths)
         warning('TMFC Subjects: Please select subject folders.');
         set(SS_MW_S2,'String','Not selected','ForegroundColor','red');
         set(SS_MW_LB1, 'String', '');
         
     else
-        [subject_full_path, SPM_mat_path] = add_mat_file(subject_dir);            
+        [subject_full_path, SPM_mat_path] = add_mat_file(subject_paths);            
         if ~isempty(SPM_mat_path(1))
             set(SS_MW_LB1, 'String', subject_full_path);                          
             disp('TMFC Subjects: The SPM.mat file has been succesfully selected.');
             set(SS_MW_S2,'String','Selected','ForegroundColor',[0.219, 0.341, 0.137]);
+            SPM_subfolder = strrep(SPM_mat_path, '\SPM.mat', '');
         else
             warning('TMFC Subjects: The SPM.mat file has not been selected.');
         end 
@@ -122,7 +129,7 @@ end
 %--------------------------------------------------------------------------
 % Add new subjects to the list
 function add_new(~,~)   
-    if isempty(subject_dir) || isempty(subject_full_path)
+    if isempty(subject_paths) || isempty(subject_full_path)
         warning('TMFC Subjects: No existing list of subjects present. Please select subjects via ''Select subject folders'' button.');
         
     elseif isempty(SPM_mat_path)
@@ -182,10 +189,10 @@ end
 %--------------------------------------------------------------------------
 % Remove all subjects
 function remove_all(~,~)
-    if isempty(subject_dir) || isempty(subject_full_path)
+    if isempty(subject_paths) || isempty(subject_full_path)
         warning('TMFC Subjects: No subjects present to remove.');
     else
-        subject_dir = {};
+        subject_paths = {};
         subject_full_path = {};
         SPM_mat_path = {};
         add_new_subs = {};        
@@ -205,9 +212,9 @@ function confirm_paths(~,~)
     file_func = {};
          
     % Initial checks
-    if isempty(subject_dir)
+    if isempty(subject_paths)
         warning('TMFC Subjects: There are no selected subjects. Please select subjects and SPM.mat files.');
-    elseif (isempty(subject_full_path) && isempty(SPM_mat_path)) || (~isempty(subject_dir) && isempty(SPM_mat_path))
+    elseif (isempty(subject_full_path) && isempty(SPM_mat_path)) || (~isempty(subject_paths) && isempty(SPM_mat_path))
         warning('TMFC Subjects: Please select SPM.mat file for the first subject.');
     elseif (isempty(subject_full_path) && ~isempty(SPM_mat_path))
         warning('TMFC Subjects: Please re-select subjects and SPM.mat file if required.');
@@ -240,13 +247,13 @@ function confirm_paths(~,~)
                             warning('TMFC Subjects: (Stage 4 Check Failed) - Functional files specified in SPM.mat file are missing. Please select correct SPM.mat files or change paths in SPM.mat files.');
                             reset_paths();
                         else
-                            paths = file_func;
+                            SPM_paths = file_func; 
                         end
                     end 
                 end
             end
         else
-            paths = subject_full_path; 
+            SPM_paths = subject_full_path; 
         end
     end                                                                 
 end      
@@ -254,11 +261,12 @@ end
 %--------------------------------------------------------------------------
 % Clear temporary variables
 function reset_paths(~,~)
-	subject_dir = {};
+	subject_paths = {};
     subject_full_path = {};
     SPM_mat_path = {};
     add_new_subs = {};
     selected_sub = {};
+    SPM_subfolder = {};
 end
 
 %--------------------------------------------------------------------------
@@ -266,7 +274,7 @@ end
 function SS_MW_exit(~,~) 
 	delete(SS_MW);
     if exist('paths', 'var') == 0
-        paths = [];
+        SPM_paths = [];
     end   
 end
 
@@ -305,7 +313,7 @@ function [file_exist] = check_file_exist(subject_full_path)
     file_exist = {};
     file_not_exist = {};     
     
-    % Condition to verify if file exists in the location
+    % Check if SPM.mat files exist
     for iSub = 1:length(subject_full_path) 
         if exist(subject_full_path{iSub}, 'file')
             file_exist{iSub,1} = subject_full_path{iSub};
@@ -314,7 +322,7 @@ function [file_exist] = check_file_exist(subject_full_path)
         end                
     end 
     
-    % Checks if the variables storing the existing files are empty or full
+    % Check if the variables storing the existing files are empty
     try
         file_exist = file_exist(~cellfun('isempty', file_exist)); 
     end
@@ -356,8 +364,8 @@ function [file_correct] = check_file_cond(subject_full_path)
         SPM_ref = load(subject_full_path{1});
 
         % Reference structure for conditions
-        for iSub = 1:length(SPM_ref.SPM.Sess)
-            cond_ref(iSub).sess = struct('name', {SPM_ref.SPM.Sess(iSub).U(:).name});
+        for iSess = 1:length(SPM_ref.SPM.Sess)
+            cond_ref(iSess).sess = struct('name', {SPM_ref.SPM.Sess(iSess).U(:).name});
         end
 
         % Start check
@@ -367,8 +375,8 @@ function [file_correct] = check_file_cond(subject_full_path)
             SPM = load(subject_full_path{iSub});
 
             % Structure for conditions to check
-            for jSub = 1:length(SPM.SPM.Sess)
-                cond(jSub).sess = struct('name', {SPM.SPM.Sess(jSub).U(:).name});
+            for jSess = 1:length(SPM.SPM.Sess)
+                cond(jSess).sess = struct('name', {SPM.SPM.Sess(jSess).U(:).name});
             end 
 
             if ~isequaln(cond_ref, cond)
@@ -486,8 +494,8 @@ function [file_func] = check_file_func(subject_full_path)
         
         SPM = load(subject_full_path{iSub});
         
-        for j = 1:length(SPM.SPM.xY.VY)
-            funct_check(j) = exist(SPM.SPM.xY.VY(j).fname, 'file');
+        for jImage = 1:length(SPM.SPM.xY.VY)
+            funct_check(jImage) = exist(SPM.SPM.xY.VY(jImage).fname, 'file');
         end
         
         if nnz(funct_check) == length(SPM.SPM.xY.VY)

@@ -29,7 +29,7 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 % masked by selected binary images and the group mean binary image.
 % -------------------------------------------------------------------------
 % (*) - The local maximum is determined using the omnibus F-test and
-%       uncorrected threshold of 0.005.
+%       uncorrected threshold of 0.005 (by default).
 %
 %
 % FORMAT [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
@@ -225,7 +225,14 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
         cond_col = [];
         for iCond = 1:length(conditions)
-            cond_col = [cond_col SPM.SPM.Sess(conditions(iCond).sess).col(SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i)];
+            FCi = [];
+            FCi = SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
+            try
+                FCp = []; 
+                FCp = SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
+                FCi = FCi(FCp==conditions(iCond).pmod);
+            end
+            cond_col = [cond_col SPM.SPM.Sess(conditions(iCond).sess).col(FCi)];
         end 
         weights = zeros(length(cond_col),size(SPM.SPM.xX.X,2));
         for iCond = 1:length(cond_col)
@@ -1860,7 +1867,7 @@ movegui(F_contrast_MW, 'center');
                 mask_status = 1;
             end
             
-            fprintf('Selected threshold for F-contrast: %d', threshold);
+            fprintf('Selected threshold for F-contrast: %f \n', threshold);
             
             delete(F_contrast_MW);
             

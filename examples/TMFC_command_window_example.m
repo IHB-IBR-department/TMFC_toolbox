@@ -93,11 +93,17 @@ clear ROI_set
 
 %% LSS regression
 
-% Define conditions of interest
-% tmfc.LSS.conditions(1).sess   = 1;   
-% tmfc.LSS.conditions(1).number = 1;
+% Define conditions of interest (see tmfc_conditions_GUI, nested function:
+% [cond_list] = generate_conditions(SPM_path))
+%
+% tmfc.LSS.conditions(1).sess   = 1; (see SPM.Sess)   
+% tmfc.LSS.conditions(1).number = 1; (see SPM.Sess.U)
+% tmfc.LSS.conditions(1).name = 'Task_A'; (see SPM.Sess.U.name)
+% tmfc.LSS.conditions(1).file_name = '[Sess_1]_[Cond_1]_[Task_A]';  (i.e.: ['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' regexprep(char(SPM.Sess(iSess).U(jCond).name(1)),' ','_') ']'];)
 % tmfc.LSS.conditions(2).sess   = 1;
 % tmfc.LSS.conditions(2).number = 2;
+% tmfc.LSS.conditions(2).name = 'Task_B';
+% tmfc.LSS.conditions(2).file_name = '[Sess_1]_[Cond_2]_[Task_B]';  
 
 % Alternatively, use tmfc_conditions_GUI to select conditions of interest
 [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,3);
@@ -260,7 +266,37 @@ clear type contrasts contrast_number
 
 %% gPPI
 
-% Define conditions of interest
+% Define conditions of interest (see tmfc_conditions_GUI, nested function:
+% [cond_list] = generate_conditions(SPM_path)):
+%
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).sess   = 1; (see SPM.Sess)   
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).number = 1; (see SPM.Sess.U)
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).pmod   = 1; (see SPM.Sess.U.P)
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).name = 'Task_A'; (see SPM.Sess.U.name(kPmod))
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).file_name = '[Sess_1]_[Cond_1]_[Task_A]';
+% (i.e.: ['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' regexprep(char(SPM.Sess(iSess).U(jCond).name(kPmod)),' ','_') ']'];)
+%
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).sess   = 1;
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).number = 2;
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).pmod   = 1;
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).name = 'Task_B';
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).file_name = '[Sess_1]_[Cond_2]_[Task_B]';  
+%
+% If GLMs contain parametric or time modulators, add the following fields:
+% First modulator for second condition:
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).sess   = 1; 
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).number = 2;
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).pmod   = 2;
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).name = 'Task_BxModulator1^1';
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).file_name = '[Sess_1]_[Cond_2]_[Task_BxModulator1^1]'; 
+% Second modulator for second condition:
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).sess   = 1; 
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).number = 2; 
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).pmod = 3; 
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).name = 'Task_BxModulator2^1'; 
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).file_name = '[Sess_1]_[Cond_2]_[Task_BxModulator2^1]'; 
+
+% Alternatively, use tmfc_conditions_GUI to select conditions of interest
 [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,2);
 tmfc.ROI_set(ROI_set_number).gPPI.conditions = conditions;
 clear conditions

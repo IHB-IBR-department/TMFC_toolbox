@@ -23,27 +23,22 @@ function [sub_check] = tmfc_ROI_to_ROI_contrast(tmfc,type,contrast_number,ROI_se
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
 %   tmfc.ROI_set.ROIs.path_masked - Paths to the ROI images masked by group
 %                                   mean binary mask 
+%   
+% -------------------------------------------------------------------------
+% For gPPI and gPPI-FIR analyses:
+% tmfc.ROI_set(ROI_set_number).gPPI.conditions - List of conditions of
+%                                                interest for gPPI and
+%                                                gPPI-FIR analyses
+%                                                (see tmfc_PPI)
+% For BSC analysis:
+% tmfc.LSS.conditions           - List of conditions of interest
+%                                 for BSC-LSS analysis
+%                                 (see tmfc_LSS)
+% tmfc.LSS_after_FIR.conditions - List of conditions of interest
+%                                 for BSC-LSS (after FIR) analysis
+%                                 (see tmfc_LSS_after_FIR)
+% -------------------------------------------------------------------------
 %
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions - List of conditions of interest for gPPI and gPPI-FIR analyses
-%                                                  (rename the gPPI field to BSC_LSS or BSC_after_FIR to perform the corresponsing TMFC analysis)
-%
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.sess   - Session number (as specified in SPM.Sess)
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.number - Condition number (as specified in SPM.Sess.U)
-%
-% Session number and condition number must match the original SPM.mat file.
-% Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
-% you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified (see tmfc_conditions_GUI):
-%
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).sess   = 1;   
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).number = 1; - "Cond A", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).sess   = 1;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).number = 2; - "Cond B", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).number = 1; - "Cond A", 2nd session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).number = 2; - "Cond B", 2nd session
 %
 % Example of the ROI set (see tmfc_select_ROIs_GUI):
 %
@@ -92,7 +87,6 @@ cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 nCon = length(contrast_number);
-SPM = load(tmfc.subjects(1).path); 
 
 switch type
     %================================gPPI==================================

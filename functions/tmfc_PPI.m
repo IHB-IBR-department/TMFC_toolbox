@@ -25,21 +25,53 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions        - List of conditions of interest
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions.sess   - Session number (as specified in SPM.Sess)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions.number - Condition number (as specified in SPM.Sess.U)
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.pmod   - Parametric/Time modulator number (see SPM.Sess.U.P)
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.name   - Condition name (as specified in SPM.Sess.U.name(kPmod))
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions.file_name - Condition-specific file names:
+%   (['[Sess_' num2str(iSess) ']_[Cond_' num2str(jCond) ']_[' ...
+%    regexprep(char(SPM.Sess(iSess).U(jCond).name(1)),' ','_') ']'];)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
 % contains three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
-% structure must be specified (see tmfc_conditions_GUI):
+% structure must be specified (see tmfc_conditions_GUI, nested function:
+% [cond_list] = generate_conditions(SPM_path)):
 %
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(1).sess   = 1;   
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(1).number = 1; - "Cond A", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(2).sess   = 1;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(2).number = 2; - "Cond B", 1st session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(3).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(3).number = 1; - "Cond A", 2nd session
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(4).sess   = 2;
-%   tmfc.ROI_set(ROI_set_number).gPPI.conditions;(4).number = 2; - "Cond B", 2nd session
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).sess   = 1;   
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).number = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).name = 'Cond_A'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(1).file_name = '[Sess_1]_[Cond_1]_[Cond_A]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).sess   = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).name = 'Cond_B'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(2).file_name = '[Sess_1]_[Cond_1]_[Cond_B]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).sess   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).number = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).pmod   = 1; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).name = 'Cond_A'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(3).file_name = '[Sess_2]_[Cond_1]_[Cond_A]';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).sess   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).pmod   = 1;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).name = 'Cond_B'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(4).file_name = '[Sess_2]_[Cond_2]_[Cond_B]';
+%
+% If GLMs contain parametric or time modulators, add the following fields:
+% e.g. first modulator for fourth condition:
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).sess   = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).number = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).pmod   = 2;
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).name = 'Cond_BxModulator1^1';
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator1^1]'; 
+% e.g. second modulator for second condition:
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).sess   = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).number = 2; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).pmod = 3; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).name = 'Cond_BxModulator2^1'; 
+%   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator2^1]'; 
 %
 % Example of the ROI set (see tmfc_select_ROIs_GUI):
 %
@@ -180,6 +212,7 @@ end
 
 %==========================================================================
 function tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI)
+% Adapted from spm_peb_ppi.m
     
 % Load SPM 
 SPM = load(tmfc.subjects(iSub).path);
@@ -195,10 +228,20 @@ Sess  = SPM.SPM.Sess(xY(1).Sess);
 PPI.name = ['[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name];
 
 % Define Uu
+% Matrix of input variables and contrast weights. This is an
+% [n x 3] matrix. The first column indexes SPM.Sess.U(i). The
+% second column indexes the name of the input or cause, see
+% SPM.Sess.U(i).name{j}. The third column is the contrast
+% weight. Unless there are parametric effects the second
+% column will generally be a 1.
 U.name = {};
 U.u    = [];
 U.w    = [];
-Uu = [cond_list(jCond).number 1 1];
+try
+    Uu = [cond_list(jCond).number cond_list(jCond).pmod 1];
+catch
+    Uu = [cond_list(jCond).number 1 1];
+end
 for i = 1:size(Uu,1)
     U.u           = [U.u Sess.U(Uu(i,1)).u(33:end,Uu(i,2))];
     U.name{end+1} = Sess.U(Uu(i,1)).name{Uu(i,2)};
