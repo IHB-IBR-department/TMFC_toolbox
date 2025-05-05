@@ -75,9 +75,9 @@ end
 ROI_set_name = ROI_set_name_GUI();
 
 % Specify ROI set structure   
-if ~strcmp(ROI_set_name,'')
+if ~isempty(ROI_set_name) 
     ROI_type = ROI_type_GUI();
-    if ~strcmp(ROI_type, '')
+    if ~isempty(ROI_type)
         ROI_set = ROI_set_generation(ROI_set_name,ROI_type);
     else
         ROI_set = [];
@@ -183,7 +183,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     % Select omnibus F-contrast threshold
     if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
         [Fthresh, Fmask] = F_contrast_GUI();
-        if strcmp(Fthresh,'')
+        if isempty(Fthresh)
             ROI_set = [];
             warning('ROIs not selected.');  return;
         end
@@ -660,7 +660,7 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
     function check_ROI_set_name(~,~)
         tmp_name = get(ROI_set_name_MW_E, 'String');
         tmp_name = strrep(tmp_name,' ','');
-        if ~strcmp(tmp_name,'')   
+        if ~isempty(tmp_name)
         	fprintf('Name of ROI set: %s.\n', tmp_name);
             delete(ROI_set_name_MW);      
             ROI_set_name = tmp_name;     
@@ -916,7 +916,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
 
         ROI_crop_thr = get(ROI_crop_MW_thr, 'String'); % Get threshold
 
-        if ~strcmp(ROI_crop_thr,'')
+        if ~isempty(ROI_crop_thr)
 
             threshold = str2double(ROI_crop_thr); 
 

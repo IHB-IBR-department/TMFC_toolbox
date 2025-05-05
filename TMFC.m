@@ -1938,12 +1938,9 @@ function tools_GUI(~,~,~)
     
     % Denoising -----------------------------------------------------------
     function denoise(~,~)
-        
+        tmfc_denoise;
         % Close tool window
         delete(tmfc_tools_GUI);
-        
-        disp('Work in progress. Please wait for future updates.');
-
     end
     
     % Change Paths --------------------------------------------------------
