@@ -1,5 +1,37 @@
 function [masks] = tmfc_create_masks(SPM_paths,struct_paths,funct_paths,options)
 
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% 
+% Creates binary masks to extract BOLD signals from GM (for DVARS calculation),
+% WM and CSF (for aCompCor and Phys regressors), and the whole brain (for GSR).
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
+
+% Number of workers in a parallel pool
+%--------------------------------------------------------------------------
+if options.parallel == 0
+    M = 0;
+else
+    M = maxNumCompThreads('automatic');
+end
+
 % Create mask subfolders
 %--------------------------------------------------------------------------
 tmfc_dir = fileparts(which('tmfc_denoise.m'));
@@ -97,7 +129,7 @@ elseif jSub > 1
         afterEach(D, @tmfc_parfor_waitbar);    
         tmfc_parfor_waitbar(w,jSub,1);
     end
-    parfor iSub = 1:jSub % Run matlabbatches in parallel mode
+    parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
         spm('defaults','fmri');
         spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{iSub});
@@ -300,7 +332,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
             afterEach(D, @tmfc_parfor_waitbar);    
             tmfc_parfor_waitbar(w,jSub,1);
         end
-        parfor iSub = 1:jSub % Run matlabbatches in parallel mode
+        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
             spm('defaults','fmri');
             spm_get_defaults('cmdline',true);
             spm_jobman('run',batch{iSub});
@@ -417,7 +449,7 @@ if options.DVARS == 1
             afterEach(D, @tmfc_parfor_waitbar);    
             tmfc_parfor_waitbar(w,jSub,1);
         end
-        parfor iSub = 1:jSub % Run matlabbatches in parallel mode
+        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
             spm('defaults','fmri');
             spm_get_defaults('cmdline',true);
             spm_jobman('run',batch{iSub});
@@ -499,7 +531,7 @@ if ~strcmp(options.GSR,'none')
             afterEach(D, @tmfc_parfor_waitbar);    
             tmfc_parfor_waitbar(w,jSub,1);
         end
-        parfor iSub = 1:jSub % Run matlabbatches in parallel mode
+        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
             spm('defaults','fmri');
             spm_get_defaults('cmdline',true);
             spm_jobman('run',batch{iSub});

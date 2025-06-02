@@ -12,10 +12,17 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
-%   tmfc.ROI_set.PPI              - Apply mean centering of psychological
+%   tmfc.ROI_set.PPI_centering    - Apply mean centering of psychological
 %                                   regressor (PSY) prior to deconvolution:
 %                                   'with_mean_centering' (default)
 %                                   or 'no_mean_centering'
+%                                   (Di & Biswal, 2017; Masharipov et al., 2024)
+%   tmfc.ROI_set.PPI_whitening    - Apply whitening inversion of the seed 
+%                                   time series prior to the deconvolution
+%                                   and PPI term calculation to avoid double
+%                                   prewhitening (He et al., 2025):
+%                                   'inverse' (default) or 'none'
+%
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
@@ -116,10 +123,16 @@ elseif nargin == 2
    start_sub = 1;
 end
 
-if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI')
-    tmfc.ROI_set(ROI_set_number).PPI = 'with_mean_centering';
-elseif isempty(tmfc.ROI_set(ROI_set_number).PPI)
-    tmfc.ROI_set(ROI_set_number).PPI = 'with_mean_centering';
+if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI_centering')
+    tmfc.ROI_set(ROI_set_number).PPI_centering = 'with_mean_centering';
+elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_centering)
+    tmfc.ROI_set(ROI_set_number).PPI_centering = 'with_mean_centering';
+end
+
+if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI_whitening')
+    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'inverse';
+elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_whitening)
+    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'with_mean_centering';
 end
 
 try
@@ -286,8 +299,17 @@ M  = size(X0,2);
 
 % Get response variable
 %--------------------------------------------------------------------------
-for i = 1:size(xY,2)
-    Y(:,i) = xY(i).u;
+if strcmp(tmfc.ROI_set(ROI_set_number).PPI_whitening,'inverse') % Whitening inversion to avoid double whitening (see He et al., 2025)
+    % Check if SPM.mat has concatenated sessions 
+    % (if spm_fmri_concatenate.m sript was used)
+    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2) 
+        W = SPM.SPM.xX.W(SPM.SPM.xX.K(xY.Sess).row,SPM.SPM.xX.K(xY.Sess).row);
+        Y = inv(W)*xY.u;
+    else
+        Y = inv(SPM.SPM.xX.W)*xY.u;
+    end
+else
+    Y = xY.u;
 end
 
 % Remove confounds and save Y in ouput structure
@@ -328,7 +350,7 @@ for i = 1:size(U.u,2)
 end
 
 % Mean centering
-if strcmp(tmfc.ROI_set(ROI_set_number).PPI,'with_mean_centering')
+if strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'with_mean_centering')
     PSY = spm_detrend(PSY);
 end
 

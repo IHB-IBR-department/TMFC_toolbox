@@ -1,11 +1,40 @@
 function [funct_paths] = tmfc_select_funct_GUI(SPM_paths,subject_paths)
 
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% 
+% Opens a GUI for selection of unsmoothed, normalized and realigned
+% functional images. Unsmoothed functional images are expected to be in the
+% same folder as the functional images defined in the selected SPM.mat files
+% and have a shorter prefix (e.g. ''war'' instead of ''swar''). The user
+% can specify the number of letters to be removed from the prefix.
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
+
 warning('backtrace','off')
 funct_paths = [];
 nPrefix = 1;
 unsmoothed_path = [];
 no_files = [];
 
+
+% GUI elements
 SF_MW = figure('Name','Select unsmoothed functional images','NumberTitle','off','Units','normalized','Position',[0.325 0.202 0.35 0.575],'MenuBar','none','ToolBar','none','color','w','CloseRequestFcn',@SF_MW_exit);
 
 SF_S1_str = {'Functional images must be realigned, normalized and unsmoothed.','',...
@@ -23,6 +52,7 @@ movegui(SF_MW,'center');
 subject_paths = strtrim(subject_paths(:,:));
 
 % Apply default prefix
+f = msgbox('Selecting functional images. Please wait . . .');
 for iSub = 1:length(SPM_paths)
      SPM = load(SPM_paths{iSub}).SPM;
      [orig_path,orig_file,orig_ext] =  fileparts(SPM.xY.VY(1).fname);
@@ -33,6 +63,7 @@ clear unsmoothed_file orig_path orig_file orig_ext iSub;
 if ~isempty(unsmoothed_path)
     set(SF_MW_LB1,'String',unsmoothed_path);
 end
+try; close(f); end
 
 % Сlose GUI
 function SF_MW_exit(~,~)
@@ -51,6 +82,7 @@ function prefix_filter(~,~)
     else
         nPrefix = temp_prefix;
     end
+    f2 = msgbox('Selecting functional images. Please wait . . .');
     for jSub = 1:length(SPM_paths)
          SPM = load(SPM_paths{jSub}).SPM;
          [orig_path,orig_file,orig_ext] =  fileparts(SPM.xY.VY(1).fname);
@@ -59,10 +91,12 @@ function prefix_filter(~,~)
     end
     clear unsmoothed_file orig_path orig_file orig_ext SPM    
     set(SF_MW_LB1,'String',unsmoothed_path);
+    try; close(f2); end
 end
 
 % Check and export paths
 function export_paths(~,~)
+    f3 = msgbox('Checking functional images. Please wait . . .');
     no_files = [];
     if ~isempty(unsmoothed_path)
         for jSub = 1:length(SPM_paths)
@@ -100,6 +134,8 @@ function export_paths(~,~)
         delete(SF_MW);
         disp('Functional images selected.')
     end
+
+    try; close(f3); end
 end
 
 % Warning window: missing images

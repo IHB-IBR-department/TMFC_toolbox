@@ -1,4 +1,38 @@
-function FDthr = tmfc_head_motion(SPM_paths,subject_paths,options,display_FD)
+function FD = tmfc_head_motion(SPM_paths,subject_paths,options)
+
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% 
+% (1) Calculates head motion parameters (temporal derivatives and quadratic
+%     terms). Temporal derivatives are calculated as backwards differences
+%     (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion
+%     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013).
+%
+% (2) Calculates framewise displacement (FD) as the sum of the absolute values
+%     of the derivatives of translational and rotational motion parameters
+%     (Power et al., 2012).
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
+
+if nargin < 5
+    struct_paths = []; funct_paths = [];
+end
 
 % Load head motion paramters (HMP)
 %--------------------------------------------------------------------------
@@ -75,12 +109,6 @@ for iSub = 1:length(group_HMP)
     end
     clear GLM_subfolder
 end
-
-% Plot FD
-%--------------------------------------------------------------------------
-FDthr = 0.5;
-if display_FD == 1
-    FDthr = tmfc_plot_FD(FD,options.spikereg);
 end
 
 

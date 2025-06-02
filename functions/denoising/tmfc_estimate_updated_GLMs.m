@@ -1,26 +1,60 @@
-function output_paths = tmfc_noisereg(SPM_paths,masks,options)
+function output_paths = tmfc_estimate_updated_GLMs(SPM_paths,masks,options)
+
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% 
+% (1) Estimates updated GLMs with noise regressors. The noise regressors
+%     and the updated model will be stored in the TMFC_denoise subfolder.
+%
+% (2) Can use robust weighted least squares (rWLS) for model estimation.
+%     It assumes that each image has an own variance parameter, i.e. some
+%     scans may be disrupted by noise. By choosing this option, SPM will 
+%     estimte the noise variances in the first pass and then re-weight each
+%     image by the inverse of the variance in the second pass.
+%
+%     NOTE: Original first-level GLMs should not use the rWLS etimation.
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
 
 % Paths to updated GLMs
 %--------------------------------------------------------------------------
-if strcmp(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none')
-    new_GLM_subfolder = '';
-    error('Only 6 motion regressors are selected as noise regressors. New models will not be created.');
-elseif (~strcmp(options.motion,'6HMP') || options.spikereg == 1) && (sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none')) 
+if strcmp(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none') && options.rWLS == 0
+    output_paths = masks.glm_paths;
+    warning('Only 6 motion regressors are selected as noise regressors. New models will not be created.'); return;
+elseif (~strcmp(options.motion,'6HMP') || options.spikereg == 1 || options.rWLS == 1) && (sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none')) 
     new_GLM_subfolder = ['GLM_[' options.motion ']'];
+    if options.rWLS == 1; new_GLM_subfolder = strcat(new_GLM_subfolder,'_[rWLS]'); end
     if options.spikereg == 1; new_GLM_subfolder = strcat(new_GLM_subfolder,['_[SpikeReg_' num2str(options.spikeregFDthr) 'mm]']); end
 elseif sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none')
     new_GLM_subfolder = ['[WM_' num2str(options.WMmask.prob) 'Prob_' num2str(options.WMmask.erode) ...
         'xErode]_[CSF_' num2str(options.CSFmask.prob) 'Prob_' num2str(options.CSFmask.erode) ...
         'xErode]_[GM_' num2str(options.GMmask.prob) 'Prob_' num2str(options.GMmask.dilate) 'xDilate]'];
     GLM_name = ['GLM_[' options.motion ']']; 
+    if options.rWLS == 1; GLM_name = strcat(GLM_name,['_[rWLS]']); end
     if (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 0
-        CompCor_fname = ['aCompCor_[' num2str(options.aCompCor(1)) 'WM]_[' num2str(options.aCompCor(2)) 'CSF]'];
+        aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF]'];
     elseif (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 1
-        aCompCor_fname = ['aCompCor_[' num2str(options.aCompCor(1)) 'WM]_[' num2str(options.aCompCor(2)) 'CSF]_[ort_wrt_' options.motion '_and_HPF]'];
+        aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF_Ort_' options.motion '_HPF]'];
     elseif options.aCompCor(1) == 0.5 && options.aCompCor_ort == 0
-        aCompCor_fname = 'aCompCor50';
+        aCompCor_fname = '[aCompCor50]';
     elseif options.aCompCor(1) == 0.5 && options.aCompCor_ort == 1
-        aCompCor_fname = ['aCompCor50_[ort_wrt_' options.motion '_and_HPF]'];
+        aCompCor_fname = ['[aCompCor50_Ort_' options.motion '_HPF]'];
     end
     if options.spikereg == 1; GLM_name = strcat(GLM_name,['_[SpikeReg_' num2str(options.spikeregFDthr) 'mm]']); end
     if ~strcmp(options.GSR,'none'); GLM_name = strcat(GLM_name,['_[' options.GSR ']']); end
@@ -164,8 +198,8 @@ for iSub = 1:length(SPM_paths)
             Conf = []; ConfName = {};
             % HMP
             if ~strcmp(options.motion,'6HMP')
-                Conf = [Conf HMP(jSess).Sess];
-                C = cell(size(HMP(jSess).Sess,2),1); C(:) = {'HMP'};
+                Conf = [Conf HMP(jSess).Sess(:,7:end)]; % Start with 7th HMP, as 6HMP is already added
+                C = cell(size(HMP(jSess).Sess(:,7:end),2),1); C(:) = {'HMP'};
                 ConfName = [ConfName; C]; clear C
             end
             % SpikeReg
@@ -194,9 +228,11 @@ for iSub = 1:length(SPM_paths)
             end
             
             nNewConf = size(Conf,2);
-            for kConf = 1:nNewConf
-                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf+nOldConf).name = ConfName{kConf};
-                matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf+nOldConf).val = Conf(:,kConf);
+            if nNewConf ~= 0
+                for kConf = 1:nNewConf
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf+nOldConf).name = ConfName{kConf};
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).regress(kConf+nOldConf).val = Conf(:,kConf);
+                end
             end
 
             clear Conf ConfName
@@ -253,45 +289,84 @@ for iSub = 1:length(SPM_paths)
         matlabbatch_2{1}.spm.stats.fmri_est.method.Classical = 1;
 
         clear old_GLM_subfolder HMP SpikeReg GSR Phys aCompCor
-    end 
 
-    jSub = jSub + 1;
-    save(fullfile(output_paths{iSub},'GLM_batch.mat'),'matlabbatch');
-    batch{jSub} = matlabbatch;
-    batch_2{jSub} = matlabbatch_2;
-    clear matlabbatch matlabbatch_2 SPM 
+        jSub = jSub + 1;
+        save(fullfile(output_paths{iSub},'GLM_batch.mat'),'matlabbatch');
+        batch{jSub} = matlabbatch;
+        batch_2{jSub} = matlabbatch_2;
+        clear matlabbatch matlabbatch_2 SPM 
+    end  
 end
 
 % Run
 %--------------------------------------------------------------------------
-concat(SPM_concat == 0) = [];
-SPM_concat = nonzeros(SPM_concat);
-if jSub == 1
-    spm('defaults','fmri');
-    spm_get_defaults('cmdline',true);
-    spm_jobman('run',batch{1});
-    if SPM_concat == 1
-        spm_fmri_concatenate(fullfile(batch{1}{1}.spm.stats.fmri_spec.dir,'SPM.mat'),concat(1).scans);
-    end
-    spm_jobman('run',batch_2{1});
-elseif jSub > 1
-    try % Waitbar for MATLAB R2017a and higher
-        D = parallel.pool.DataQueue;           
-        w = waitbar(0,'Please wait...','Name','Model estimation','Tag','tmfc_waitbar');
-        afterEach(D, @tmfc_parfor_waitbar);    
-        tmfc_parfor_waitbar(w,jSub,1);
-    end
-    parfor iSub = 1:jSub % Run matlabbatches in parallel mode
+if exist('batch','var')
+    concat(SPM_concat == 0) = [];
+    SPM_concat = nonzeros(SPM_concat);
+    if jSub == 1
         spm('defaults','fmri');
         spm_get_defaults('cmdline',true);
-        spm_jobman('run',batch{iSub});
+        spm_jobman('run',batch{1});
+        % Concatenated sessions
         if SPM_concat == 1
-            spm_fmri_concatenate(fullfile(batch{iSub}{1}.spm.stats.fmri_spec.dir,'SPM.mat'),concat(iSub).scans);
+            spm_fmri_concatenate(fullfile(batch{1}{1}.spm.stats.fmri_spec.dir,'SPM.mat'),concat(1).scans);
         end
-        spm_jobman('run',batch_2{iSub});
-        try send(D,[]); end % Update waitbar
+        % WLS or rWLS
+        if options.rWLS == 0
+            spm_jobman('run',batch_2{1});
+        else
+            SPM = load(fullfile(output_paths{1},'SPM.mat')).SPM;
+            SPM.xVi.form = 'wls';
+            nScan = sum(SPM.nscan);
+            for iScan = 1:nScan
+                SPM.xVi.Vi{iScan} = sparse(nScan,nScan);
+                SPM.xVi.Vi{iScan}(iScan,iScan) = 1;
+            end
+            original_dir = pwd;
+            cd(output_paths{1});
+            SPM = tmfc_spm_rwls_spm(SPM);
+            cd(original_dir);
+        end
+    elseif jSub > 1
+        try % Waitbar for MATLAB R2017a and higher
+            D = parallel.pool.DataQueue;           
+            w = waitbar(0,'Please wait...','Name','Model estimation','Tag','tmfc_waitbar');
+            afterEach(D, @tmfc_parfor_waitbar);    
+            tmfc_parfor_waitbar(w,jSub,1);
+        end
+        if options.parallel == 0
+            M = 0;
+        else
+            M = maxNumCompThreads('automatic');
+        end
+        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
+            spm('defaults','fmri');
+            spm_get_defaults('cmdline',true);
+            spm_jobman('run',batch{iSub});
+            % Concatenated sessions
+            if SPM_concat == 1
+                spm_fmri_concatenate(fullfile(batch{iSub}{1}.spm.stats.fmri_spec.dir,'SPM.mat'),concat(iSub).scans);
+            end
+            % WLS or rWLS
+            if options.rWLS == 0
+                spm_jobman('run',batch_2{iSub});
+            else
+                SPM = load(fullfile(output_paths{iSub},'SPM.mat')).SPM;
+                SPM.xVi.form = 'wls';
+                nScan=sum(SPM.nscan);
+                for iScan = 1:nScan
+                    SPM.xVi.Vi{iScan} = sparse(nScan,nScan);
+                    SPM.xVi.Vi{iScan}(iScan,iScan) = 1;
+                end
+                original_dir = pwd;
+                cd(output_paths{iSub});
+                SPM = tmfc_spm_rwls_spm(SPM);
+                cd(original_dir);
+            end
+            try send(D,[]); end % Update waitbar
+        end
+        try delete(w); end % Close waitbar
     end
-    try delete(w); end % Close waitbar
 end
 end
 

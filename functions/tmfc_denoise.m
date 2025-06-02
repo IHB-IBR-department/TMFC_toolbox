@@ -34,7 +34,7 @@ function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,
 %
 % (2) Calculates framewise displacement (FD) as the sum of the absolute values
 %     of the derivatives of translational and rotational motion parameters
-%     (Power et al., 2012);
+%     (Power et al., 2012).
 %
 % (3) Creates spike regressors based on a user-defined FD threshold. For each
 %     flagged time point, a unit impulse function is included in general linear
@@ -56,18 +56,26 @@ function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,
 %
 % (7) Calculates Derivative of root mean square VARiance over voxelS (DVARS).
 %     DVARS is computed as the root mean square (RMS) of the differentiated
-%     BOLD time series within the GM mask (Muschelli et al., 2014). 
-%     DVARS is computed before and after noise regression.
+%     BOLD time series within the GM mask (Muschelli et al., 2014).
+%     Calculates FD/DVARS correlations. 
+%     DVARS is computed before and after noise regression 
+%     (for the original and updated GLM, respectively).
 %
 % (8) Adds noise regressiors to the original model and estimates it. The noise
-%     regressors and the updated model will be stored in the TMFC_denoise subfolder. 
+%     regressors and the updated model will be stored in the TMFC_denoise subfolder.
+%
+% (9) Can use robust weighted least squares (rWLS) for model estimation.
+%     It assumes that each image has an own variance parameter, i.e. some
+%     scans may be disrupted by noise. By choosing this option, SPM will 
+%     estimte the noise variances in the first pass and then re-weight each
+%     image by the inverse of the variance in the second pass.
 %
 % -------------------------------------------------------------------------
 % FORMAT: output_paths = tmfc_denoise
 % Will call GUIs to select SPM.mat files, define denoising options, select
 % structural and functional files, define FD threshold for spike regression.
 %
-% FORMAT: output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,display_FD,estimate_GLMs)
+% FORMAT: output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,display_FD,estimate_GLMs,clear_all)
 % Performes noise regression without calling the GUI.
 % 
 % INPUTS: 
@@ -97,6 +105,8 @@ function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,
 %                         pass filter (HPF) regressors and head motion
 %                         regressors prior to PC calculation (Default: 1)
 %
+% options.rWLS          - 0 (none) or 1 (apply rWLS)
+%
 % options.spikereg      - 0 (none) or 1 (add spike regressors)
 % options.spikeregFDthr - FD threshold for creating spike regressors in mm (Default: 0.5)
 %
@@ -109,6 +119,8 @@ function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,
 %                       - 'GSR' : add whole-brain signal
 %                       - '2GSR': add whole-brain signal and its temporal derivative
 %                       - '4GSR': add whole-brain signal, its temporal derivative and 2 quadratic terms
+%
+% options.parallel      - 0 or 1: Sequential or parallel computations
 %
 % options.GMmask.prob   - Probability threshold for the liberal GM mask (Default: 0.95)
 % options.WMmask.prob   - Probability threshold for the WM mask (Default: 0.99)
@@ -181,13 +193,23 @@ end
 if isempty(options); error('Denoising options not selected.'); end
 
 % Select structural T1 images
-if nargin<3 && (sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none') || options.DVARS == 1)
-    struct_paths = tmfc_select_struct_GUI(subject_paths);
+if nargin<3
+    if (sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none') || options.DVARS == 1)
+        struct_paths = tmfc_select_struct_GUI(subject_paths);
+        if isempty(struct_paths); error('Select structural T1 files.'); end
+    else
+        struct_paths = [];
+    end
 end
 
 % Select realigned and unsmoothed functional images
-if nargin<4 && (sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none') || options.DVARS == 1)
-    funct_paths = tmfc_select_funct_GUI(SPM_paths,subject_paths);
+if nargin<4
+    if (sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none') || options.DVARS == 1)
+        funct_paths = tmfc_select_funct_GUI(SPM_paths,subject_paths);
+        if isempty(funct_paths); error('Select unsmoothed functional files.'); end
+    else
+        funct_paths = [];
+    end
 end
 
 % Display individual FD plots
@@ -220,19 +242,23 @@ end
 
 %-Calculate head motion parameters (HMP) and framewise displacement (FD)
 %--------------------------------------------------------------------------
-if ~strcmp(options.motion,'6HMP') || options.spikereg == 1 || display_FD == 1
+if ~strcmp(options.motion,'6HMP') || options.spikereg == 1 || display_FD == 1 || options.DVARS == 1
     disp('Head motion assessment...'); tic;
-    FDthr = tmfc_head_motion(SPM_paths,subject_paths,options,display_FD);
+    FD = tmfc_head_motion(SPM_paths,subject_paths,options);
     hms = fix(mod((toc), [0, 3600, 60]) ./ [3600, 60, 1]);
     disp(['Done in ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec].']);
+end
+
+%-Plot FD time series and select FDthr for spike regression
+%--------------------------------------------------------------------------
+if display_FD == 1
+    FDthr = tmfc_plot_FD(FD,options,SPM_paths,subject_paths,struct_paths,funct_paths);
+    options.spikeregFDthr = FDthr;
 end
 
 %-Create spike regressors
 %--------------------------------------------------------------------------
 if options.spikereg == 1
-    if display_FD == 1
-        options.spikeregFDthr = FDthr;
-    end
     disp('----------------------------------------');
     disp('Creating spike regressors...'); tic;
     tmfc_spikereg(SPM_paths,options);
@@ -256,9 +282,9 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options
     disp(['Done in ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec].']);
 end
 
-%-Calculate physiological regressors and DVARS
+%-Calculate physiological regressors
 %--------------------------------------------------------------------------
-if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none') || options.DVARS == 1
+if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none') || ~strcmp(options.GSR,'none')
     disp('----------------------------------------');
     disp('Calculating physiological regressors...'); tic;
     tmfc_physioreg(SPM_paths,subject_paths,funct_paths,masks,options);
@@ -272,7 +298,19 @@ output_paths = [];
 if estimate_GLMs == 1
     disp('----------------------------------------');
     disp('Estimating GLMs with noise regressors...'); tic;
-    output_paths = tmfc_noisereg(SPM_paths,masks,options);
+    if ~exist('masks','var'); masks = []; end
+    output_paths = tmfc_estimate_updated_GLMs(SPM_paths,masks,options);
+    hms = fix(mod((toc), [0, 3600, 60]) ./ [3600, 60, 1]);
+    disp(['Done in ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec].']);
+end
+
+%-Calculate and plot DVARS
+%--------------------------------------------------------------------------
+if options.DVARS == 1
+    disp('----------------------------------------');
+    disp('Calculating DVARS...'); tic;
+    [preDVARS,postDVARS] = tmfc_calculate_DVARS(FD,SPM_paths,options,masks,output_paths);
+    tmfc_plot_DVARS(preDVARS,postDVARS,FD,options,SPM_paths,subject_paths,struct_paths,funct_paths,masks);
     hms = fix(mod((toc), [0, 3600, 60]) ./ [3600, 60, 1]);
     disp(['Done in ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec].']);
 end

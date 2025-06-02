@@ -43,10 +43,12 @@ function TMFC
 %                                      nested function: [cond_list] = 
 %                                      generate_conditions(SPM_path))
 %
-%   tmfc.ROI_set(i).BSC              - 'mean' or 'first_eigenvariate'
-%   tmfc.ROI_set(i).BSC_afrer_FIR    - 'mean' or 'first_eigenvariate'
+%   tmfc.ROI_set(i).BSC             - 'mean' or 'first_eigenvariate'
+%   tmfc.ROI_set(i).BSC_afrer_FIR   - 'mean' or 'first_eigenvariate'
 %
-%   tmfc.ROI_set(i).PPI - 'with_mean_centering' or 'no_mean_centering'
+%   tmfc.ROI_set(i).PPI_centering   - 'with_mean_centering' or
+%                                     'no_mean_centering'
+%   tmfc.ROI_set(i).PPI_whitening   - 'inverse' or 'none'
 %
 %   tmfc.ROI_set(i).gPPI_FIR.window - FIR window length [seconds]
 %   tmfc.ROI_set(i).gPPI_FIR.bins   - Number of FIR time bins
@@ -548,12 +550,13 @@ function PPI_GUI(~,~,~)
         try 
             % Define mean centering
             if start_sub == 1
-                centering = PPI_centering_GUI;
-                if isempty(centering)
+                [centering whitening] = PPI_centering_GUI;
+                if isempty(centering) || isempty(whitening)
                     freeze_GUI(0);
                     return;
                 end
-                tmfc.ROI_set(tmfc.ROI_set_number).PPI = centering;
+                tmfc.ROI_set(tmfc.ROI_set_number).PPI_centering = centering;
+                tmfc.ROI_set(tmfc.ROI_set_number).PPI_whitening = whitening;
                 save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             end
             % Run PPI calculation
@@ -2473,31 +2476,47 @@ function ROI_check = check_ROI_masks(tmfc,ROI_set_number)
 end
 
 %% ========================[ PPI centering GUI ]===========================
-function [centering] = PPI_centering_GUI
+function [centering, whitening] = PPI_centering_GUI
 
-    centering = 'with_mean_centering';
+    centering = 'mean_centering';
+    whitening = 'inverse';
     
-    PPI_GUI_MW = figure('Name', 'Psycho-physiological interaction', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.42 0.25 0.18],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+    MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di and Biswal, 2017; Masharipov et al., 2024)'};
+    MW_str_2 = {'Apply whitening inversion of the seed time series prior to the deconvolution and PPI term calculation to avoid double prewhitening (He et al., 2025)'};
     
-    info_string = {'Apply mean centering of the psychological regressor','prior to the PPI term calculation and deconvolution:'};
-    MW_txt_1 = uicontrol(PPI_GUI_MW,'Style','text','String', info_string,'Units', 'normalized', 'Position',[0.02 0.65 0.95 0.25],'fontunits','normalized', 'fontSize', 0.37,'backgroundcolor','w'); 
-    MW_E1 = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', {'Enable mean centering', 'Disable mean centering'},'Units', 'normalized', 'Position',[0.28 0.36 0.45 0.22],'fontunits','normalized', 'fontSize', 0.40);     
-    MW_OK = uicontrol(PPI_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.38 0.14 0.25 0.18],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
+    set_centering = {'Enable mean centering', 'Disable mean centering'};
+    set_whitening = {'Enable inverse whitening','Disable inverse whitening'};
     
+    PPI_GUI_MW = figure('Name', 'Psycho-physiological interaction', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.3 0.42 0.4 0.30],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
+    
+    PPI_centering_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_1,'Units', 'normalized', 'Position',[0.02 0.76 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35,'backgroundcolor','w'); 
+    PPI_centering_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_centering,'Units', 'normalized', 'Position',[0.35 0.60 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
+    
+    PPI_whitening_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_2,'Units', 'normalized', 'Position',[0.02 0.40 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35,'backgroundcolor','w'); 
+    PPI_whitening_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_whitening,'Units', 'normalized', 'Position',[0.35 0.24 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
+    
+    PPI_MW_OK = uicontrol(PPI_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.41 0.09 0.2 0.12],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
+          
     % Read & Sync Data
     function read_data(~,~)
-       temp_var = get(MW_E1, 'value'); 
-    
-       if temp_var == 2
+       
+       temp_center = get(PPI_centering_pop, 'value'); 
+       if temp_center == 2
            centering = 'no_mean_centering';
        end      
+       
+       temp_white = get(PPI_whitening_pop, 'value');
+       if temp_white == 2
+           whitening = 'none';
+       end
+       
        delete(PPI_GUI_MW);
-    
     end
     
-    % If exit, we return cancel operation & return ''
+    % Exit
     function exit_MW(~,~)
         centering = '';
+        whitening = '';
         delete(PPI_GUI_MW);
     end
     
@@ -2780,8 +2799,9 @@ function [tmfc] = reset_gPPI(tmfc)
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'gPPI_FIR'),'s');
     end
     
-    % Clear mean centering 
-    tmfc.ROI_set(tmfc.ROI_set_number).PPI = [];
+    % Clear mean centering and whitening
+    tmfc.ROI_set(tmfc.ROI_set_number).PPI_centering = [];
+    tmfc.ROI_set(tmfc.ROI_set_number).PPI_whitening = [];
 
     % Clear contrasts
     try

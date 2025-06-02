@@ -1,11 +1,39 @@
 function [struct_paths] =  tmfc_select_struct_GUI(subject_paths)
 
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% 
+% Opens a GUI for selection of structural T1 images in native space 
+% (not normalized). The user can select the 'structural' subfolder for the
+% firt subject and enter a unique text filter to select all T1 images.
+% Alternatively, the user can select all T1 images manually. 
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
+
+
 warning('backtrace','off')
 struct_paths = [];
 txt_filter = '';
 struct_subfolder = '';
 no_file = '';
 
+% GUI elements
 ST_MW = figure('Name','Select structual images','NumberTitle','off','Units','normalized','Position',[0.36 0.25 0.35 0.575],'MenuBar','none','ToolBar','none','color','w','CloseRequestFcn',@ST_MW_exit);
 
 ST_S1_str = {'Structural images must be in native space (not normalized).'};
@@ -16,7 +44,7 @@ ST_MW_S1_panel = uipanel(ST_MW,'Units','normalized','Position',[0.64 0.800 0.335
 ST_MW_S1_txt = uicontrol(ST_MW,'Style','text','String','Not Selected','ForegroundColor','red','Units','normalized','Position',[0.660 0.813 0.300 0.040],'FontUnits','normalized','FontSize',0.60,'backgroundcolor','w');
 
 ST_MW_S2 = uicontrol(ST_MW,'Style','pushbutton','String','Enter a text filter unique for structural images:','Units','normalized','Position',[0.025 0.689 0.555 0.080],'FontUnits','normalized','FontSize',0.295,'callback',@apply_filter);
-ST_MW_S2_E = uicontrol(ST_MW,'Style','Edit','String','T1*.nii','Units','normalized','Position',[0.64 0.689 0.335 0.080],'FontUnits','normalized','FontSize',0.32,'backgroundcolor','w');
+ST_MW_S2_E = uicontrol(ST_MW,'Style','Edit','String','*T1*.nii','Units','normalized','Position',[0.64 0.689 0.335 0.080],'FontUnits','normalized','FontSize',0.32,'backgroundcolor','w');
 
 ST_MW_LB1 = uicontrol(ST_MW,'Style','listbox','String','','Max',100000,'Units','normalized','Position',[0.025 0.2400 0.95 0.420],'FontUnits','points','FontSize',10,'Value',[]);
 
@@ -67,7 +95,7 @@ function apply_filter(~,~)
                 if ~isempty(struct_file)
                     struct_paths = vertcat(struct_paths,fullfile(subject_paths{iSub},struct_subfolder,struct_file(1).name));
                 else
-                    no_file = vertcat(no_file,subject_paths{iSub});
+                    no_file = vertcat(no_file,subject_paths(iSub));
                 end
             end
             set(ST_MW_LB1,'String',struct_paths);
@@ -117,7 +145,7 @@ function export_paths(~,~)
             if isempty(no_file)
                 no_file = [];
                 for iSub =  size(struct_paths,1)+1:size(subject_paths,1)
-                    no_file = vertcat(no_file,subject_paths{iSub});
+                    no_file = vertcat(no_file,subject_paths(iSub));
                 end
             end
             missing_file_GUI(no_file);

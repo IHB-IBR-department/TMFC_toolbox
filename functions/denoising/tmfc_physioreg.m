@@ -1,23 +1,51 @@
 function tmfc_physioreg(SPM_paths,subject_paths,funct_paths,masks,options)
 
+% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+%
+% (1) Creates aCompCor regressors (Behzadi et al., 2007). Calculates fixed
+%     number of principal components (PCs) or variable number of PCs
+%     explaining 50% of the signal variability separately for eroded WM
+%     and CSF masks (Muschelli et al., 2014).   
+% 
+% (2) Creates WM/CSF regressors (Fox and Raichle, 2007). Calculates average
+%     BOLD signals separately for eroded WM and CSF masks. Optionally
+%     calculates derivatives and quadratic terms (Parkes et al., 2017).
+%
+% (3) Creates GSR regressor (Fox et al, 2009). Calculates the average
+%     BOLD signal for a whole-brain mask. Optionally calculates
+%     derivatives and quadratic terms (Parkes et al., 2017).
+%
+% =========================================================================
+%
+% Copyright (C) 2025 Ruslan Masharipov
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program. If not, see <https://www.gnu.org/licenses/>.
+%
+% Contact email: masharipov@ihb.spb.ru
+
+
 % Extract signals from unsmoothed functional images
 %--------------------------------------------------------------------------
 if (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 0
-    aCompCor_fname = ['aCompCor_[' num2str(options.aCompCor(1)) 'WM]_[' num2str(options.aCompCor(2)) 'CSF]'];
+    aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF]'];
 elseif (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 1
-    aCompCor_fname = ['aCompCor_[' num2str(options.aCompCor(1)) 'WM]_[' num2str(options.aCompCor(2)) 'CSF]_[ort_wrt_' options.motion '_and_HPF]'];
+    aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF_Ort_' options.motion '_HPF]'];
 elseif options.aCompCor(1) == 0.5 && options.aCompCor_ort == 0
-    aCompCor_fname = 'aCompCor50';
+    aCompCor_fname = '[aCompCor50]';
 elseif options.aCompCor(1) == 0.5 && options.aCompCor_ort == 1
-    aCompCor_fname = ['aCompCor50_[ort_wrt_' options.motion '_and_HPF]'];
+    aCompCor_fname = ['[aCompCor50_Ort_' options.motion '_HPF]'];
 end
-
-DVARS2_fname = ['DVARS_[' options.motion ']']; 
-if options.spikereg == 1; DVARS2_fname = strcat(DVARS2_fname,['_[SpikeReg_' num2str(options.spikeregFDthr) 'mm]']); end
-if ~strcmp(options.GSR,'none'); DVARS2_fname = strcat(DVARS2_fname,['_[' options.GSR ']']); end
-if ~strcmp(options.WM_CSF,'none'); DVARS2_fname = strcat(DVARS2_fname,['_[' options.WM_CSF ']']); end
-if sum(options.aCompCor)~=0; DVARS2_fname = strcat(DVARS2_fname,['_' aCompCor_fname]); end
-DVARS2_fname = strcat(DVARS2_fname,'.mat');
 
 w = waitbar(0,'Please wait...','Name','Calculating physiological regressors');
 for iSub = 1:length(SPM_paths)
@@ -28,12 +56,6 @@ for iSub = 1:length(SPM_paths)
     %----------------------------------------------------------------------
     if ~strcmp(options.GSR,'none') && ~exist(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'file')
         WB_mask = spm_read_vols(spm_vol(masks.WB{iSub})); WB_mask = WB_mask(:); WB_mask(WB_mask == 0) = NaN;
-    end
-
-    % Load GM mask
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && (~exist(fullfile(masks.glm_paths{iSub},'DVARS_before_denoising.mat'),'file') || ~exist(fullfile(masks.glm_paths{iSub},DVARS2_fname),'file'))
-        GM_mask = spm_read_vols(spm_vol(masks.GM{iSub})); GM_mask = GM_mask(:); GM_mask(GM_mask == 0) = NaN;
     end
 
     % Load WM and CSF masks
@@ -51,44 +73,14 @@ for iSub = 1:length(SPM_paths)
         CSF_mask = spm_read_vols(spm_vol(masks.CSF{iSub})); CSF_mask = CSF_mask(:); CSF_mask(CSF_mask == 0) = NaN; 
     end
 
-    % Load FD
-    %----------------------------------------------------------------------
-    if options.DVARS == 1
-        FD = load(fullfile(GLM_subfolder,'TMFC_denoise','FD.mat')).FramewiseDisplacement.Sess;
-    end
-
     % Load HMP
     %----------------------------------------------------------------------
-    if options.DVARS == 1 || (options.aCompCor_ort == 1 && sum(options.aCompCor)~=0)
+    if (options.aCompCor_ort == 1 && sum(options.aCompCor)~=0)
         if strcmp(options.motion,'12HMP')
             load(fullfile(GLM_subfolder,'TMFC_denoise','12HMP.mat'),'HMP12');
         elseif strcmp(options.motion,'24HMP')
             load(fullfile(GLM_subfolder,'TMFC_denoise','24HMP.mat'),'HMP24');
         end
-    end
-
-    % Load spike regressors
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && options.spikereg == 1
-        load(fullfile(GLM_subfolder,'TMFC_denoise',['SpikeReg_[FDthr_' num2str(options.spikeregFDthr) 'mm].mat']),'SpikeReg');
-    end
-
-    % Load GSR
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && (~strcmp(options.GSR,'none') && exist(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'file'))
-        load(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']));
-    end
-
-    % Load Phys
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && (~strcmp(options.WM_CSF,'none') && exist(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'file'))
-        load(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']));
-    end
-
-    % Load aCompCor
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && (sum(options.aCompCor)~=0 && exist(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']),'file'))
-        load(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']));
     end
 
     % Extract signals
@@ -102,8 +94,7 @@ for iSub = 1:length(SPM_paths)
         end
         for kScan = 1:nScan
             data = spm_read_vols(spm_vol(funct_paths(iSub).fname{SPM.Sess(jSess).row(kScan)})); data = data(:);
-            try; WB_data(:,kScan) = data(~isnan(data.*WB_mask)); end
-            try; GM_data(:,kScan) = data(~isnan(data.*GM_mask)); end   
+            try; WB_data(:,kScan) = data(~isnan(data.*WB_mask)); end  
             try; WM_data(:,kScan) = data(~isnan(data.*WM_mask)); CSF_data(:,kScan) = data(~isnan(data.*CSF_mask)); end
         end
         clear nScan
@@ -111,7 +102,6 @@ for iSub = 1:length(SPM_paths)
         % Remove voxels with zero variance 
         %------------------------------------------------------------------
         if exist('WB_mask','var'); WB_data(std(WB_data,0,2) == 0,:) = []; end
-        if exist('GM_mask','var'); GM_data(std(GM_data,0,2) == 0,:) = []; end
         if WM_CSF == 1
             if isempty(WM_data); error(['The eroded WM mask is empty. Create a more liberal WM mask. Check Subject No.' num2str(iSub) ': ' sub]); end
             if isempty(CSF_data); error(['The eroded CSF mask is empty. Create a more liberal CSF mask. Check Subject No.' num2str(iSub) ': ' sub]); end
@@ -239,83 +229,8 @@ for iSub = 1:length(SPM_paths)
             aCompCor50.Sess(jSess).CSF_variance_explained = var_expl(end);
             clear U S latent var_expl idx50
         end
-
-        % DVARS (before noise regression)
-        %------------------------------------------------------------------
-        if exist('GM_data','var')
-            DVARS.Sess(jSess).DVARS_ts = rms([zeros(1,size(GM_data',2)); diff(GM_data')],2); DVARS.Sess(jSess).DVARS_ts(1) = NaN;
-            DVARS.Sess(jSess).FD_DVARS_corr = corr(DVARS.Sess(jSess).DVARS_ts(2:end),FD(jSess).FD_ts(2:end));
-        end
-
-        % DVARS (after noise regression)
-        %------------------------------------------------------------------
-        if options.DVARS == 1 && ~exist(fullfile(masks.glm_paths{iSub},DVARS2_fname),'file')
-            % HMP
-            if strcmp(options.motion,'12HMP')
-                Conf = HMP12(jSess).Sess; 
-            elseif strcmp(options.motion,'24HMP')
-                Conf = HMP24(jSess).Sess;
-            else
-                Conf = SPM.Sess(jSess).C.C(:,1:6);
-            end
-            % SpikeReg
-            if options.spikereg == 1
-                Conf = [Conf SpikeReg(jSess).Sess];
-            end
-            % GSR
-            if strcmp(options.GSR,'GSR')
-                Conf = [Conf GSR(jSess).Sess];
-            elseif strcmp(options.GSR,'2GSR')
-                Conf = [Conf GSR2(jSess).Sess];
-            elseif strcmp(options.GSR,'4GSR')
-                Conf = [Conf GSR4(jSess).Sess];
-            end
-            % Phys
-            if strcmp(options.WM_CSF,'2Phys')
-                Conf = [Conf Phys2(jSess).Sess];
-            elseif strcmp(options.WM_CSF,'4Phys')
-                Conf = [Conf Phys4(jSess).Sess];
-            elseif strcmp(options.WM_CSF,'8Phys')
-                Conf = [Conf Phys8(jSess).Sess];
-            end
-            % aCompCor
-            if (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) 
-                Conf = [Conf aCompCor.Sess(jSess).WM_PCs aCompCor.Sess(jSess).CSF_PCs];
-            elseif options.aCompCor(1) == 0.5 
-                Conf = [Conf aCompCor50.Sess(jSess).WM_PCs aCompCor50.Sess(jSess).CSF_PCs];
-            end
-            % First dimension - time
-            GM_data = GM_data';
-            % Noise regression
-            if size(SPM.nscan,2) == size(SPM.Sess,2)
-                W = SPM.xX.W(SPM.xX.K(jSess).row,SPM.xX.K(jSess).row);
-            else % concatenated GLM
-                W = SPM.xX.W;
-            end
-            % 'Filtered and whitened' confounds
-            Conf = [Conf ones(size(Conf,1),1)];
-            if size(SPM.nscan,2) == size(SPM.Sess,2)
-                xKXs = spm_sp('Set',spm_filter(SPM.xX.K(jSess),W*Conf)); 
-            else % concatenated GLM
-                xKXs = spm_sp('Set',spm_filter(SPM.xX.K,W*Conf)); 
-            end
-            xKXs.X = full(xKXs.X);
-            % 'Filtered and whitened' data
-            if size(SPM.nscan,2) == size(SPM.Sess,2)
-                GM_KWY = spm_filter(SPM.xX.K(jSess),W*GM_data);
-            else % concatenated GLM
-                GM_KWY = spm_filter(SPM.xX.K,W*GM_data);
-            end
-            % Residuals
-            GM_data = spm_sp('r',xKXs,GM_KWY); 
-            clear W xKXs GM_KWY Conf
-            % DVARS
-            DVARS2.Sess(jSess).DVARS_ts = rms([zeros(1,size(GM_data,2)); diff(GM_data)],2); DVARS2.Sess(jSess).DVARS_ts(1) = NaN;
-            DVARS2.Sess(jSess).FD_DVARS_corr = corr(DVARS2.Sess(jSess).DVARS_ts(2:end),FD(jSess).FD_ts(2:end));
-        end
-
         clear nVox_WM nVox_CSF
-        clear WB_data GM_data WM_data CSF_data 
+        clear WB_data WM_data CSF_data 
         clear WB_mean WB_mean_diff Phys Phys_diff
     end %-----------------------------------------------end of session loop
 
@@ -344,31 +259,7 @@ for iSub = 1:length(SPM_paths)
         aCompCor50.Mean_CSF_nPCs_per_sess = mean(CSF_nPCs_per_sess);
     end
 
-    % DVARS summary info (before noise regression)
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && ~exist(fullfile(masks.glm_paths{iSub},'DVARS_before_denoising.mat'),'file')
-        FD_DVARS_corr = [];
-        for jSess = 1:length(SPM.Sess)
-            FD_DVARS_corr = [FD_DVARS_corr DVARS.Sess(jSess).FD_DVARS_corr];
-        end
-        DVARS.Mean_FD_DVARS_corr = mean(FD_DVARS_corr);
-        DVARS.Max_FD_DVARS_corr = mean(FD_DVARS_corr);
-        clear FD_DVARS_corr
-    end
-
-    % DVARS summary info (after noise regression)
-    %----------------------------------------------------------------------
-    if options.DVARS == 1 && ~exist(fullfile(masks.glm_paths{iSub},DVARS2_fname),'file')
-        FD_DVARS_corr = [];
-        for jSess = 1:length(SPM.Sess)
-            FD_DVARS_corr = [FD_DVARS_corr DVARS2.Sess(jSess).FD_DVARS_corr];
-        end
-        DVARS2.Mean_FD_DVARS_corr = mean(FD_DVARS_corr);
-        DVARS2.Max_FD_DVARS_corr = mean(FD_DVARS_corr);
-        clear FD_DVARS_corr
-    end
-
-    clear GLM_subfolder sub SPM WB_mask GM_mask WM_mask CSF_mask
+    clear GLM_subfolder sub SPM WB_mask WM_mask CSF_mask
     
     % Save *.mat files
     %----------------------------------------------------------------------
@@ -377,15 +268,6 @@ for iSub = 1:length(SPM_paths)
         if strcmp(options.GSR,'GSR'); save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR');
         elseif strcmp(options.GSR,'2GSR'); save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR2');
         elseif strcmp(options.GSR,'4GSR');save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR4'); end
-    end
-    % Save DVARS (before noise regression)
-    if options.DVARS == 1 && ~exist(fullfile(masks.glm_paths{iSub},'DVARS_before_denoising.mat'),'file')
-        save(fullfile(masks.glm_paths{iSub},'DVARS_before_denoising.mat'),'DVARS')
-    end
-    % Save DVARS (after noise regression)
-    if options.DVARS == 1 && ~exist(fullfile(masks.glm_paths{iSub},DVARS2_fname),'file')
-        DVARS = DVARS2;
-        save(fullfile(masks.glm_paths{iSub},DVARS2_fname),'DVARS')
     end
     % Save Phys
     if ~strcmp(options.WM_CSF,'none') && ~exist(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'file')
@@ -399,26 +281,14 @@ for iSub = 1:length(SPM_paths)
     elseif options.aCompCor(1) == 0.5 && ~exist(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']),'file')
         save(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']),'aCompCor50');
     end
-    clear FD HMP12 HMP24 SpikeReg GSR GSR2 GSR4 Phys2 Phys4 Phys8 aCompCor aCompCor50 DVARS DVARS2
+    clear HMP12 HMP24 GSR GSR2 GSR4 Phys2 Phys4 Phys8 aCompCor aCompCor50 
     try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
 end
 try; close(w); end % Close waitbar
 
-% Plot DVARS
-%--------------------------------------------------------------------------
-if options.DVARS == 1
-    for iSub = 1:length(SPM_paths)
-        GLM_subfolder = fileparts(SPM_paths{iSub});
-        preDVARS(iSub) = load(fullfile(masks.glm_paths{iSub},'DVARS_before_denoising.mat'));
-        postDVARS(iSub) = load(fullfile(masks.glm_paths{iSub},DVARS2_fname));
-        tmp = load(fullfile(GLM_subfolder,'TMFC_denoise','FD.mat')); 
-        FD(iSub) = tmp.FramewiseDisplacement;
-        clear GLM_subfolder tmp
-    end
-
-    tmfc_plot_DVARS(preDVARS,postDVARS,FD);
-    pause(2);
 end
+
+
 
 
 
