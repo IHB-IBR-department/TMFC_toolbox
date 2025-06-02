@@ -345,7 +345,11 @@ Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_proje
 ### Psyhophysiological interaction (PPI) terms
 
 Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM12 Parametric Empirical Bayes (PEB) function to calulate PPI terms.
+Select two options:
+1) "Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
+2) "Enable/Disable whitening inversion" ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
 
+   
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\PPIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM12 **PPI .mat files**.
 
 ### gPPI analysis
