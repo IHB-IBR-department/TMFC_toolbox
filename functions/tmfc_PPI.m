@@ -16,7 +16,7 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %                                   regressor (PSY) prior to deconvolution:
 %                                   'with_mean_centering' (default)
 %                                   or 'no_mean_centering'
-%                                   (Di & Biswal, 2017; Masharipov et al., 2024)
+%                                   (Di, Reynolds & Biswal, 2017; Masharipov et al., 2024)
 %   tmfc.ROI_set.PPI_whitening    - Apply whitening inversion of the seed 
 %                                   time series prior to the deconvolution
 %                                   and PPI term calculation to avoid double

@@ -2481,7 +2481,7 @@ function [centering, whitening] = PPI_centering_GUI
     centering = 'mean_centering';
     whitening = 'inverse';
     
-    MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di and Biswal, 2017; Masharipov et al., 2024)'};
+    MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di, Reynolds and Biswal, 2017; Masharipov et al., 2024)'};
     MW_str_2 = {'Apply whitening inversion of the seed time series prior to the deconvolution and PPI term calculation to avoid double prewhitening (He et al., 2025)'};
     
     set_centering = {'Enable mean centering', 'Disable mean centering'};

@@ -308,7 +308,11 @@ clear conditions
 % Mean centering is enabled by default
 % To disable mean centering of PSY regressor prior to PPI term calculation,
 % enter the following line: 
-% tmfc.ROI_set(ROI_set_number).PPI = 'no_mean_centering';
+% tmfc.ROI_set(ROI_set_number).PPI_centering = 'no_mean_centering';
+%
+% Whitening inversion is enabled by default to avoid double prewhitening:
+% To disable whitening inversion enter the following line:
+% tmfc.ROI_set.PPI_whitening = 'none';
 [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub);
 
 % gPPI calculation
