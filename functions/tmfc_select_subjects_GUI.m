@@ -372,11 +372,11 @@ function [file_correct] = check_file_cond(subject_full_path)
         for iSub = 2:length(subject_full_path)
             
             % SPM.mat file to check
-            SPM = load(subject_full_path{iSub});
+            SPM = load(subject_full_path{iSub}).SPM;
 
             % Structure for conditions to check
-            for jSess = 1:length(SPM.SPM.Sess)
-                cond(jSess).sess = struct('name', {SPM.SPM.Sess(jSess).U(:).name});
+            for jSess = 1:length(SPM.Sess)
+                cond(jSess).sess = struct('name', {SPM.Sess(jSess).U(:).name});
             end 
 
             if ~isequaln(cond_ref, cond)
@@ -434,13 +434,13 @@ function [file_dir] = check_file_dir(subject_full_path)
 
     for iSub = 1:length(subject_full_path)
         
-        SPM = load(subject_full_path{iSub});
+        SPM = load(subject_full_path{iSub}).SPM;
 
-        if ~isfield(SPM.SPM, 'swd')
+        if ~isfield(SPM, 'swd')
             error('SPM.swd field does not exist. Check SPM.mat files. Try to estimate GLM.');
         end
 
-        if exist(SPM.SPM.swd, 'dir') 
+        if exist(SPM.swd, 'dir') 
             file_dir{iSub,1} = subject_full_path{iSub};
         else
             file_no_dir{iSub,1} = subject_full_path{iSub};
@@ -492,13 +492,13 @@ function [file_func] = check_file_func(subject_full_path)
 
     for iSub = 1:length(subject_full_path) 
         
-        SPM = load(subject_full_path{iSub});
+        SPM = load(subject_full_path{iSub}).SPM;
         
-        for jImage = 1:length(SPM.SPM.xY.VY)
-            funct_check(jImage) = exist(SPM.SPM.xY.VY(jImage).fname, 'file');
+        for jImage = 1:length(SPM.xY.VY)
+            funct_check(jImage) = exist(SPM.xY.VY(jImage).fname, 'file');
         end
         
-        if nnz(funct_check) == length(SPM.SPM.xY.VY)
+        if nnz(funct_check) == length(SPM.xY.VY)
             file_func{iSub,1} = subject_full_path{iSub};
         else
             file_no_func{iSub,1} = subject_full_path{iSub};

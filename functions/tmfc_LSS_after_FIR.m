@@ -144,16 +144,16 @@ cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
 % Loop through subjects
 for iSub = start_sub:nSub
-    SPM = load(tmfc.subjects(iSub).path);
+    SPM = load(tmfc.subjects(iSub).path).SPM;
 
     % Check if SPM.mat has concatenated sessions 
     % (if spm_fmri_concatenate.m sript was used)
-    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2)
+    if size(SPM.nscan,2) == size(SPM.Sess,2)
         SPM_concat(iSub) = 0;
     else
         SPM_concat(iSub) = 1;
     end
-    concat(iSub).scans = SPM.SPM.nscan;
+    concat(iSub).scans = SPM.nscan;
     
     if isdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')]))
         rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')]),'s');
@@ -176,24 +176,24 @@ for iSub = start_sub:nSub
         trial.number = [];
         for kCond = 1:nCond
             if cond_list(kCond).sess == sess_num(jSess)
-                nTrial = nTrial + length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
-                ons_of_int = [ons_of_int; SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons];
-                dur_of_int = [dur_of_int; SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).dur];
+                nTrial = nTrial + length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
+                ons_of_int = [ons_of_int; SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons];
+                dur_of_int = [dur_of_int; SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).dur];
                 cond_of_int = [cond_of_int cond_list(kCond).number];
-                trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
-                trial.number = [trial.number; (1:length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
+                trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
+                trial.number = [trial.number; (1:length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
             end
         end
 
         all_trials_number = (1:nTrial)';  
 
         % Trials of no interest
-        cond_of_no_int = setdiff((1:length(SPM.SPM.Sess(sess_num(jSess)).U)),cond_of_int);
+        cond_of_no_int = setdiff((1:length(SPM.Sess(sess_num(jSess)).U)),cond_of_int);
         ons_of_no_int = [];
         dur_of_no_int = [];
         for kCondNoInt = 1:length(cond_of_no_int)
-            ons_of_no_int = [ons_of_no_int; SPM.SPM.Sess(sess_num(jSess)).U(cond_of_no_int(kCondNoInt)).ons];
-            dur_of_no_int = [dur_of_no_int; SPM.SPM.Sess(sess_num(jSess)).U(cond_of_no_int(kCondNoInt)).dur];
+            ons_of_no_int = [ons_of_no_int; SPM.Sess(sess_num(jSess)).U(cond_of_no_int(kCondNoInt)).ons];
+            dur_of_no_int = [dur_of_no_int; SPM.Sess(sess_num(jSess)).U(cond_of_no_int(kCondNoInt)).dur];
         end
         
         % Loop through trials of interest
@@ -205,19 +205,19 @@ for iSub = start_sub:nSub
             
             mkdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]));
             matlabbatch{1}.spm.stats.fmri_spec.dir = {fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)])};
-            matlabbatch{1}.spm.stats.fmri_spec.timing.units = SPM.SPM.xBF.UNITS;
-            matlabbatch{1}.spm.stats.fmri_spec.timing.RT = SPM.SPM.xY.RT;
-            matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t = SPM.SPM.xBF.T;
-            matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t0 = SPM.SPM.xBF.T0;
+            matlabbatch{1}.spm.stats.fmri_spec.timing.units = SPM.xBF.UNITS;
+            matlabbatch{1}.spm.stats.fmri_spec.timing.RT = SPM.xY.RT;
+            matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t = SPM.xBF.T;
+            matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t0 = SPM.xBF.T0;
                         
             % Functional images
             if SPM_concat(iSub) == 0
-                for image = 1:SPM.SPM.nscan(sess_num(jSess))
-                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],['Res_' num2str(SPM.SPM.Sess(sess_num(jSess)).row(image),'%.4d') '.nii,1']);
+                for image = 1:SPM.nscan(sess_num(jSess))
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],['Res_' num2str(SPM.Sess(sess_num(jSess)).row(image),'%.4d') '.nii,1']);
                 end
             else
-                for image = 1:size(SPM.SPM.xY.VY,1)
-                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],['Res_' num2str(SPM.SPM.Sess(jSess).row(image),'%.4d') '.nii,1']);
+                for image = 1:size(SPM.xY.VY,1)
+                    matlabbatch{1}.spm.stats.fmri_spec.sess.scans{image,1} = fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],['Res_' num2str(SPM.Sess(jSess).row(image),'%.4d') '.nii,1']);
                 end
             end
     
@@ -252,9 +252,9 @@ for iSub = start_sub:nSub
             matlabbatch{1}.spm.stats.fmri_spec.fact = struct('name', {}, 'levels', {});
             matlabbatch{1}.spm.stats.fmri_spec.bases.hrf.derivs = [0 0];
             matlabbatch{1}.spm.stats.fmri_spec.volt = 1;
-            matlabbatch{1}.spm.stats.fmri_spec.global = SPM.SPM.xGX.iGXcalc;
+            matlabbatch{1}.spm.stats.fmri_spec.global = SPM.xGX.iGXcalc;
             matlabbatch{1}.spm.stats.fmri_spec.mthresh = -Inf;           
-            matlabbatch{1}.spm.stats.fmri_spec.mask = {fullfile(SPM.SPM.swd,'mask.nii')};
+            matlabbatch{1}.spm.stats.fmri_spec.mask = {fullfile(SPM.swd,'mask.nii')};
             matlabbatch{1}.spm.stats.fmri_spec.cvi = 'None';
 
             matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'SPM.mat')};
@@ -299,11 +299,11 @@ for iSub = start_sub:nSub
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
                         fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
-                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
+                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
 
                     % Save GLM_batch.mat file
                     tmfc_parsave_batch(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches',...
-                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
+                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
 
                     % Remove temporary LSS directory
                     rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');
@@ -347,11 +347,11 @@ for iSub = start_sub:nSub
                     % Save individual trial beta image
                     copyfile(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)],'beta_0001.nii'),...
                         fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
-                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
+                        ['Beta_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].nii']));
 
                     % Save GLM_batch.mat file
                     tmfc_parsave_batch(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches',...
-                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
+                        ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' num2str(trial.number(kTrial)) '].mat']),batch{kTrial});
 
                     % Remove temporary LSS directory
                     rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');

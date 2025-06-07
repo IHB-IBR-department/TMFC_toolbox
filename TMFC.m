@@ -940,7 +940,7 @@ function LSS_GLM_GUI(~,~,~)
     try
         w = waitbar(0,'Please wait...','Name','Updating LSS progress');
         for iSub = 1:nSub             
-            SPM = load(tmfc.subjects(iSub).path);
+            SPM = load(tmfc.subjects(iSub).path).SPM;
             for jSess = 1:nSess 
                 % Trials of interest
                 nTrial = 0;
@@ -948,16 +948,16 @@ function LSS_GLM_GUI(~,~,~)
                 trial.number = [];
                 for kCond = 1:nCond
                     if cond_list(kCond).sess == sess_num(jSess)
-                        nTrial = nTrial + length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
-                        trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
-                        trial.number = [trial.number; (1:length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
+                        nTrial = nTrial + length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
+                        trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
+                        trial.number = [trial.number; (1:length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
                     end
                 end
                 % Check individual trial GLMs
                 for kTrial = 1:nTrial
                     if exist(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                             ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
+                                            regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                             num2str(trial.number(kTrial)) '].mat']), 'file')
                        condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                     else           
@@ -1396,11 +1396,11 @@ function BGFC_GUI(~,~,~)
     nSub = length(tmfc.subjects);
 
     % Update BGFC progress
-    SPM = load(tmfc.subjects(1).path); 
+    SPM = load(tmfc.subjects(1).path).SPM; 
     w = waitbar(0,'Please wait...','Name','Updating BGFC progress');
     for iSub = 1:nSub
-        check_BGFC = zeros(1,length(SPM.SPM.Sess));
-        for jSess = 1:length(SPM.SPM.Sess)       
+        check_BGFC = zeros(1,length(SPM.Sess));
+        for jSess = 1:length(SPM.Sess)       
            if exist(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC','ROI_to_ROI', ... 
                        ['Subject_' num2str(iSub,'%04.f') '_Session_' num2str(jSess) '.mat']), 'file')
                check_BGFC(jSess) = 1;
@@ -1520,7 +1520,7 @@ function LSS_FIR_GUI(~,~,~)
     try
         w = waitbar(0,'Please wait...','Name','Updating LSS after FIR progress');
         for iSub = 1:nSub             
-            SPM = load(tmfc.subjects(iSub).path);
+            SPM = load(tmfc.subjects(iSub).path).SPM;
             for jSess = 1:nSess 
                 % Trials of interest
                 nTrial = 0;
@@ -1528,16 +1528,16 @@ function LSS_FIR_GUI(~,~,~)
                 trial.number = [];
                 for kCond = 1:nCond
                     if cond_list(kCond).sess == sess_num(jSess)
-                        nTrial = nTrial + length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
-                        trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
-                        trial.number = [trial.number; (1:length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
+                        nTrial = nTrial + length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
+                        trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
+                        trial.number = [trial.number; (1:length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
                     end
                 end
                 % Check individual trial GLMs
                 for kTrial = 1:nTrial
                     if exist(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                             ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                            regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
+                                            regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                             num2str(trial.number(kTrial)) '].mat']), 'file')
                        condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                     else           
@@ -2196,7 +2196,7 @@ function tmfc = update_tmfc_progress(tmfc)
                 waitbar(3/8,w,'Updating LSS GLMs...');
             end
             for iSub = 1:nSub             
-                SPM = load(tmfc.subjects(iSub).path);
+                SPM = load(tmfc.subjects(iSub).path).SPM;
                 for jSess = 1:nSess 
                     % Trials of interest
                     nTrial = 0;
@@ -2204,16 +2204,16 @@ function tmfc = update_tmfc_progress(tmfc)
                     trial.number = [];
                     for kCond = 1:nCond
                         if cond_list(kCond).sess == sess_num(jSess)
-                            nTrial = nTrial + length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
-                            trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
-                            trial.number = [trial.number; (1:length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
+                            nTrial = nTrial + length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
+                            trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
+                            trial.number = [trial.number; (1:length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
                         end
                     end
                     % Check individual trial GLMs
                     for kTrial = 1:nTrial
                         if exist(fullfile(tmfc.project_path,'LSS_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                                 ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
+                                                regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                                 num2str(trial.number(kTrial)) '].mat']), 'file')
                            condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                         else           
@@ -2307,13 +2307,13 @@ function tmfc = update_tmfc_progress(tmfc)
     %----------------------------------------------------------------------
     % Update BGFC 
     if isfield(tmfc,'subjects') && isfield(tmfc,'ROI_set') && isfield(tmfc.subjects,'FIR')
-        SPM = load(tmfc.subjects(1).path); 
+        SPM = load(tmfc.subjects(1).path).SPM; 
         try
             waitbar(6/8,w,'Updating BGFC...');
         end
         for iSub = 1:nSub
-            check_BGFC = zeros(1,length(SPM.SPM.Sess));
-            for jSess = 1:length(SPM.SPM.Sess)
+            check_BGFC = zeros(1,length(SPM.Sess));
+            for jSess = 1:length(SPM.Sess)
                 if exist(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'BGFC','ROI_to_ROI', ...
                         ['Subject_' num2str(iSub,'%04.f') '_Session_' num2str(jSess) '.mat']), 'file')
                     check_BGFC(jSess) = 1;
@@ -2341,7 +2341,7 @@ function tmfc = update_tmfc_progress(tmfc)
                 waitbar(7/8,w,'Updating LSS after FIR GLMs...');
             end
             for iSub = 1:nSub             
-                SPM = load(tmfc.subjects(iSub).path);
+                SPM = load(tmfc.subjects(iSub).path).SPM;
                 for jSess = 1:nSess 
                     % Trials of interest
                     nTrial = 0;
@@ -2349,16 +2349,16 @@ function tmfc = update_tmfc_progress(tmfc)
                     trial.number = [];
                     for kCond = 1:nCond
                         if cond_list(kCond).sess == sess_num(jSess)
-                            nTrial = nTrial + length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
-                            trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
-                            trial.number = [trial.number; (1:length(SPM.SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
+                            nTrial = nTrial + length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons);
+                            trial.cond = [trial.cond; repmat(cond_list(kCond).number,length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons),1)];
+                            trial.number = [trial.number; (1:length(SPM.Sess(sess_num(jSess)).U(cond_list(kCond).number).ons))'];
                         end
                     end
                     % Check individual trial GLMs
                     for kTrial = 1:nTrial
                         if exist(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'GLM_batches', ...
                                                 ['GLM_[Sess_' num2str(sess_num(jSess)) ']_[Cond_' num2str(trial.cond(kTrial)) ']_[' ...
-                                                regexprep(char(SPM.SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
+                                                regexprep(char(SPM.Sess(sess_num(jSess)).U(trial.cond(kTrial)).name(1)),' ','_') ']_[Trial_' ...
                                                 num2str(trial.number(kTrial)) '].mat']), 'file')
                            condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                         else           

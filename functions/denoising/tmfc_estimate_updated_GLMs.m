@@ -276,12 +276,12 @@ for iSub = 1:length(SPM_paths)
             matlabbatch{1}.spm.stats.fmri_spec.mask = {''};
         end
     
-        if strcmp(SPM.xVi.form,'i.i.d')
+        if strcmp(SPM.xVi.form,'i.i.d') || strcmp(SPM.xVi.form,'none')
             matlabbatch{1}.spm.stats.fmri_spec.cvi = 'None';
-        elseif strcmp(SPM.xVi.form,'AR(0.2)')
-            matlabbatch{1}.spm.stats.fmri_spec.cvi = 'AR(1)';
-        else
+        elseif strcmp(SPM.xVi.form,'fast') || strcmp(SPM.xVi.form,'FAST')
             matlabbatch{1}.spm.stats.fmri_spec.cvi = 'FAST';
+        else
+            matlabbatch{1}.spm.stats.fmri_spec.cvi = 'AR(1)';
         end
 
         matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(output_paths{iSub},'SPM.mat')};
@@ -324,7 +324,7 @@ if exist('batch','var')
             end
             original_dir = pwd;
             cd(output_paths{1});
-            SPM = tmfc_spm_rwls_spm(SPM);
+            tmfc_spm_rwls_spm(SPM);
             cd(original_dir);
         end
     elseif jSub > 1
@@ -347,7 +347,7 @@ if exist('batch','var')
             if SPM_concat == 1
                 spm_fmri_concatenate(fullfile(batch{iSub}{1}.spm.stats.fmri_spec.dir,'SPM.mat'),concat(iSub).scans);
             end
-            % WLS or rWLS
+            % Check for rWLS
             if options.rWLS == 0
                 spm_jobman('run',batch_2{iSub});
             else
@@ -360,7 +360,7 @@ if exist('batch','var')
                 end
                 original_dir = pwd;
                 cd(output_paths{iSub});
-                SPM = tmfc_spm_rwls_spm(SPM);
+                tmfc_spm_rwls_spm(SPM);
                 cd(original_dir);
             end
             try send(D,[]); end % Update waitbar

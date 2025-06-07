@@ -145,21 +145,21 @@ spm_jobman('initcfg');
 
 for iSub = start_sub:nSub
     % Calculate F-contrast for all conditions of interest
-    SPM = load(tmfc.subjects(iSub).path);
+    SPM = load(tmfc.subjects(iSub).path).SPM;
     matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
     matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_conditions_of_interest';
     cond_col = [];
     for iCond = 1:length(cond_list)
         FCi = [];
-        FCi = SPM.SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).i; 
+        FCi = SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).i; 
         try
             FCp = []; 
-            FCp = SPM.SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).p; 
+            FCp = SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).p; 
             FCi = FCi(FCp==cond_list(iCond).pmod);
         end
-        cond_col = [cond_col SPM.SPM.Sess(cond_list(iCond).sess).col(FCi)];
+        cond_col = [cond_col SPM.Sess(cond_list(iCond).sess).col(FCi)];
     end 
-    weights = zeros(length(cond_col),size(SPM.SPM.xX.X,2));
+    weights = zeros(length(cond_col),size(SPM.xX.X,2));
     for iCond = 1:length(cond_col)
         weights(iCond,cond_col(iCond)) = 1;
     end
@@ -169,7 +169,7 @@ for iSub = start_sub:nSub
     spm_get_defaults('cmdline',true);
     spm_jobman('run',matlabbatch);
     clear matlabbatch
-    SPM = load(tmfc.subjects(iSub).path);
+    SPM = load(tmfc.subjects(iSub).path).SPM;
 
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]),'s');
@@ -182,7 +182,7 @@ for iSub = start_sub:nSub
     for jSess = 1:nSess
         for kROI = 1:nROI
             matlabbatch{1}.spm.util.voi.spmmat = {tmfc.subjects(iSub).path};
-            matlabbatch{1}.spm.util.voi.adjust = length(SPM.SPM.xCon);
+            matlabbatch{1}.spm.util.voi.adjust = length(SPM.xCon);
             matlabbatch{1}.spm.util.voi.session = sess_num(jSess);
             matlabbatch{1}.spm.util.voi.name = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
             switch tmfc.ROI_set(ROI_set_number).type
@@ -204,15 +204,15 @@ for iSub = start_sub:nSub
                     spm_jobman('initcfg');
                     spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
+                    movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
                                       ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
-                    if exist(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
-                        delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
+                    if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
+                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
                     else
-                        delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
+                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
                     end
-                    delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
+                    delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
                 end
                 
             case 1  % Parallel
@@ -226,15 +226,15 @@ for iSub = start_sub:nSub
                     spm_jobman('initcfg');
                     spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
+                    movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
                                       ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
-                    if exist(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
-                        delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
+                    if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
+                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
                     else
-                        delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
+                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
                     end
-                    delete(fullfile(SPM.SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
+                    delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
                 end
         end
 

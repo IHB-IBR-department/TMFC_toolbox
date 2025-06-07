@@ -148,13 +148,13 @@ if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 3
     end
 end
 
-SPM = load(tmfc.subjects(1).path);
-XYZ  = SPM.SPM.xVol.XYZ;
-iXYZ = cumprod([1,SPM.SPM.xVol.DIM(1:2)'])*XYZ - sum(cumprod(SPM.SPM.xVol.DIM(1:2)'));
-hdr.dim = SPM.SPM.Vbeta(1).dim;
-hdr.dt = SPM.SPM.Vbeta(1).dt;
-hdr.pinfo = SPM.SPM.Vbeta(1).pinfo;
-hdr.mat = SPM.SPM.Vbeta(1).mat;
+SPM = load(tmfc.subjects(1).path).SPM;
+XYZ  = SPM.xVol.XYZ;
+iXYZ = cumprod([1,SPM.xVol.DIM(1:2)'])*XYZ - sum(cumprod(SPM.xVol.DIM(1:2)'));
+hdr.dim = SPM.Vbeta(1).dim;
+hdr.dt = SPM.Vbeta(1).dt;
+hdr.pinfo = SPM.Vbeta(1).pinfo;
+hdr.mat = SPM.Vbeta(1).mat;
 
 % Loading ROIs
 switch tmfc.ROI_set(ROI_set_number).type
@@ -267,7 +267,7 @@ end
 
 % Extract and correlate betas
 function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub)
-    SPM = load(tmfc.subjects(iSub).path); 
+    SPM = load(tmfc.subjects(iSub).path).SPM; 
     
     % Load individual ROIs
     if isempty(ROIs)
@@ -280,7 +280,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
     % Number of trials per condition
     nTrialCond = [];
     for jCond = 1:nCond
-        nTrialCond(jCond) = length(SPM.SPM.Sess(cond_list(jCond).sess).U(cond_list(jCond).number).ons);
+        nTrialCond(jCond) = length(SPM.Sess(cond_list(jCond).sess).U(cond_list(jCond).number).ons);
     end
     
     % Conditions of interest
@@ -344,7 +344,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
                     'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
                     ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii']);
                 hdr.descrip = ['z-value map: ' cond_list(jCond).file_name];    
-                image = NaN(SPM.SPM.xVol.DIM');
+                image = NaN(SPM.xVol.DIM');
                 image(iXYZ) = BSC_image(kROI).z_value;
                 spm_write_vol(hdr,image);
             end

@@ -68,8 +68,8 @@ end
 
 nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
-SPM = load(tmfc.subjects(1).path);
-nSess = length(SPM.SPM.Sess);
+SPM = load(tmfc.subjects(1).path).SPM;
+nSess = length(SPM.Sess);
 sub_check = zeros(1,nSub);
 if start_sub > 1
     sub_check(1:start_sub) = 1;
@@ -172,10 +172,8 @@ for iSub = start_sub:nSub
     % Calculate BGFC matrix
     for jSess = 1:nSess
         for kROI = 1:nROI
-            VOI = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
-                ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']));
-            Y(:,kROI) = VOI.Y; 
-            clear VOI
+            Y(:,kROI) = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
+                ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat'])).Y;
         end
         z_matrix = atanh(corr(Y));
         z_matrix(1:size(z_matrix,1)+1:end) = nan;

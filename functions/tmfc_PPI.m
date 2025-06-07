@@ -228,7 +228,7 @@ function tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI)
 % Adapted from spm_peb_ppi.m
     
 % Load SPM 
-SPM = load(tmfc.subjects(iSub).path);
+SPM = load(tmfc.subjects(iSub).path).SPM;
 
 % Load VOI
 VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
@@ -236,7 +236,7 @@ VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_nam
 p   = load(deblank(VOI(1,:)),'xY');
 
 xY(1) = p.xY;
-Sess  = SPM.SPM.Sess(xY(1).Sess);
+Sess  = SPM.Sess(xY(1).Sess);
 
 PPI.name = ['[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name];
 
@@ -265,10 +265,10 @@ end
 
 % Setup variables
 %--------------------------------------------------------------------------
-RT      = SPM.SPM.xY.RT;
-dt      = SPM.SPM.xBF.dt;
+RT      = SPM.xY.RT;
+dt      = SPM.xBF.dt;
 NT      = round(RT/dt);
-fMRI_T0 = SPM.SPM.xBF.T0;
+fMRI_T0 = SPM.xBF.T0;
 N       = length(xY(1).u);
 k       = 1:NT:N*NT;                       % microtime to scan time indices
 
@@ -302,11 +302,11 @@ M  = size(X0,2);
 if strcmp(tmfc.ROI_set(ROI_set_number).PPI_whitening,'inverse') % Whitening inversion to avoid double whitening (see He et al., 2025)
     % Check if SPM.mat has concatenated sessions 
     % (if spm_fmri_concatenate.m sript was used)
-    if size(SPM.SPM.nscan,2) == size(SPM.SPM.Sess,2) 
-        W = SPM.SPM.xX.W(SPM.SPM.xX.K(xY.Sess).row,SPM.SPM.xX.K(xY.Sess).row);
+    if size(SPM.nscan,2) == size(SPM.Sess,2) 
+        W = SPM.xX.W(SPM.xX.K(xY.Sess).row,SPM.xX.K(xY.Sess).row);
         Y = inv(W)*xY.u;
     else
-        Y = inv(SPM.SPM.xX.W)*xY.u;
+        Y = inv(SPM.xX.W)*xY.u;
     end
 else
     Y = xY.u;
@@ -328,7 +328,7 @@ Q = blkdiag(Q, speye(M,M)*1e6  );
 
 % Get whitening matrix (NB: confounds have already been whitened)
 %--------------------------------------------------------------------------
-W = SPM.SPM.xX.W(Sess.row,Sess.row);
+W = SPM.xX.W(Sess.row,Sess.row);
 
 % Create structure for spm_PEB
 %--------------------------------------------------------------------------

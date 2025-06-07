@@ -78,13 +78,13 @@ if nargin < 4
    ROI_set_number = 1;
 end
 
-SPM = load(tmfc.subjects(1).path);
-XYZ  = SPM.SPM.xVol.XYZ;
-iXYZ = cumprod([1,SPM.SPM.xVol.DIM(1:2)'])*XYZ - sum(cumprod(SPM.SPM.xVol.DIM(1:2)'));
-hdr.dim = SPM.SPM.Vbeta(1).dim;
-hdr.dt = SPM.SPM.Vbeta(1).dt;
-hdr.pinfo = SPM.SPM.Vbeta(1).pinfo;
-hdr.mat = SPM.SPM.Vbeta(1).mat;
+SPM = load(tmfc.subjects(1).path).SPM;
+XYZ  = SPM.xVol.XYZ;
+iXYZ = cumprod([1,SPM.xVol.DIM(1:2)'])*XYZ - sum(cumprod(SPM.xVol.DIM(1:2)'));
+hdr.dim = SPM.Vbeta(1).dim;
+hdr.dt = SPM.Vbeta(1).dt;
+hdr.pinfo = SPM.Vbeta(1).pinfo;
+hdr.mat = SPM.Vbeta(1).mat;
 
 w = waitbar(0,'Please wait...','Name','Compute seed-to-voxel contrasts');
 start_time = tic;
@@ -372,7 +372,7 @@ function tmfc_gPPI_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI
         ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
         regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title,' ','_') '].nii']);
     hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI(contrast_number(jCon)).title];    
-    image = NaN(SPM.SPM.xVol.DIM');
+    image = NaN(SPM.xVol.DIM');
     image(iXYZ) = contrast;
     spm_write_vol(hdr,image);
 end
@@ -384,7 +384,7 @@ function tmfc_gPPI_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,
         ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
         regexprep(tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
     hdr.descrip = ['Linear contrast of PPI beta maps: ' tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR(contrast_number(jCon)).title];    
-    image = NaN(SPM.SPM.xVol.DIM');
+    image = NaN(SPM.xVol.DIM');
     image(iXYZ) = contrast;
     spm_write_vol(hdr,image);
 end
@@ -396,7 +396,7 @@ function tmfc_BSC_contrast(tmfc,ROI_set_number,contrast_number,jCon,images,kROI,
         ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
         regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title,' ','_') '].nii']);
     hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC(contrast_number(jCon)).title];    
-    image = NaN(SPM.SPM.xVol.DIM');
+    image = NaN(SPM.xVol.DIM');
     image(iXYZ) = contrast;
     spm_write_vol(hdr,image);    
 end
@@ -408,7 +408,7 @@ function tmfc_BSC_after_FIR_contrast(tmfc,ROI_set_number,contrast_number,jCon,im
         ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(contrast_number(jCon),'%04.f') '_[' ...
         regexprep(tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title,' ','_') '].nii']);
     hdr.descrip = ['Linear contrast of z-value maps: ' tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR(contrast_number(jCon)).title];    
-    image = NaN(SPM.SPM.xVol.DIM');
+    image = NaN(SPM.xVol.DIM');
     image(iXYZ) = contrast;
     spm_write_vol(hdr,image); 
 end

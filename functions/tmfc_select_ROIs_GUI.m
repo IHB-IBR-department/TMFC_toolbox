@@ -98,9 +98,9 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     ROI_set.set_name = ROI_set_name;
     ROI_set.type = ROI_type;
 
-    SPM = load(tmfc.subjects(1).path);
-    XYZ   = SPM.SPM.xVol.XYZ;
-    XYZmm = SPM.SPM.xVol.M(1:3,:)*[XYZ; ones(1,size(XYZ,2))];
+    SPM = load(tmfc.subjects(1).path).SPM;
+    XYZ   = SPM.xVol.XYZ;
+    XYZmm = SPM.xVol.M(1:3,:)*[XYZ; ones(1,size(XYZ,2))];
     
     switch ROI_type
         % -----------------------------------------------------------------
@@ -226,15 +226,15 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
         cond_col = [];
         for iCond = 1:length(conditions)
             FCi = [];
-            FCi = SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
+            FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
             try
                 FCp = []; 
-                FCp = SPM.SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
+                FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
                 FCi = FCi(FCp==conditions(iCond).pmod);
             end
-            cond_col = [cond_col SPM.SPM.Sess(conditions(iCond).sess).col(FCi)];
+            cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
         end 
-        weights = zeros(length(cond_col),size(SPM.SPM.xX.X,2));
+        weights = zeros(length(cond_col),size(SPM.xX.X,2));
         for iCond = 1:length(cond_col)
             weights(iCond,cond_col(iCond)) = 1;
         end
@@ -291,7 +291,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.spmmat = {tmfc.subjects(iSub).path};
                     job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_MS(jROI).ROI_name);
                     job.roi{1}.spm.spmmat = {tmfc.subjects(iSub).path};
-                    job.roi{1}.spm.contrast = length(SPM.SPM.xCon);
+                    job.roi{1}.spm.contrast = length(SPM.xCon);
                     job.roi{1}.spm.conjunction = 1;
                     job.roi{1}.spm.threshdesc = 'none';
                     job.roi{1}.spm.thresh = Fthresh;
@@ -345,7 +345,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.spmmat = {tmfc.subjects(iSub).path};
                     job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_set.ROIs(jROI).name);
                     job.roi{1}.spm.spmmat = {''};
-                    job.roi{1}.spm.contrast = length(SPM.SPM.xCon);
+                    job.roi{1}.spm.contrast = length(SPM.xCon);
                     job.roi{1}.spm.conjunction = 1;
                     job.roi{1}.spm.threshdesc = 'none';
                     job.roi{1}.spm.thresh = Fthresh;
@@ -1793,7 +1793,7 @@ movegui(vec_rad_GUI,'center');
             warning('Vector contain NaN values, please try again');            
         else
             try
-                radius_vector = eval(tmp_vector);
+                radius_vector = str2num(tmp_vector);
                 if length(radius_vector) == nROI
                     delete(vec_rad_GUI);
                 else
