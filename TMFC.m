@@ -168,9 +168,6 @@ function select_subjects_GUI(~,~,~)
     % Select subjects and check SPM.mat files
     [SPM_paths, subject_paths] = tmfc_select_subjects_GUI(1);
     
-    % Select subject naming format
-    [sub_names] = tmfc_subject_naming_GUI;
-
     % If subjects are not selected - unfreeze
     if isempty(SPM_paths)
         freeze_GUI(0);
@@ -178,6 +175,9 @@ function select_subjects_GUI(~,~,~)
     else
         % Clear TMFC structure and resfresh main TMFC GUI
         tmfc = major_reset(tmfc);
+
+        % Select subject naming format
+        [sub_names] = tmfc_subject_naming_GUI;
 
         % Add subject paths to TMFC structure
         for iSub = 1:size(SPM_paths,1)
@@ -2508,7 +2508,7 @@ function [sub_names] = tmfc_subject_naming_GUI
     movegui(SN_GUI_MW,'center');
 
     SN_txt = uicontrol(SN_GUI_MW,'Style','text','String',MW_str,'Units','normalized','Position',[0.03 0.57 0.95 0.23],'fontunits','normalized','fontSize',0.37,'backgroundcolor','w'); 
-    SN_pop = uicontrol(SN_GUI_MW,'Style','popupmenu','String',sub_names_options,'Units','normalized','Position',[0.28 0.28 0.5 0.23],'fontunits','normalized','FontSize',0.36);     
+    SN_pop = uicontrol(SN_GUI_MW,'Style','popupmenu','String',sub_names_options,'Units','normalized','Position',[0.26 0.28 0.5 0.23],'fontunits','normalized','FontSize',0.36);     
     
     SN_MW_OK = uicontrol(SN_GUI_MW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.41 0.09 0.2 0.15],'fontunits','normalized','FontSize',0.40,'callback',@read_data);
           
