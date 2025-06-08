@@ -48,7 +48,6 @@ tmfc.defaults.maxmem = 2^32;        % 4 GB
 % Seed-to-voxel and ROI-to-ROI analyses
 tmfc.defaults.analysis = 1;
 
-
 %% Setting up paths
 
 % The path where all results will be saved
@@ -60,16 +59,41 @@ tmfc.project_path = data.stat_path;
 % tmfc.subjects(3).path = '...\Your_study\Subjects\sub_003\stat\Standard_GLM\SPM.mat';
 % etc
 
+% Define subject names:
+%
+% Original names:
+% tmfc.subjects(1).name = 'sub_001';
+% tmfc.subjects(2).name = 'sub_002';
+% tmfc.subjects(3).name = 'sub_003';
+% etc
+% 
+% OR
+%
+% TMFC standard naming format:
+% tmfc.subjects(1).name = 'Subject_0001';
+% tmfc.subjects(2).name = 'Subject_0002';
+% tmfc.subjects(3).name = 'Subject_0003';
+% etc
+
 % Alternativelly, use tmfc_select_subjects_GUI to select subjects
 % Go to GLMs subfolder and select 20 subjects 
 SPM_check = 1;                      % Check SPM.mat files
-[paths] = tmfc_select_subjects_GUI(SPM_check);
+[SPM_paths, subject_paths] = tmfc_select_subjects_GUI(SPM_check);
 
-for i = 1:length(paths)
-    tmfc.subjects(i).path = paths{i};
+sub_name_format = 'standard'; % Select this option to use TMFC naming format (i.e., 'Subject_XXXX')
+
+for iSub = 1:length(SPM_paths)
+    tmfc.subjects(iSub).path = SPM_paths{iSub};
+    if strcmp(sub_name_format,'original') % Select this option, if you want to use original subject names within TMFC project
+        [~, sub, ~] = fileparts(subject_paths{iSub});
+        tmfc.subjects(iSub).name = sub;
+    else
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
+    clear sub
 end
 
-clear SPM_check paths
+clear SPM_check SPM_paths subject_paths
 
 %% Select ROIs
 
@@ -148,7 +172,7 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 % Load BSC-LSS matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+        [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 
@@ -231,7 +255,7 @@ contrast_number = [3,4];            % Calculate contrast #3 and #4
 clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+        [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 
@@ -339,7 +363,7 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','ROI_to_ROI','symmetrical',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+        [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 
@@ -397,7 +421,7 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 clear M marices conval_1 thresholded_1
 for i = 1:data.N 
     M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+        [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
 

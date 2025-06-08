@@ -11,6 +11,8 @@ function [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc,ROI_set_number,clear_BS
 % FORMAT [sub_check,contrasts] = tmfc_BSC_after_FIR(tmfc)
 %
 %   tmfc.subjects.path     - Paths to individual SPM.mat files
+%   tmfc.subjects.name     - Subject names within the TMFC project
+%                           ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path      - Path where all results will be saved
 %   tmfc.defaults.analysis - 1 (Seed-to-voxel and ROI-to-ROI analyses)
 %                          - 2 (ROI-to-ROI analysis only)
@@ -115,6 +117,13 @@ if ~isfield(tmfc.ROI_set(ROI_set_number),'BSC_after_FIR')
     tmfc.ROI_set(ROI_set_number).BSC_after_FIR = 'first_eigenvariate';
 elseif isempty(tmfc.ROI_set(ROI_set_number).BSC_after_FIR)
     tmfc.ROI_set(ROI_set_number).BSC_after_FIR = 'first_eigenvariate';
+end
+
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
 end
 
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
@@ -290,7 +299,7 @@ function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_l
         disp(['Extracting average beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
         
         for kTrial = 1:nTrialCond(jCond)
-            betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',['Subject_' num2str(iSub,'%04.f')],'Betas', ...
+            betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,'Betas', ...
                 ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
         end
 
@@ -327,7 +336,7 @@ function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_l
 
             % Save BSC matrices
             save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI', ...
-                ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.mat']),'z_matrix');
+                [tmfc.subjects(iSub).name '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.mat']),'z_matrix');
 
             clear z_matrix
         end
@@ -342,7 +351,7 @@ function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_l
             for kROI = 1:nROI
                 hdr.fname = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR', ...
                     'Seed_to_voxel',tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, ...
-                    ['Subject_' num2str(iSub,'%04.f') '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii']);
+                    [tmfc.subjects(iSub).name '_Contrast_' num2str(jCond,'%04.f') '_' cond_list(jCond).file_name '.nii']);
                 hdr.descrip = ['z-value map: ' cond_list(jCond).file_name];    
                 image = NaN(SPM.xVol.DIM');
                 image(iXYZ) = BSC_image(kROI).z_value;
@@ -357,7 +366,7 @@ function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_l
 
     % Save mean beta-series
     save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','Beta_series', ...
-        ['Subject_' num2str(iSub,'%04.f') '_beta_series.mat']),'beta_series');
+        [tmfc.subjects(iSub).name '_beta_series.mat']),'beta_series');
 end
 
 % Waitbar for parallel mode

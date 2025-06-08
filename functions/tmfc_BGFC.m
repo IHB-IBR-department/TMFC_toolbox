@@ -13,6 +13,8 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
+%   tmfc.subjects.name            - Subject names within the TMFC project
+%                           ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path             - Path where all results will be saved
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
@@ -66,6 +68,13 @@ elseif nargin == 2
    start_sub = 1;
 end
 
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
+end
+
 nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 SPM = load(tmfc.subjects(1).path).SPM;
@@ -89,17 +98,17 @@ if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set
 end
 
 for iSub = start_sub:nSub
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',['Subject_' num2str(iSub,'%04.f')]))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',['Subject_' num2str(iSub,'%04.f')]),'s');
+    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name))
+        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name),'s');
     end
 
-    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',['Subject_' num2str(iSub,'%04.f')]))
-        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',['Subject_' num2str(iSub,'%04.f')]));
+    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name))
+        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name));
     end
 
     for jSess = 1:nSess
         for kROI = 1:nROI
-            matlabbatch{1}.spm.util.voi.spmmat = {fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')};
+            matlabbatch{1}.spm.util.voi.spmmat = {fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat')};
             matlabbatch{1}.spm.util.voi.adjust = NaN; % Adjust for everything 
             matlabbatch{1}.spm.util.voi.session = jSess;
             matlabbatch{1}.spm.util.voi.name = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
@@ -122,19 +131,19 @@ for iSub = start_sub:nSub
                     spm_jobman('initcfg');
                     spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                    movefile(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
-                                      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']));
-                    if exist(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']));
+                    if exist(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '_eigen.nii']),'file')
-                        delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                        delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '_eigen.nii']));
                     else
-                        delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                        delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
                     end
-                    delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                    delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
                 end
                 
@@ -149,19 +158,19 @@ for iSub = start_sub:nSub
                     spm_jobman('initcfg');
                     spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                    movefile(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
-                                      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']));
-                    if exist(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']));
+                    if exist(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '_eigen.nii']),'file')
-                        delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                        delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '_eigen.nii']));
                     else
-                        delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                        delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
                     end
-                    delete(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')], ...
+                    delete(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
                 end
         end
@@ -173,12 +182,12 @@ for iSub = start_sub:nSub
     for jSess = 1:nSess
         for kROI = 1:nROI
             Y(:,kROI) = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
-                ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat'])).Y;
+                tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat'])).Y;
         end
         z_matrix = atanh(corr(Y));
         z_matrix(1:size(z_matrix,1)+1:end) = nan;
         save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','ROI_to_ROI', ... 
-                ['Subject_' num2str(iSub,'%04.f') '_Session_' num2str(jSess) '.mat']),'z_matrix');
+                [tmfc.subjects(iSub).name '_Session_' num2str(jSess) '.mat']),'z_matrix');
         clear Y z_matrix  
     end
     

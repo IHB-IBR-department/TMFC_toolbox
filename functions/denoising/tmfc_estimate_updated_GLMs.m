@@ -351,17 +351,7 @@ if exist('batch','var')
             if options.rWLS == 0
                 spm_jobman('run',batch_2{iSub});
             else
-                SPM = load(fullfile(output_paths{iSub},'SPM.mat')).SPM;
-                SPM.xVi.form = 'wls';
-                nScan=sum(SPM.nscan);
-                for iScan = 1:nScan
-                    SPM.xVi.Vi{iScan} = sparse(nScan,nScan);
-                    SPM.xVi.Vi{iScan}(iScan,iScan) = 1;
-                end
-                original_dir = pwd;
-                cd(output_paths{iSub});
-                tmfc_spm_rwls_spm(SPM);
-                cd(original_dir);
+                tmfc_rwls(output_paths,iSub);
             end
             try send(D,[]); end % Update waitbar
         end
@@ -371,6 +361,23 @@ end
 end
 
 %==========================================================================
+
+% Estimate rWLS model
+%--------------------------------------------------------------------------
+function tmfc_rwls(output_paths,iSub)
+    SPM = load(fullfile(output_paths{iSub},'SPM.mat')).SPM;
+    SPM.xVi.form = 'wls';
+    nScan=sum(SPM.nscan);
+    for iScan = 1:nScan
+        SPM.xVi.Vi{iScan} = sparse(nScan,nScan);
+        SPM.xVi.Vi{iScan}(iScan,iScan) = 1;
+    end
+    original_dir = pwd;
+    cd(output_paths{iSub});
+    tmfc_spm_rwls_spm(SPM);
+    cd(original_dir);
+end
+
 % Waitbar for parallel mode
 %--------------------------------------------------------------------------
 function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)

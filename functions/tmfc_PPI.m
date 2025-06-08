@@ -8,6 +8,8 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
+%   tmfc.subjects.name            - Subject names within the TMFC project
+%                           ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path             - Path where all results will be saved
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
@@ -135,6 +137,13 @@ elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_whitening)
     tmfc.ROI_set(ROI_set_number).PPI_whitening = 'with_mean_centering';
 end
 
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
+end
+
 try
     main_GUI = guidata(findobj('Tag','TMFC_GUI'));                           
     set(main_GUI.TMFC_GUI_S4,'String', 'Updating...','ForegroundColor',[0.772, 0.353, 0.067]);       
@@ -159,12 +168,12 @@ spm_jobman('initcfg');
 
 for iSub = start_sub:nSub
 
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]),'s');
+    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
+        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name),'s');
     end
 
-    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]))
-        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')]));
+    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
+        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name));
     end
 
     % Conditions of interest
@@ -232,7 +241,7 @@ SPM = load(tmfc.subjects(iSub).path).SPM;
 
 % Load VOI
 VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(cond_list(jCond).sess) '.mat']);
+      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(cond_list(jCond).sess) '.mat']);
 p   = load(deblank(VOI(1,:)),'xY');
 
 xY(1) = p.xY;
@@ -378,6 +387,6 @@ PPI.ppi = spm_detrend(ppi);
 
 % Save PPI *.mat file
 %----------------------------------------------------------------------
-save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',['Subject_' num2str(iSub,'%04.f')], ...
+save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name, ...
     ['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']),'PPI');
 end

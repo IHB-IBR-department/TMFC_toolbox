@@ -10,6 +10,8 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
+%   tmfc.subjects.name            - Subject names within the TMFC project
+%                                   ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path             - Path where all results will be saved
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
@@ -114,6 +116,13 @@ elseif nargin == 2
    start_sub = 1;
 end
 
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
+end
+
 try
     main_GUI = guidata(findobj('Tag','TMFC_GUI'));                           
     set(main_GUI.TMFC_GUI_S3,'String', 'Updating...','ForegroundColor',[0.772, 0.353, 0.067]);       
@@ -171,12 +180,12 @@ for iSub = start_sub:nSub
     clear matlabbatch
     SPM = load(tmfc.subjects(iSub).path).SPM;
 
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]),'s');
+    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
+        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name),'s');
     end
 
-    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]))
-        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',['Subject_' num2str(iSub,'%04.f')]));
+    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
+        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name));
     end
     
     for jSess = 1:nSess
@@ -206,7 +215,7 @@ for iSub = start_sub:nSub
                     spm_jobman('run',batch{kROI});
                     movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-                                      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
+                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
                     if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
                         delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
                     else
@@ -228,7 +237,7 @@ for iSub = start_sub:nSub
                     spm_jobman('run',batch{kROI});
                     movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
                              fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-                                      ['Subject_' num2str(iSub,'%04.f')],['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
+                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
                     if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
                         delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
                     else

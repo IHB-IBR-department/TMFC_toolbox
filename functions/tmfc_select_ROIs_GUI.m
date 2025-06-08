@@ -35,11 +35,13 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 % FORMAT [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 %
 % Input:
-%   tmfc.subjects.path     - Paths to individual SPM.mat files
-%   tmfc.project_path      - The path where all results will be saved
+%   tmfc.subjects.path    - Paths to individual SPM.mat files
+%   tmfc.subjects.name    - Subject names within the TMFC project
+%                           ('Subject_XXXX' naming will be used by default)
+%   tmfc.project_path     - The path where all results will be saved
 %
 % Output:
-%   ROI_Set                - Structure with information about selected ROIs
+%   ROI_Set               - Structure with information about selected ROIs
 %
 % =========================================================================
 %
@@ -69,6 +71,13 @@ elseif ~exist(tmfc.subjects(1).path,'file')
     error('SPM.mat file for the first subject does not exist.')
 elseif ~isfield(tmfc,'project_path')
     error('Select TMFC project folder.');
+end
+
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
 end
 
 % Specify ROI set name
@@ -140,7 +149,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     ROI_set.ROIs(iROI).name = ROI_MS(iROI).ROI_name;
                     for iSub = 1:nSub
                         ROI_set.ROIs(iROI).path_masked(iSub).subjects = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',...
-                            ['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(iROI).name '_masked.nii']);
+                            tmfc.subjects(iSub).name,[ROI_set.ROIs(iROI).name '_masked.nii']);
                     end
                     ROI_set.ROIs(iROI).X = ROI_MS(iROI).X;
                     ROI_set.ROIs(iROI).Y = ROI_MS(iROI).Y;
@@ -161,7 +170,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     ROI_set.ROIs(iROI).path = deblank(ROI_paths(iROI,:));
                     for iSub = 1:nSub
                         ROI_set.ROIs(iROI).path_masked(iSub).subjects = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',...
-                            ['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(iROI).name '_masked.nii']);
+                            tmfc.subjects(iSub).name,[ROI_set.ROIs(iROI).name '_masked.nii']);
                     end
                 end
             else
@@ -201,7 +210,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
 
     if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
         for iSub = 1:nSub
-            mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')]));
+            mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name));
         end
     end
 
@@ -289,7 +298,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 SPM = load(tmfc.subjects(iSub).path);
                 for jROI = 1:size(ROI_MS,2)
                     job.spmmat = {tmfc.subjects(iSub).path};
-                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_MS(jROI).ROI_name);
+                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,ROI_MS(jROI).ROI_name);
                     job.roi{1}.spm.spmmat = {tmfc.subjects(iSub).path};
                     job.roi{1}.spm.contrast = length(SPM.xCon);
                     job.roi{1}.spm.conjunction = 1;
@@ -343,7 +352,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 SPM = load(tmfc.subjects(iSub).path);
                 for jROI = 1:size(ROI_paths,1)   
                     job.spmmat = {tmfc.subjects(iSub).path};
-                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],ROI_set.ROIs(jROI).name);
+                    job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,ROI_set.ROIs(jROI).name);
                     job.roi{1}.spm.spmmat = {''};
                     job.roi{1}.spm.contrast = length(SPM.xCon);
                     job.roi{1}.spm.conjunction = 1;
@@ -627,10 +636,10 @@ end
 
 % -------------------------------------------------------------------------
 function tmfc_mask_moving_spheres(input_images,tmfc,ROI_set_name,iSub,ROI_set,jROI)
-    input_images{2,1} = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(jROI).name '.nii']);
+    input_images{2,1} = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,[ROI_set.ROIs(jROI).name '.nii']);
     individual_ROI_mask = ROI_set.ROIs(jROI).path_masked(iSub).subjects;
     spm_imcalc(input_images,individual_ROI_mask,'(i1>0).*(i2>0)',{0,0,1,2});
-    delete(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(iSub,'%04.f')],[ROI_set.ROIs(jROI).name '.nii']));
+    delete(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,[ROI_set.ROIs(jROI).name '.nii']));
 end
  
 

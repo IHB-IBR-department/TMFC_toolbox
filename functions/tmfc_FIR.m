@@ -30,6 +30,8 @@ function [sub_check] = tmfc_FIR(tmfc,start_sub)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path     - Paths to individual SPM.mat files
+%   tmfc.subjects.name     - Subject names within the TMFC project
+%                           ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path      - Path where all results will be saved
 %   tmfc.defaults.parallel - 0 or 1 (sequential or parallel computing)
 %   tmfc.defaults.maxmem   - e.g. 2^31 = 2GB (how much RAM can be used at
@@ -69,6 +71,13 @@ if nargin == 1
     start_sub = 1;
 end
 
+% Check subject names
+if ~isfield(tmfc.subjects,'name')
+    for iSub = 1:length(tmfc.subjects)
+        tmfc.subjects(iSub).name = ['Subject_' num2str(iSub,'%04.f')];
+    end
+end
+
 % Update main TMFC GUI 
 try              
     main_GUI = guidata(findobj('Tag','TMFC_GUI'));                           
@@ -97,12 +106,12 @@ for iSub = start_sub:nSub
     end
     concat(iSub).scans = SPM.nscan;
 
-    if isdir(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]))
-        rmdir(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]),'s');
+    if isdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name))
+        rmdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name),'s');
     end
     
-    mkdir(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]));
-    matlabbatch{1}.spm.stats.fmri_spec.dir = {fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')])};
+    mkdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name));
+    matlabbatch{1}.spm.stats.fmri_spec.dir = {fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name)};
     matlabbatch{1}.spm.stats.fmri_spec.timing.units = SPM.xBF.UNITS;
     matlabbatch{1}.spm.stats.fmri_spec.timing.RT = SPM.xY.RT;
     matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t = SPM.xBF.T;
@@ -171,7 +180,7 @@ for iSub = start_sub:nSub
         rWLS(iSub) = 0;
     end
 
-    matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')};
+    matlabbatch_2{1}.spm.stats.fmri_est.spmmat(1) = {fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat')};
     matlabbatch_2{1}.spm.stats.fmri_est.write_residuals = 0;
     matlabbatch_2{1}.spm.stats.fmri_est.method.Classical = 1;
     
@@ -203,27 +212,16 @@ switch tmfc.defaults.parallel
             spm_jobman('run', batch{iSub});
             % Concatenated sessions
             if SPM_concat(iSub) == 1
-                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),concat(iSub).scans);
+                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat'),concat(iSub).scans);
             end
             % Check for rWLS
             if rWLS(iSub) == 0
                 spm_jobman('run', batch_2{iSub});
             else
-                SPM = load(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')).SPM;
-                SPM.xVi.form = 'wls';
-                nScan = sum(SPM.nscan);
-                for jScan = 1:nScan
-                    SPM.xVi.Vi{jScan} = sparse(nScan,nScan);
-                    SPM.xVi.Vi{jScan}(jScan,jScan) = 1;
-                end
-                original_dir = pwd;
-                cd(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]));
-                tmfc_spm_rwls_spm(SPM);
-                cd(original_dir);
-                clear SPM
+                tmfc_rwls_FIR(tmfc,ROI_set_number,iSub,jROI);
             end
-            tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),NaN);
-            tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batch.mat'),batch{iSub});
+            tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat'),NaN);
+            tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'GLM_batch.mat'),batch{iSub});
             sub_check(iSub) = 1;
 
             % Update TMFC GUI window
@@ -283,13 +281,13 @@ switch tmfc.defaults.parallel
             spm_jobman('run',batch{iSub});
             % Concatenated sessions
             if SPM_concat(iSub) == 1
-                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),concat(iSub).scans);
+                spm_fmri_concatenate(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat'),concat(iSub).scans);
             end
             % Check for rWLS
             if rWLS(iSub) == 0
                 spm_jobman('run', batch_2{iSub});
             else
-                SPM = load(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat')).SPM;
+                SPM = load(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat')).SPM;
                 SPM.xVi.form = 'wls';
                 nScan = sum(SPM.nscan);
                 for jScan = 1:nScan
@@ -297,12 +295,12 @@ switch tmfc.defaults.parallel
                     SPM.xVi.Vi{jScan}(jScan,jScan) = 1;
                 end
                 original_dir = pwd;
-                cd(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')]));
+                cd(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name));
                 tmfc_spm_rwls_spm(SPM);
                 cd(original_dir);
             end
-            tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'SPM.mat'),NaN);
-            tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',['Subject_' num2str(iSub,'%04.f')],'GLM_batch.mat'),batch{iSub});
+            tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat'),NaN);
+            tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'GLM_batch.mat'),batch{iSub});
             sub_check(iSub) = 1;
 
             % Update waitbar 
@@ -340,6 +338,21 @@ end
 % Save batches in parallel mode
 function tmfc_parsave(fname,matlabbatch)
 	save(fname, 'matlabbatch')
+end
+
+% Estimate rWLS FIR model
+function tmfc_rwls_FIR(tmfc,ROI_set_number,iSub,jROI)
+    SPM = load(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat')).SPM;
+    SPM.xVi.form = 'wls';
+    nScan = sum(SPM.nscan);
+    for jScan = 1:nScan
+        SPM.xVi.Vi{jScan} = sparse(nScan,nScan);
+        SPM.xVi.Vi{jScan}(jScan,jScan) = 1;
+    end
+    original_dir = pwd;
+    cd(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name));
+    tmfc_spm_rwls_spm(SPM);
+    cd(original_dir);
 end
 
 % Waitbar for parallel mode
