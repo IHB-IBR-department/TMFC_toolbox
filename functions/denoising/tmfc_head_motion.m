@@ -40,7 +40,11 @@ disp('Loading head motion parameters...');
 for iSub = 1:length(SPM_paths)
     SPM = load(SPM_paths{iSub}).SPM;
     for jSess = 1:length(SPM.Sess)
-        group_HMP(iSub).Sess{jSess} = SPM.Sess(jSess).C.C(:,1:6);
+        if size(SPM.Sess(jSess).C.C) < 6
+            error('The number of counfound regressors in the original model is less than six. The original model should contain six head motion regressors. Please, check:\n%s',SPM_paths{iSub});
+        else
+            group_HMP(iSub).Sess{jSess} = SPM.Sess(jSess).C.C(:,1:6);
+        end
     end
     clear SPM
 end
