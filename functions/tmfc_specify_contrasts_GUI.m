@@ -84,7 +84,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
     % Exit
     %----------------------------------------------------------------------
     function SC_MW_exit (~,~)
-        delete(SC_MW);
+        uiresume(SC_MW);
         disp('Contrasts not specified.');
     end
 
@@ -126,7 +126,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
             end
             fprintf('Contrast added: %s.\n',title_contrast);
         else
-            warning('No contrasts added.');
+            fprintf(2,'No contrasts added.\n');
         end
     end
 
@@ -137,7 +137,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
 
         if isfield(contrasts, 'no')
             if isempty(SC_MW_SE2)
-                warning('No contrasts selected to remove.');
+                fprintf(2,'No contrasts selected to remove.\n');
             else
                 if length(SC_MW_SE2)>1
                     disp('Selected contrasts have been removed.');
@@ -164,7 +164,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
                 set(SC_MW_LB2, 'string', new_contrasts);
             end
         else
-            warning('No contrasts present to remove.');
+            fprintf(2,'No contrasts present to remove.\n');
         end
     end
 
@@ -183,7 +183,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
             set(SC_MW_LB2, 'string', new_contrasts);
             disp('All Contrasts have been removed.');
         else
-        	warning('No contrasts present to remove.');
+        	fprintf(2,'No contrasts present to remove.\n');
         end
     end
 
@@ -192,11 +192,11 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
     %----------------------------------------------------------------------
     function MW_confirm(~,~)
         if isempty(new_contrasts)
-            warning('Please specify new contrast(s)');
+            fprintf(2,'Please specify new contrast(s). \n');
         else
             tmfc = add_new_contrasts(tmfc,contrasts,TMFC_analysis,ROI_set_number);
             fprintf('Number of newly added contrast for processing: %d.\n',length(new_contrasts));
-            delete(SC_MW);
+            uiresume(SC_MW);
         end
     end
 
@@ -213,7 +213,9 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
             'If you want to calculate a new linear contrast for "Cond A > Cond B" comparison:','','1) Press "Add new" button,','2) Enter title name (e.g. "CondA_vs_CondB"),',...
             '3) Enter contrast weight, c = [0.5 -0.5 0.5 -0.5],','4) Press "Ok".'};
 
-        SC_HW_S1 = uicontrol(SC_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.055 0.12 0.89 0.85], 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.037,'backgroundcolor','w');
+        if isunix; fontscale = 0.8; else; fontscale = 1; end
+
+        SC_HW_S1 = uicontrol(SC_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.055 0.12 0.89 0.85], 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.037*fontscale,'backgroundcolor','w');
         SC_HW_OK = uicontrol(SC_HW,'Style','pushbutton','String', 'OK','Units', 'normalized', 'Position', [0.35 0.030 0.30 0.07],'fontunits','normalized','fontSize', 0.40,'callback', @SC_HW_close);
         movegui(SC_HW,'center');
 
@@ -222,7 +224,8 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
         end
     end
 
-    uiwait();
+    uiwait(SC_MW);
+    delete(SC_MW);
 end
 
 %% ============[ Get info about contrasts from TMFC structure ]============
@@ -350,38 +353,39 @@ function [title,weights] = specify_contrast(tmfc, ROI_set_number,TMFC_analysis)
         contrast_weight = get(SW_MW_CW, 'String');
 
         if strcmp(contrast_title,'') || strcmp(contrast_title(1),' ') 
-            warning('Title not entered or invalid, please re-enter.');            
+            fprintt(2,'Title not entered or invalid, please re-enter.\n');            
 
         elseif ~isempty(str2num(contrast_title(1)))
-            warning('The name cannot consist only of numbers, please re-enter.');
+            fprintt(2,'The title name cannot consist only of numbers, please re-enter.\n');
 
         elseif strcmp(contrast_weight, '') || strcmp(contrast_weight, ' ')
-            warning('Contrast weights not entered or invalid, please re-enter.');
+            fprintt(2,'Contrast weights not entered or invalid, please re-enter.\n');
 
         elseif isempty(str2num(contrast_weight))
-             warning('Contrast weights are not numeric, please re-enter.');
+            fprintt(2,'Contrast weights are not numeric, please re-enter.\n');
 
         elseif length(str2num(contrast_weight)) > nCondOfInterest
-            warning('Contrast length is greater than the number of conditions of interest, please re-enter.');
+            fprintt(2,'Contrast length is greater than the number of conditions of interest, please re-enter.\n');
 
         elseif length(str2num(contrast_weight)) < nCondOfInterest
-            warning('Contrast length is less than the number of conditions of interest, please re-enter.');
+            fprintt(2,'Contrast length is less than the number of conditions of interest, please re-enter.\n');
 
         else
-            delete(SW_MW);       
             title = contrast_title;
             weights = contrast_weight;
+            uiresume(SW_MW);
         end
     end
 
     %--------------------------------------------------------------------------
     function MW_exit(~,~)
-        delete(SW_MW);       
         title = [];
         weights = [];
+        uiresume(SW_MW); 
     end
 
-    uiwait();
+    uiwait(SW_MW);
+    delete(SW_MW);
 end
 
 %% ==============[ Assign new contrasts to TMFC structure ]================

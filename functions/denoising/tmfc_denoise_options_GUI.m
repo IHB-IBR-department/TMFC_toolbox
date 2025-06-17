@@ -27,7 +27,8 @@ function options = tmfc_denoise_options_GUI()
 %--------------------------------------------------------------------------
 options = struct; 
 options.motion = '24HMP';
-options.rotation_indx = [4 5 6];
+options.translation_idx = [1 2 3];
+options.rotation_idx = [4 5 6];
 options.rotation_unit = 'rad';
 options.head_radius = 50;
 options.DVARS = 1;
@@ -51,7 +52,6 @@ options.parallel = 0;
 %-Options GUI
 %--------------------------------------------------------------------------
 set_HMP = {'Add 6 temporal derivatives and 12 quadratic terms (24HMP)','Add 6 temporal derivatives (12HMP)','Use standard 6 head motion parameters (6HMP)'};
-set_FD_reg = {'First three regressors – translation (e.g., SPM12, HCP, fMRIPrep)','First three regressors – rotation (e.g., FSL, AFNI)'};
 set_FD_rot = {'Radians (e.g., SPM12, FSL, fMRIPrep)','Degrees (e.g., HCP, AFNI)'};
 set_DVARS = {'Calculate DVARS and FD/DVARS correlations','None'};
 set_ACC = {'Add fixed number of aCompCor regressors','Add regressors explaining 50% of variance in WM/CSF (aCompCor50)','None'};
@@ -62,7 +62,7 @@ set_WM_CSM = {'None','Add WM and CSF signals (2Phys)','Add WM and CSF signals al
 set_GSR = {'None','Add whole-brain signal (GSR)','Add whole-brain signal and its temporal derivative (2GSR)','Add whole-brain signal, its temporal derivative and 2 quadratic terms (4GSR)'};
 set_PAR = {'None','Enable parallel computations'};
 
-tmfc_DN_GUI = figure('Name','TMFC denoise','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.364 0.065 0.275 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on','CloseRequestFcn',@close_options_GUI);
+tmfc_DN_GUI = figure('Name','TMFC denoise','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.345 0.062 0.310 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on','CloseRequestFcn',@close_options_GUI);
 movegui(tmfc_DN_GUI,'center');
 
 DN_MP_1 = uipanel(tmfc_DN_GUI,'Units','normalized','Position',[0.025 0.915 0.95 0.078],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
@@ -82,9 +82,13 @@ DN_HMP_pop = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_HMP,'Units',
 
 % Framewise Displacement (FD) GUI elements
 DN_FD_txt_1 = uicontrol(tmfc_DN_GUI,'Style','text','String','Framewise displacement (FD)','Units','normalized','Position',[0.048 0.879 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DN_FD_txt_2 = uicontrol(tmfc_DN_GUI,'Style','text','String','The order of motion regressors:','Units','normalized','Position',[0.048 0.848 0.5 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
+DN_FD_txt_2 = uicontrol(tmfc_DN_GUI,'Style','text','String','Specify the order of motion regressors in SPM.Sess.C structure (see Help)','Units','normalized','Position',[0.048 0.848 0.9 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
 DN_FD_txt_3 = uicontrol(tmfc_DN_GUI,'Style','text','String','Rotation units:','Units','normalized','Position',[0.048 0.786 0.5 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
-DN_FD_pop_1 = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_FD_reg,'Units','normalized','Position',[0.048 0.776 0.90 0.073],'fontunits','normalized','fontsize',0.208);
+
+DN_FD_TR = uicontrol(tmfc_DN_GUI,'Style','text','String','Translational regressors:','Units','normalized','Position',[0.048 0.816 0.29 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
+DN_FD_RR = uicontrol(tmfc_DN_GUI,'Style','text','String','Rotational regressors:','Units','normalized','Position',[0.515 0.816 0.29 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
+DN_FD_TR_E = uicontrol(tmfc_DN_GUI,'Style','edit','String',num2str(options.translation_idx),'Units','normalized','HorizontalAlignment','center','Position',[0.360 0.815 0.11 0.03],'fontunits','normalized','fontsize',0.55);
+DN_FD_RR_E = uicontrol(tmfc_DN_GUI,'Style','edit','String',num2str(options.rotation_idx),'Units','normalized','HorizontalAlignment','center','Position',[0.839 0.815 0.11 0.03],'fontunits','normalized','fontsize',0.55);
 DN_FD_pop_2 = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_FD_rot,'Units','normalized','Position',[0.048 0.713 0.90 0.073],'fontunits','normalized','fontsize',0.208);
 
 % DVARS GUI elements
@@ -94,10 +98,12 @@ DN_DVARS_pop = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_DVARS,'Uni
 % Anatomical CompCor (ACC) GUI elements
 DN_ACC_txt_1 = uicontrol(tmfc_DN_GUI,'Style','text','String','Anatomical component correction (aCompCor)','Units','normalized','Position',[0.048 0.625 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
 DN_ACC_pop = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_ACC,'Units','normalized','Position',[0.048 0.545 0.90 0.073],'fontunits','normalized','fontsize',0.208,'callback',@ACC_value);
+
 DN_ACC_txt_2 = uicontrol(tmfc_DN_GUI,'Style','text','String','Number of PCs for WM:','Units','normalized','Position',[0.048 0.548 0.33 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
 DN_ACC_txt_3 = uicontrol(tmfc_DN_GUI,'Style','text','String','Number of PCs for CSF:','Units','normalized','Position',[0.515 0.548 0.33 0.024],'fontunits','normalized','fontsize',0.625,'HorizontalAlignment','left','backgroundcolor','w');
+
 DN_ACC_PO_pop = uicontrol(tmfc_DN_GUI,'Style','popupmenu','String',set_ACC_PO,'Units','normalized','Position',[0.048 0.465 0.90 0.073],'fontunits','normalized','fontsize',0.208,'callback',@ACC_PO_value);
-DN_ACC_E1 = uicontrol(tmfc_DN_GUI,'Style','edit','String',options.aCompCor(1),'Units','normalized','HorizontalAlignment','center','Position',[0.380 0.548 0.11 0.03],'fontunits','normalized','fontsize',0.55);
+DN_ACC_E1 = uicontrol(tmfc_DN_GUI,'Style','edit','String',options.aCompCor(1),'Units','normalized','HorizontalAlignment','center','Position',[0.360 0.548 0.11 0.03],'fontunits','normalized','fontsize',0.55);
 DN_ACC_E2 = uicontrol(tmfc_DN_GUI,'Style','edit','String',options.aCompCor(2),'Units','normalized','HorizontalAlignment','center','Position',[0.839 0.548 0.11 0.03],'fontunits','normalized','fontsize',0.55);
 
 % Robust weighted least squares (rWLS)
@@ -134,6 +140,7 @@ function ACC_value(~,~)
         set(DN_ACC_txt_3,'enable','on');
         set(DN_ACC_E1,'String','5');
         set(DN_ACC_E2,'String','5');
+        set(DN_ACC_PO_pop, 'enable', 'on');
         options.aCompCor = [5 5];
         
     elseif strcmp(approach, 'Add regressors explaining 50% of variance in WM/CSF (aCompCor50)')
@@ -143,6 +150,8 @@ function ACC_value(~,~)
         set(DN_ACC_txt_3,'enable','off');
         set(DN_ACC_E1,'String','0.5');
         set(DN_ACC_E2,'String','0.5');
+        set(DN_ACC_PO_pop, 'enable', 'on');
+        
         options.aCompCor = [0.5 0.5];
         
     elseif strcmp(approach,'None')
@@ -152,6 +161,7 @@ function ACC_value(~,~)
         set(DN_ACC_txt_3,'enable','off');
         set(DN_ACC_E1,'String','0');
         set(DN_ACC_E2,'String','0');
+        set(DN_ACC_PO_pop, 'enable', 'off');
         options.aCompCor = [0 0];
     end
 end
@@ -168,7 +178,7 @@ end
 % Close GUI
 function close_options_GUI(~,~)
     options = [];
-    delete(tmfc_DN_GUI);
+    uiresume(tmfc_DN_GUI);
 end
 
 % Help GUI window
@@ -191,16 +201,27 @@ function export_options(~,~)
     end
     clear HMP_select
     
-    % Framewise displacement (FD)
-    FD_select_1{1} = get(DN_FD_pop_1,'String');
-    FD_select_1{2} = get(DN_FD_pop_1,'Value');            
-    if strcmp(FD_select_1{1}(FD_select_1{2}),'First three regressors – translation (e.g., SPM12, HCP, fMRIPrep)')
-    	options.rotation_indx = [4 5 6];
-    elseif strcmp(FD_select_1{1}(FD_select_1{2}),'First three regressors – rotation (e.g., FSL, AFNI)')
-    	options.rotation_indx = [1 2 3];                   
+    % Framewise displacement (FD): motion regressors 
+    trans_idx = str2double(strsplit(strtrim(get(DN_FD_TR_E,'String'))));
+    rot_idx = str2double(strsplit(strtrim(get(DN_FD_RR_E,'String'))));
+        
+    if size(trans_idx, 2) ~= 3 || size(rot_idx, 2) ~= 3
+        error('The number of indices for translational/rotational regressors should be equal to three, please try again.');
+    elseif ~all(trans_idx == floor(trans_idx) & trans_idx> 0)
+        error('Please enter natural numbers for translational regressors.');
+    elseif ~all(rot_idx == floor(rot_idx) & rot_idx > 0)
+        error('Please enter natural numbers for rotationalal regressors.');
+    elseif length(trans_idx) ~= length(unique(trans_idx))
+        error('The entered indices for translational regressors cannot be same, please re-enter.');
+    elseif length(rot_idx) ~= length(unique(rot_idx))
+        error('The entered indices for rotational regressors cannot be same, please re-enter.');    
+    elseif any(ismember(trans_idx, rot_idx))
+        error('The entered indices for translational and rotational regressors cannot be same, please re-enter.');
+    else
+        options.translation_idx = trans_idx;
+        options.rotation_idx = rot_idx;
     end
-    clear FD_select_1
-    
+
     FD_select_2{1} = get(DN_FD_pop_2,'String');
     FD_select_2{2} = get(DN_FD_pop_2,'Value');            
     if strcmp(FD_select_2{1}(FD_select_2{2}),'Radians (e.g., SPM12, FSL, fMRIPrep)')
@@ -226,9 +247,9 @@ function export_options(~,~)
         nPC_WM = str2double(get(DN_ACC_E1,'String'));
         nPC_CSF = str2double(get(DN_ACC_E2,'String'));                  
         if isnan(nPC_WM) || isnan(nPC_CSF)
-            error('Please enter natural numbers for number of principle components for WM/CSF.');
+            error('Please enter natural numbers for WM/CSF PCs.');
         elseif ~(nPC_WM > 0 && floor(nPC_WM) == nPC_WM) || ~(nPC_CSF > 0 && floor(nPC_CSF) == nPC_CSF)
-            error('Please enter natural numbers for number of principle components for WM/CSF.');
+            error('Please enter natural numbers for WM/CSF PCs.');
         elseif (nPC_WM > 100) || (nPC_CSF > 100)
             error('The number of principle components must be between 0 to 100, please re-enter.'); 
         else
@@ -300,15 +321,15 @@ function export_options(~,~)
     end
     
     disp('Denoising options selected.');
-    delete(tmfc_DN_GUI);
+    uiresume(tmfc_DN_GUI);
 end
 
-uiwait();
+uiwait(tmfc_DN_GUI);
+delete(tmfc_DN_GUI);
 end
-
 function tmfc_denoise_help()
 
-HMP_str = {'Motion parameters are taken from SPM.mat file (user-specified regressors of no interest, see SPM.Sess.C.C). Temporal derivatives are calculated as backwards differences (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013).'};
+HMP_str = {'Motion parameters are taken from SPM.mat file (user-specified regressors of no interest, see SPM.Sess.C.C). Temporal derivatives are calculated as backwards differences (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013). In SPM, HCP and fMRIPrep the first three motion regressors are translations. In FSL and ANFI the first three motion regressors are rotations. Adding confound regressors in the SPM batch changes the indices of the motion regressors defined using "Multiple regressors" *.txt/*.mat file (they come last in SPM.Sess.C).'};
 FD_str = {'FD is calculated at each time point as the sum of the absolute values of the derivatives of translational and rotational motion parameters (Power et al., 2012).'};
 DVARS_str = {'DVARS is computed as the root mean square of the differentiated BOLD time series within the GM mask before and after denoising (Muschelli et al., 2014). Additionally, the FD/DVARS correlation is calculated. Low FD/DVARS correlation is expected if denoising was successful.'};
 AA_str = {'Extract non-neuronal noise-related principal components (PCs) from WM and CSF signals (Behzadi et al., 2007; Muschelli et al., 2014). Perform well in relatively low-motion samples (Parkes et al., 2017). WM and CSF signals can be pre-orthogonalized w.r.t. high-pass filter (HPF) and HMP (Mascali et al., 2020). WM and CSF signals can be pre-orthogonalized w.r.t. sine/cosine basis functions (high-pass filter, HPF) and head motion parameters (HMP) to ensure that the extracted PCs are maximally predictive (Mascali et al., 2020).'};
@@ -317,46 +338,47 @@ SR_str = {'Censor high-motion volumes. For each flagged time point, a unit impul
 WM_CSM_str = {'Extract averaged WM/CSF signals to account for physiological fluctuations of non-neuronal origin (Fox and Raichle, 2007). Optionally calculate derivatives, squares, and squares of derivatives (Parkes et al., 2017).'};
 GSR_str = {'Extract averaged whole-brain signal to account for head motion and physiological fluctuations of non-neuronal origin (Fox et al, 2009). Optionally calculate derivatives, squares, and squares of derivatives (Parkes et al., 2017). GSR may also remove BOLD signal fluctuations of neuronal origin (Chen et al., 2012) and cause the emergence of negative correlations which may be artefactual (Murphy et al., 2009).'};
 
-tmfc_DN_help = figure('Name','TMFC denoise: Help','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.3 0.065 0.40 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on', 'WindowStyle', 'Modal', 'CloseRequestFcn',@close_window);
+tmfc_DN_help = figure('Name','TMFC denoise: Help','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.3 0.065 0.40 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on','WindowStyle','Modal');
 movegui(tmfc_DN_help, 'center');
+%095
+DNH_MP_1 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.835 0.95 0.155],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_2 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.750 0.95 0.079],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_3 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.648 0.95 0.096],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_4 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.506 0.95 0.135],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_5 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.385 0.95 0.115],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_6 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.284 0.95 0.095],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_7 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.200 0.95 0.078],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+DNH_MP_8 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.079 0.95 0.115],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
 
-DNH_MP_1 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.895 0.95 0.095],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_2 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.810 0.95 0.079],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_3 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.708 0.95 0.096],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_4 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.566 0.95 0.135],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_5 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.445 0.95 0.115],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_6 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.344 0.95 0.095],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_7 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.260 0.95 0.078],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-DNH_MP_8 = uipanel(tmfc_DN_help,'Units','normalized','Position',[0.025 0.139 0.95 0.115],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
+if isunix; fontscale = 0.85; else; fontscale = 1; end
 
 DNH_HMP_txt = uicontrol(tmfc_DN_help,'Style','text','String','Head motion parameters (HMP)','Units','normalized','Position',[0.048 0.962 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_HMP_des = uicontrol(tmfc_DN_help,'Style','text','String',HMP_str,'Units','normalized','Position',[0.048 0.90 0.9 0.06],'fontunits','normalized','fontsize',0.25,'HorizontalAlignment','left','backgroundcolor','w');
+DNH_HMP_des = uicontrol(tmfc_DN_help,'Style','text','String',HMP_str,'Units','normalized','Position',[0.048 0.837 0.9 0.120],'fontunits','normalized','fontsize',0.13*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
 
-DNH_FD_txt = uicontrol(tmfc_DN_help,'Style','text','String','Framewise displacement (FD)','Units','normalized','Position',[0.048 0.86 0.5 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_FD_des = uicontrol(tmfc_DN_help,'Style','text','String',FD_str,'Units','normalized','Position',[0.048 0.811 0.9 0.045],'fontunits','normalized','fontsize',0.33,'HorizontalAlignment','left','backgroundcolor','w');
+DNH_FD_txt = uicontrol(tmfc_DN_help,'Style','text','String','Framewise displacement (FD)','Units','normalized','Position',[0.048 0.800 0.5 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_FD_des = uicontrol(tmfc_DN_help,'Style','text','String',FD_str,'Units','normalized','Position',[0.048 0.751 0.9 0.045],'fontunits','normalized','fontsize',0.33*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
  
-DNH_DVARS_txt = uicontrol(tmfc_DN_help,'Style','text','String','Derivative of root mean square variance over voxels (DVARS)','Units','normalized','Position',[0.048 0.775 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_DVARS_des = uicontrol(tmfc_DN_help,'Style','text','String',DVARS_str,'Units','normalized','Position',[0.048 0.71 0.9 0.062],'fontunits','normalized','fontsize',0.24,'HorizontalAlignment','left','backgroundcolor','w');
-
-DNH_ACC_txt = uicontrol(tmfc_DN_help,'Style','text','String','Anatomical component correction (aCompCor)','Units','normalized','Position',[0.048 0.67 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_ACC_des = uicontrol(tmfc_DN_help,'Style','text','String',AA_str,'Units','normalized','Position',[0.048 0.566 0.9 0.10],'fontunits','normalized','fontsize',0.15,'HorizontalAlignment','left','backgroundcolor','w');
+DNH_DVARS_txt = uicontrol(tmfc_DN_help,'Style','text','String','Derivative of root mean square variance over voxels (DVARS)','Units','normalized','Position',[0.048 0.716 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_DVARS_des = uicontrol(tmfc_DN_help,'Style','text','String',DVARS_str,'Units','normalized','Position',[0.048 0.651 0.9 0.062],'fontunits','normalized','fontsize',0.24*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
  
-DNH_rWLS_txt = uicontrol(tmfc_DN_help,'Style','text','String','Robust weighted least squares (rWLS)','Units','normalized','Position',[0.048 0.53 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_rWLS_des = uicontrol(tmfc_DN_help,'Style','text','String',rWLS_str,'Units','normalized','Position',[0.048 0.446 0.9 0.08],'fontunits','normalized','fontsize',0.19,'HorizontalAlignment','left','backgroundcolor','w');
+DNH_ACC_txt = uicontrol(tmfc_DN_help,'Style','text','String','Anatomical component correction (aCompCor)','Units','normalized','Position',[0.048 0.611 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_ACC_des = uicontrol(tmfc_DN_help,'Style','text','String',AA_str,'Units','normalized','Position',[0.048 0.508 0.9 0.10],'fontunits','normalized','fontsize',0.15*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
+  
+DNH_rWLS_txt = uicontrol(tmfc_DN_help,'Style','text','String','Robust weighted least squares (rWLS)','Units','normalized','Position',[0.048 0.471 0.9 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_rWLS_des = uicontrol(tmfc_DN_help,'Style','text','String',rWLS_str,'Units','normalized','Position',[0.048 0.388 0.9 0.08],'fontunits','normalized','fontsize',0.19*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
  
-DNH_SR_txt = uicontrol(tmfc_DN_help,'Style','text','String','Spike regression (SpikeReg)','Units','normalized','Position',[0.048 0.41 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_SR_des = uicontrol(tmfc_DN_help,'Style','text','String',SR_str,'Units','normalized','Position',[0.048 0.345 0.9 0.062],'fontunits','normalized','fontsize',0.24,'HorizontalAlignment','left','backgroundcolor','w');
-
-DNH_WM_CSM_txt = uicontrol(tmfc_DN_help,'Style','text','String','WM and CSF signal regression (Phys)','Units','normalized','Position',[0.048 0.31 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_WM_CSM_des = uicontrol(tmfc_DN_help,'Style','text','String',WM_CSM_str,'Units','normalized','Position',[0.048 0.262 0.9 0.045],'fontunits','normalized','fontsize',0.33,'HorizontalAlignment','left','backgroundcolor','w');
-
-DNH_GSR_txt = uicontrol(tmfc_DN_help,'Style','text','String','Global signal regression (GSR)','Units','normalized','Position',[0.048 0.225 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
-DNH_GSR_des = uicontrol(tmfc_DN_help,'Style','text','String',GSR_str,'Units','normalized','Position',[0.048 0.142 0.9 0.08],'fontunits','normalized','fontsize',0.19,'HorizontalAlignment','left','backgroundcolor','w');
-
-DNH_OK = uicontrol(tmfc_DN_help,'Style','pushbutton','String','OK','Units','normalized','Position',[0.365 0.03 0.240 0.04],'FontUnits','normalized','fontsize',0.38,'callback',@close_window);
+DNH_SR_txt = uicontrol(tmfc_DN_help,'Style','text','String','Spike regression (SpikeReg)','Units','normalized','Position',[0.048 0.351 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_SR_des = uicontrol(tmfc_DN_help,'Style','text','String',SR_str,'Units','normalized','Position',[0.048 0.286 0.9 0.062],'fontunits','normalized','fontsize',0.24*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
+ 
+DNH_WM_CSM_txt = uicontrol(tmfc_DN_help,'Style','text','String','WM and CSF signal regression (Phys)','Units','normalized','Position',[0.048 0.251 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_WM_CSM_des = uicontrol(tmfc_DN_help,'Style','text','String',WM_CSM_str,'Units','normalized','Position',[0.048 0.204 0.9 0.045],'fontunits','normalized','fontsize',0.33*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
+ 
+DNH_GSR_txt = uicontrol(tmfc_DN_help,'Style','text','String','Global signal regression (GSR)','Units','normalized','Position',[0.048 0.166 0.90 0.021],'fontunits','normalized','fontsize',0.80,'HorizontalAlignment','left','fontweight','bold','backgroundcolor','w');
+DNH_GSR_des = uicontrol(tmfc_DN_help,'Style','text','String',GSR_str,'Units','normalized','Position',[0.048 0.084 0.9 0.08],'fontunits','normalized','fontsize',0.19*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
+ 
+DNH_OK = uicontrol(tmfc_DN_help,'Style','pushbutton','String','OK','Units','normalized','Position',[0.365 0.02 0.240 0.04],'FontUnits','normalized','fontsize',0.38,'callback',@close_window);
 
     function close_window(~,~)
-       delete(tmfc_DN_help);
+       close(tmfc_DN_help);
     end
-uiwait();
 end

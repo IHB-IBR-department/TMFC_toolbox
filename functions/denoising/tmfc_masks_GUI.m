@@ -42,7 +42,9 @@ CSF_str = {'Whole brain, GM, WM and CSF masks are calculated based on tissue pro
     '(4) The CSF mask is obtained by applying a user-specified threshold (99% by default). To exclude voxels in close proximity to gray matter, liberal GM mask is subtracted from the CSF mask. The liberal GM mask is obtained by applying a user-specified threshold (95% by default) and dilation (2 cycles by default). Next, the CSF mask is eroded (2 cycles by default). Finally, the CSF mask is normalized to the MNI space and deprived of any nonventricle structure (Mascali et al., 2020).','',...
     'NOTE: BOLD signals are extracted from the intersection of the whole-brain or GM/WM/CSF masks and the implicit SPM mask created during model estimation. The implicit SPM mask contains voxels with sufficient BOLD signal intensity. By default, SPM includes voxels in the analysis if the signal is above 0.8 of the global mean signal. To create more liberal SPM mask, the default "Masking threshold" should be reduced (e.g., to 0.4) and the models should be re-estimated prior to TMFC denoise application.'};
 
-CSF_MW_txt = uicontrol(CSF_MW,'Style','text','String',CSF_str,'Units','normalized','Position',[0.04 0.51 0.92 0.46],'FontUnits','normalized','FontSize',0.0332,'HorizontalAlignment','Left','backgroundcolor','w');
+if isunix; fontscale = 0.85; else; fontscale = 1; end
+
+CSF_MW_txt = uicontrol(CSF_MW,'Style','text','String',CSF_str,'Units','normalized','Position',[0.04 0.51 0.92 0.46],'FontUnits','normalized','FontSize',0.0332*fontscale,'HorizontalAlignment','Left','backgroundcolor','w');
 CSF_MW_P = uipanel(CSF_MW,'Units','normalized','Position',[0.21 0.095 0.55 0.40],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
 
 GM_prob_TXT = uicontrol(CSF_MW,'Style','text','String','GM probability threshold:','Units','normalized','Position',[0.26 0.437 0.25 0.03],'FontUnits','normalized','FontSize',0.56,'HorizontalAlignment','right','backgroundcolor','w');
@@ -67,7 +69,6 @@ CSF_OK = uicontrol(CSF_MW,'Style','pushbutton','String','OK','Units','normalized
 
 
 function CSF_MW_exit(~,~)
-    delete(CSF_MW);
     GMprob = 0.95;
     WMprob = 0.99;
     CSFprob = 0.99;
@@ -75,6 +76,7 @@ function CSF_MW_exit(~,~)
     WMerode = 3;
     CSFerode = 2;
     disp('Default settings have been selected.');
+    uiresume(CSF_MW);
 end
 
 function read_values(~,~)
@@ -127,7 +129,8 @@ function read_values(~,~)
         error('The number of erosion cycles for CSF must be a natural number. Please try again.');
     end
     
-    delete(CSF_MW);
+    uiresume(CSF_MW);
 end
-uiwait();
+uiwait(CSF_MW);
+delete(CSF_MW);
 end

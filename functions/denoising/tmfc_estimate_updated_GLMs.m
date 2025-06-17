@@ -34,9 +34,11 @@ function output_paths = tmfc_estimate_updated_GLMs(SPM_paths,masks,options)
 
 % Paths to updated GLMs
 %--------------------------------------------------------------------------
-if strcmp(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none') && options.rWLS == 0
-    output_paths = masks.glm_paths;
+if strcmp(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none') && options.rWLS == 0 
+    output_paths = [];
     warning('Only 6 motion regressors are selected as noise regressors. New models will not be created.'); return;
+elseif strcmp(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none') && options.rWLS == 1
+    new_GLM_subfolder = ['GLM_[6HMP]_[rWLS]'];
 elseif (~strcmp(options.motion,'6HMP') || options.spikereg == 1 || options.rWLS == 1) && (sum(options.aCompCor)==0 && strcmp(options.WM_CSF,'none') && strcmp(options.GSR,'none')) 
     new_GLM_subfolder = ['GLM_[' options.motion ']'];
     if options.rWLS == 1; new_GLM_subfolder = strcat(new_GLM_subfolder,'_[rWLS]'); end

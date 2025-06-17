@@ -27,12 +27,14 @@ function [funct_paths] = tmfc_select_funct_GUI(SPM_paths,subject_paths)
 %
 % Contact email: masharipov@ihb.spb.ru
 
-warning('backtrace','off')
 funct_paths = [];
 nPrefix = 1;
 unsmoothed_path = [];
 no_files = [];
 
+if nargin < 2
+    error('Check inputs.')
+end
 
 % GUI elements
 SF_MW = figure('Name','Select unsmoothed functional images','NumberTitle','off','Units','normalized','Position',[0.325 0.202 0.35 0.575],'MenuBar','none','ToolBar','none','color','w','CloseRequestFcn',@SF_MW_exit);
@@ -40,7 +42,9 @@ SF_MW = figure('Name','Select unsmoothed functional images','NumberTitle','off',
 SF_S1_str = {'Functional images must be realigned, normalized and unsmoothed.','',...
     'NOTE: Unsmoothed functional images are expected to be in the same folder as the functional images defined in the selected SPM.mat files and have a shorter prefix (e.g. ''war'' instead of ''swar'').'};
 
-SF_txt = uicontrol(SF_MW,'Style','text','String',SF_S1_str,'Units','normalized','Position',[0.025 0.82 0.95 0.14],'fontunits','normalized','FontSize',0.16,'HorizontalAlignment','left','backgroundcolor','w');
+if isunix; fontscale = 0.9; else; fontscale = 1; end
+
+SF_txt = uicontrol(SF_MW,'Style','text','String',SF_S1_str,'Units','normalized','Position',[0.025 0.82 0.95 0.14],'fontunits','normalized','FontSize',0.16*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
 SF_MW_B1 = uicontrol(SF_MW,'Style','pushbutton','String','Number of letters to remove from prefix:','Units','normalized','Position',[0.025 0.74 0.555 0.080],'FontUnits','normalized','FontSize',0.295,'callback',@prefix_filter);
 SF_MW_B1_E = uicontrol(SF_MW,'Style','Edit','String',nPrefix,'Units','normalized','Position',[0.64 0.74 0.335 0.080],'FontUnits','normalized','FontSize',0.32,'backgroundcolor','w');
 
@@ -68,17 +72,17 @@ try; close(f); end
 % Сlose GUI
 function SF_MW_exit(~,~)
     funct_paths = [];
-    warning('Functional images are not selected.');
-    delete(SF_MW);
+    fprintf(2,'Functional images are not selected.\n');
+    uiresume(SF_MW);
 end
 
 % Apply prefix filter 
 function prefix_filter(~,~)     
     temp_prefix = str2double(get(SF_MW_B1_E,'String'));
     if isnan(temp_prefix)
-        warning('Please enter a natural number for prefix.');
+        fprintf(2,'Please enter a natural number for prefix.\n');
     elseif ~(temp_prefix >= 0 && floor(temp_prefix) == temp_prefix)
-        warning('Please enter a natural number for prefix.');
+        fprintf(2,'Please enter a natural number for prefix.\n');
     else
         nPrefix = temp_prefix;
     end
@@ -109,7 +113,7 @@ function export_paths(~,~)
              end
         end
     else
-        warning('Functional images are not selected, please try again.');
+        fprintf(2,'Functional images are not selected, please try again.\n');
     end
     
     disp('Checking realigned and unsmoothed functional images...')
@@ -131,8 +135,8 @@ function export_paths(~,~)
         no_files = vertcat(no_files,subject_paths(missing_idx,:));
         missing_images_GUI(no_files);
     else
-        delete(SF_MW);
-        disp('Functional images selected.')
+        disp('Functional images selected.');
+        uiresume(SF_MW);
     end
 
     try; close(f3); end
@@ -140,17 +144,18 @@ end
 
 % Warning window: missing images
 function missing_images_GUI(no_files)
+    if isunix; fontscale2 = 0.9; else; fontscale2 = 1; end
     SF_WW = figure('Name','Select subjects','NumberTitle','off','Units','normalized','Position',[0.32 0.30 0.35 0.28],'color','w','MenuBar','none','ToolBar','none','WindowStyle','Modal');
     SF_WW_LB = uicontrol(SF_WW,'Style','listbox','String',no_files,'Max',inf,'Units','normalized','Position',[0.032 0.250 0.940 0.520],'FontUnits','points','FontSize',10,'Value',[]);
-    SF_WW_S1 = uicontrol(SF_WW,'Style','text','String','Warning, functional images are missing for the following subjects:','Units','normalized','Position',[0.15 0.820 0.720 0.095],'FontUnits','normalized','FontSize',0.5,'backgroundcolor','w');
+    SF_WW_S1 = uicontrol(SF_WW,'Style','text','String','Warning, functional images are missing for the following subjects:','Units','normalized','Position',[0.15 0.820 0.720 0.095],'FontUnits','normalized','FontSize',0.5*fontscale2,'backgroundcolor','w');
     SF_WW_close = uicontrol(SF_WW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.415 0.06 0.180 0.120],'FontUnits','normalized','FontSize',0.30,'callback',@close_SF_WW);
     movegui(SF_WW,'center');
-    uiwait();        
+    uiwait(SF_WW);   
     function close_SF_WW(~,~)
         close(SF_WW);
     end
 end
 
-uiwait();
-
+uiwait(SF_MW);
+delete(SF_MW);
 end

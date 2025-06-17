@@ -64,7 +64,7 @@ plot_data(1);
 % Close GUI
 %--------------------------------------------------------------------------
 function DVARS_MW_exit(~,~)
-    delete(DVARS_MW);
+    uiresume(DVARS_MW);
 end
 
 % Update DVARS plots
@@ -203,7 +203,7 @@ function save_data(~,~)
     if isempty(SPM_paths)
         [filename, pathname] = uiputfile('*.mat', 'Save FD/DVARS group statistics');
         if isequal(filename,0) || isequal(pathname,0)
-            warning('FD/DVARS group statistics not saved. File name or path not selected.'); 
+            fprintf(2,'FD/DVARS group statistics not saved. File name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             save(fullpath,'FD','preDVARS','postDVARS', ...
@@ -214,7 +214,7 @@ function save_data(~,~)
     else   
         [filename, pathname] = uiputfile('*.mat', 'Save FD/DVARS group statistics and TMFC denoise settings');
         if isequal(filename,0) || isequal(pathname,0)
-            warning('FD/DVARS statistics not saved. File name or path not selected.'); 
+            fprintf(2,'FD/DVARS statistics not saved. File name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             denoising_settings.SPM_paths = SPM_paths;
@@ -231,5 +231,6 @@ function save_data(~,~)
     end
 end
 
-uiwait();
+uiwait(DVARS_MW);
+delete(DVARS_MW);
 end

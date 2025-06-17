@@ -43,7 +43,7 @@ for iSub = 1:length(SPM_paths)
         if size(SPM.Sess(jSess).C.C) < 6
             error('The number of counfound regressors in the original model is less than six. The original model should contain six head motion regressors. Please, check:\n%s',SPM_paths{iSub});
         else
-            group_HMP(iSub).Sess{jSess} = SPM.Sess(jSess).C.C(:,1:6);
+            group_HMP(iSub).Sess{jSess} = SPM.Sess(jSess).C.C(:,[options.translation_idx options.rotation_idx]);
         end
     end
     clear SPM
@@ -61,13 +61,8 @@ for iSub = 1:length(group_HMP)
         HMP24(jSess).Sess = [HMP HMP_diff HMP.^2 HMP_diff.^2];
 
         % Calculate FD
-        if isequal(options.rotation_indx,[4,5,6])     % Rotation regressors [4, 5, 6]
-            HMP_diff_xyz = HMP_diff(:,1:3);
-            HMP_diff_rot = HMP_diff(:,4:6);
-        elseif isequal(options.rotation_indx,[1,2,3]) % Rotation regressors [1, 2, 3]
-            HMP_diff_xyz = HMP_diff(:,4:6);
-            HMP_diff_rot = HMP_diff(:,1:3);
-        end
+        HMP_diff_xyz = HMP_diff(:,1:3);
+        HMP_diff_rot = HMP_diff(:,4:6);
 
         if strcmp(options.rotation_unit,'rad')        % Convert radians to mm
             HMP_diff_rot = options.head_radius*HMP_diff_rot;

@@ -89,8 +89,8 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     % Function to close conditions GUI without selection of conditions
     %----------------------------------------------------------------------
     function MW_exit(~,~)
-        delete(conditions_MW);
         conditions = NaN;
+        uiresume(conditions_MW);
     end
 
     %----------------------------------------------------------------------
@@ -111,7 +111,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     function MW_add(~,~)
         
         if isempty(conditions_MW_SE1)
-            warning('No conditions selected.');
+            fprintf(2,'No conditions selected.\n');
         else
             len_exist = length(cond_L2);     
             new_conds = {};                  
@@ -126,7 +126,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
 
             % Check if newly selected conditions have been added
             if new_cond_count == 0
-                warning('Newly selected conditions are already present in the list, no new conditions added.');
+                fprintf(2,'Newly selected conditions are already present in the list, no new conditions added.\n');
             else
                 fprintf('Conditions selected: %d. \n', new_cond_count(1)); 
                 cond_L2 = sort_selected_conditions(cond_L2,all_cond);
@@ -143,7 +143,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     function MW_add_all(~,~) 
 
         if length(cond_L2) == length(cond_L1)
-            warning('All conditions are already selected.');
+            fprintf(2,'All conditions are already selected.\n');
         else
         	len_exist = length(cond_L2);
             new_conds = {};                                             
@@ -156,7 +156,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
 
             % Check if newly selected conditions have been added
             if new_cond_count == 0
-                warning('Newly selected conditions are already present in the list, no new conditions added.');
+                fprintf(2,'Newly selected conditions are already present in the list, no new conditions added.n\');
             else
                 fprintf('New conditions selected: %d. \n', new_cond_count(1)); 
                 cond_L2 = sort_selected_conditions(cond_L2,all_cond);
@@ -173,7 +173,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     function MW_confirm(~,~)
 
     	if isempty(cond_L2)
-        	warning('Please select conditions.');
+        	fprintf(2,'Please select conditions.\n');
         else
             cond = struct;
             n_cond = 1;
@@ -191,10 +191,10 @@ function [conditions] = conditions_GUI(all_cond, input_case)
                    end
                end
             end
-            delete(conditions_MW);
             disp(strcat(num2str(length(cond_L2)),' conditions successfully selected.'));
             conditions = cond;
             clear cond n_cond jCond kCond match
+            uiresume(conditions_MW);
         end
     end
 
@@ -203,9 +203,9 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     %----------------------------------------------------------------------
     function MW_remove(~,~)
         if isempty(cond_L2)
-        	warning('No conditions present to remove.');
+        	fprintf(2,'No conditions present to remove.\n');
         elseif isempty(conditions_MW_SE2)
-        	warning('No conditions selected to remove.');
+        	fprintf(2,'No conditions selected to remove.\n');
         else
             cond_L2(conditions_MW_SE2,:) = [];
             fprintf('Number of conditions removed: %d. \n', length(conditions_MW_SE2));
@@ -220,12 +220,12 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     %----------------------------------------------------------------------
     function MW_remove_all(~,~) 
         if isempty(cond_L2)
-            warning('No conditions present to remove.');
+            fprintf(2,'No conditions present to remove.\n');  
         else
             cond_L2 = {};                                             
             set(cond_MW_LB2, 'String', []);
             conditions_MW_SE2 = {};
-            warning('All selected conditions have been removed.');
+            disp('All selected conditions have been removed.');
         end
     end
 
@@ -237,6 +237,9 @@ function [conditions] = conditions_GUI(all_cond, input_case)
         cond_HW = figure('Name', HW_string, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.22 0.50],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off', 'WindowStyle', 'Modal');
 
         if strcmp(HW_string, 'Select ROIs: Help')
+
+            fontscale = 1;
+
             string_info = {'Suppose you have two separate sessions.','Both sessions contains task regressors for "Cond A", "Cond B" and "Errors"','',...
             'If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:','','Cond A (Sess1)',...
             'Cond B (Sess1)','Cond A (Sess2)','Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will calculate the omnibus F-contrast.',...
@@ -244,11 +247,17 @@ function [conditions] = conditions_GUI(all_cond, input_case)
             'Local maxima are determined using the omnibus F-contrast for the selected conditions of interest.'};
             
         elseif strcmp(HW_string, 'gPPI: Help')
+
+            fontscale = 1;
+
             string_info = {'Suppose you have two separate sessions.','','Both sessions contains task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
             '','1)  Cond A (Sess1)','2)  Cond B (Sess1)','3)  Cond A (Sess2)','4)  Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will create psycho-physiological (PPI) regressors. Thus, for each condition of interest, the generalized PPI (gPPI) model will contain two regressors: (1) psychological regressor and (2) PPI regressor.'...
             '','For trials of no interest (here, "Errors"), the gPPI model will contain only the psychological regressor.'}; 
         
         else
+
+            if isunix; fontscale = 0.9; else; fontscale = 1; end
+
             string_info = {'Suppose you have two separate sessions.','','Both sessions contains task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
             '','1)  Cond A (Sess1)','2)  Cond B (Sess1)','3)  Cond A (Sess2)','4)  Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will calculate individual trial beta-images using Least-Squares Separate (LSS) approach.',...
             '','For each individual trial (event), the LSS approach estimates a separate general linear model (GLM) with two regressors. The first regressor models the expected BOLD response to the current trial of interest, and the second (nuisance) regressor models the BOLD response to all other trials (of interest and no interest).',...
@@ -259,7 +268,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
         % then assign the repsective help string, change window size if
         % required. 
 
-        cond_HW_S1 = uicontrol(cond_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.12 0.89 0.85], 'HorizontalAlignment', 'left','backgroundcolor','w','fontunits','normalized', 'fontSize', 0.0301);
+        cond_HW_S1 = uicontrol(cond_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.12 0.89 0.85], 'HorizontalAlignment', 'left','backgroundcolor','w','fontunits','normalized', 'fontSize', 0.0301*fontscale);
         cond_HW_OK = uicontrol(cond_HW,'Style','pushbutton','String', 'OK','Units', 'normalized', 'Position', [0.34 0.06 0.30 0.06],'callback', @cond_HW_close,'fontunits','normalized', 'fontSize', 0.35);
         movegui(cond_HW,'center');
 
@@ -269,6 +278,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     end
 
     uiwait(conditions_MW);
+    delete(conditions_MW);
 end
 
 

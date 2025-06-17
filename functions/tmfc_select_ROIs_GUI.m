@@ -233,37 +233,42 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
         % Contrast weights
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
         cond_col = [];
-        for iCond = 1:length(conditions)
-            FCi = [];
-            FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
-            try
-                FCp = []; 
-                FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
-                FCi = FCi(FCp==conditions(iCond).pmod);
+        if ~isnan(conditions)
+            for iCond = 1:length(conditions)
+                FCi = [];
+                FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
+                try
+                    FCp = []; 
+                    FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
+                    FCi = FCi(FCp==conditions(iCond).pmod);
+                end
+                cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
+            end 
+            weights = zeros(length(cond_col),size(SPM.xX.X,2));
+            for iCond = 1:length(cond_col)
+                weights(iCond,cond_col(iCond)) = 1;
             end
-            cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
-        end 
-        weights = zeros(length(cond_col),size(SPM.xX.X,2));
-        for iCond = 1:length(cond_col)
-            weights(iCond,cond_col(iCond)) = 1;
-        end
-        % Estimate contrasts
-        w = waitbar(0,'Please wait...','Name','Calculating F-contrasts');
-        for iSub = 1:nSub
-            matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
-            matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
-            matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
-            matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
-            matlabbatch{1}.spm.stats.con.delete = 0;
-            spm_get_defaults('cmdline',true);
-            spm_jobman('run',matlabbatch);
-            clear matlabbatch
-            try
-                waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
+            % Estimate contrasts
+            w = waitbar(0,'Please wait...','Name','Calculating F-contrasts');
+            for iSub = 1:nSub
+                matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
+                matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
+                matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
+                matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
+                matlabbatch{1}.spm.stats.con.delete = 0;
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',matlabbatch);
+                clear matlabbatch
+                try
+                    waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
+                end
             end
-        end
-        try
-            close(w);
+            try
+                close(w);
+            end
+        else
+            fprintf(2,'ROI set not selected.\n');
+            ROI_set = []; return;
         end
     end
 
@@ -659,8 +664,8 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
     % Close ROI set name GUI
     %----------------------------------------------------------------------
     function ROI_set_name_MW_EXIT(~,~)
-    	delete(ROI_set_name_MW);
     	ROI_set_name = '';
+        uiresume(ROI_set_name_MW);
     end
     
     %----------------------------------------------------------------------
@@ -670,11 +675,11 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
         tmp_name = get(ROI_set_name_MW_E, 'String');
         tmp_name = strrep(tmp_name,' ','');
         if ~isempty(tmp_name)
-        	fprintf('Name of ROI set: %s.\n', tmp_name);
-            delete(ROI_set_name_MW);      
-            ROI_set_name = tmp_name;     
+        	fprintf('Name of ROI set: %s.\n', tmp_name);      
+            ROI_set_name = tmp_name; 
+            uiresume(ROI_set_name_MW);
         else
-            warning('Name not entered or invalid, please re-enter.');
+            fprintf(2,'Name not entered or invalid, please re-enter.\n');
         end
     end
 
@@ -686,9 +691,11 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
         help_string = {'First, define a name for the set of ROIs. TMFC results for this ROI set will be stored in:','','"TMFC_project_name\ROI_sets\ROI_set_name"','',...
         'Second, select one or more ROI masks (*.nii files). TMFC toolbox will create a group mean binary mask based on individual subjects 1st-level masks (see SPM.VM) and apply it to all selected ROIs Empty ROIs will be excluded from further analysis. Masked ROIs will be limited to only voxels which have data for all subjects. The dimensions, orientation, and voxel sizes of the masked ROI images will be adjusted according to the group mean binary mask. These files will be stored in "Masked_ROIs"',...
         '','Third, exclude heavily cropped ROIs from further analysis, if necessary.','','Note: You can define several ROI sets and switch between them. Push the "ROI_set" button and then push "Add new ROI set". Each time you need to switch between ROI sets push the "ROI_set" button.'};
+        
+        if isunix; fontscale = 0.85; else; fontscale = 1; end
 
-        ROI_set_name_HW_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.2 0.45],'Resize','off','color','w','MenuBar', 'none','ToolBar', 'none','Windowstyle', 'Modal');
-        ROI_set_name_HW_MW_S = uicontrol(ROI_set_name_HW_MW,'Style','text','String', help_string,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.0356,'HorizontalAlignment', 'left', 'Position',[0.05 0.14 0.89 0.82],'backgroundcolor',get(ROI_set_name_HW_MW,'color'));
+        ROI_set_name_HW_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.2 0.45],'Resize','off','color','w','MenuBar', 'none','ToolBar','none','Windowstyle','Modal');
+        ROI_set_name_HW_MW_S = uicontrol(ROI_set_name_HW_MW,'Style','text','String', help_string,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.0356*fontscale,'HorizontalAlignment', 'left', 'Position',[0.05 0.14 0.89 0.82],'backgroundcolor',get(ROI_set_name_HW_MW,'color'));
         ROI_set_name_HW_MW_OK = uicontrol(ROI_set_name_HW_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.45,'Position',[0.34 0.06 0.30 0.06],'callback', @ROI_set_name_HW_MW_close);
         movegui(ROI_set_name_HW_MW,'center');
 
@@ -697,7 +704,8 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
         end
     end
 
-    uiwait();
+    uiwait(ROI_set_name_MW);
+    delete(ROI_set_name_MW);
 end
 
 %% ======================[ Select ROI type GUI ]===========================
@@ -719,44 +727,42 @@ function [ROI_type] = ROI_type_GUI(~,~)
     sel_ROI_B2 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.648 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @fixed_spheres);
     sel_ROI_B3 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.428 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_inside_fixed_spheres);
     sel_ROI_B4 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.195 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_indise_binary_images);
-
-    sel_ROI_txt_1 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_1,'Units', 'normalized', 'Position',[0.05 0.78 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33, 'HorizontalAlignment','left','backgroundcolor','w');
-    sel_ROI_txt_2 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_2,'Units', 'normalized', 'Position',[0.05 0.555 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33, 'HorizontalAlignment','left','backgroundcolor','w');
-    sel_ROI_txt_3 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_3,'Units', 'normalized', 'Position',[0.05 0.32 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24, 'HorizontalAlignment','left','backgroundcolor','w');
-    sel_ROI_txt_4 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_4,'Units', 'normalized', 'Position',[0.05 0.085 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24, 'HorizontalAlignment','left','backgroundcolor','w');
-    movegui(select_ROI_type_GUI,'center');
     
+    if isunix; fontscale = 0.9; else; fontscale = 1; end
+
+    sel_ROI_txt_1 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_1,'Units', 'normalized', 'Position',[0.05 0.78 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33*fontscale, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_2 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_2,'Units', 'normalized', 'Position',[0.05 0.555 0.90 0.08],'fontunits','normalized', 'fontSize', 0.33*fontscale, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_3 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_3,'Units', 'normalized', 'Position',[0.05 0.32 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24*fontscale, 'HorizontalAlignment','left','backgroundcolor','w');
+    sel_ROI_txt_4 = uicontrol(select_ROI_type_GUI, 'Style', 'text','String', txt_4,'Units', 'normalized', 'Position',[0.05 0.085 0.90 0.1],'fontunits','normalized', 'fontSize', 0.24*fontscale, 'HorizontalAlignment','left','backgroundcolor','w');
+    movegui(select_ROI_type_GUI,'center');
     
     function binary_images(~,~)
         ROI_type = 'binary_images';
-        delete(select_ROI_type_GUI);
+        uiresume(select_ROI_type_GUI);
     end
 
     function fixed_spheres(~,~)
         ROI_type = 'fixed_spheres';
-        delete(select_ROI_type_GUI);
+        uiresume(select_ROI_type_GUI);
     end
-
 
     function moving_inside_fixed_spheres(~,~)
         ROI_type = 'moving_sphreres_inside_fixed_spheres';
-        delete(select_ROI_type_GUI);
+        uiresume(select_ROI_type_GUI);
     end
-
 
     function moving_indise_binary_images(~,~)
         ROI_type = 'moving_sphreres_inside_binary_images';
-        delete(select_ROI_type_GUI);
+        uiresume(select_ROI_type_GUI);
     end
-
 
     function close_ROI_type(~,~)
-        delete(select_ROI_type_GUI);
         ROI_type = '';
+        uiresume(select_ROI_type_GUI);
     end
     
-    uiwait();
-    
+    uiwait(select_ROI_type_GUI);
+    delete(select_ROI_type_GUI);
 end
 
 %% =====================[ Remove empty ROIs GUI ]==========================
@@ -766,23 +772,23 @@ function remove_empty_ROIs_GUI(empty_ROI_list)
                          'contain data for at least one subject and',...
                          'will be excluded from the analysis:'};
 
-    ROI_remove_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.40 0.28 0.35],'Resize','on','color','w','MenuBar', 'none','ToolBar', 'none');
+    ROI_remove_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.40 0.28 0.35],'Resize','on','color','w','MenuBar', 'none','ToolBar', 'none','CloseRequestFcn',@ROI_remove_MW_close);
+    
+    if isunix; fontscale = 0.9; else; fontscale = 1; end
 
-    ROI_remove_MW_list = uicontrol(ROI_remove_MW , 'Style', 'listbox', 'String', empty_ROI_list,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.22 0.91 0.40],'fontunits','points', 'fontSize', 12,'Value', []);
-    ROI_remove_MW_S1 = uicontrol(ROI_remove_MW,'Style','text','String',ROI_remove_string,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.22,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.20 0.73 0.600 0.2]);
-    ROI_remove_MW_S2 = uicontrol(ROI_remove_MW,'Style','text','String', 'Empty ROIs:','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.55,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.04 0.62 0.200 0.08]);    
+    ROI_remove_MW_list = uicontrol(ROI_remove_MW , 'Style', 'listbox', 'String', empty_ROI_list,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.22 0.91 0.40],'fontunits','points', 'fontSize', 12*fontscale,'Value', []);
+    ROI_remove_MW_S1 = uicontrol(ROI_remove_MW,'Style','text','String',ROI_remove_string,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.22*fontscale,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.20 0.73 0.600 0.2]);
+    ROI_remove_MW_S2 = uicontrol(ROI_remove_MW,'Style','text','String', 'Empty ROIs:','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.55*fontscale,'backgroundcolor',get(ROI_remove_MW,'color'), 'Position',[0.04 0.62 0.200 0.08]);    
     ROI_remove_MW_OK = uicontrol(ROI_remove_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4, 'Position',[0.38 0.07 0.28 0.10],'callback', @ROI_remove_MW_close);
     movegui(ROI_remove_MW,'center');
 
-    %----------------------------------------------------------------------
-    % Close GUI
-    %----------------------------------------------------------------------
     function ROI_remove_MW_close(~,~)
-        close(ROI_remove_MW);
+        uiresume(ROI_remove_MW);
     end
 
     disp(['Removed ' num2str(length(empty_ROI_list)) ' ROI(s) from the ROI set.']);
-    uiwait();  
+    uiwait(ROI_remove_MW);  
+    delete(ROI_remove_MW);
 end
 
 %% ================[ Remove heavily cropped ROIs GUI ]=====================
@@ -808,10 +814,12 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
     ROI_crop_MW = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.35 0.40 0.32 0.55],'Resize','on','color','w','MenuBar', 'none','ToolBar', 'none','Windowstyle', 'Modal','CloseRequestFcn', @ROI_crop_MW_EXIT);
     ROI_crop_MW_LB1 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L1(:,2,1),'Max', 100,'Units', 'normalized', 'Position',[0.048 0.565 0.91 0.30],'fontunits','points', 'fontSize', 11, 'Value', [], 'callback', @LB1_SEL);
     ROI_crop_MW_LB2 = uicontrol(ROI_crop_MW , 'Style', 'listbox', 'String', ROI_crop_MW_L2,'Max', 100,'Units', 'normalized', 'Position',[0.048 0.14 0.91 0.25],'fontunits','points', 'fontSize', 11, 'Value', [], 'callback', @LB2_SEL);
+    
+    if isunix; fontscale = 0.9; else; fontscale = 1; end
 
-    ROI_crop_MW_S1 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO1,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.54,'Position',[0.10 0.92 0.8 0.05],'backgroundcolor',get(ROI_crop_MW,'color'));
-    ROI_crop_MW_S2 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO2,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment', 'left','Position',[0.048 0.87 0.91 0.040],'backgroundcolor',get(ROI_crop_MW,'color'));
-    ROI_crop_MW_S3 = uicontrol(ROI_crop_MW,'Style','text','String', '% threshold','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.44,'HorizontalAlignment', 'left','Position',[0.84 0.475 0.13 0.055],'backgroundcolor',get(ROI_crop_MW,'color'));
+    ROI_crop_MW_S1 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO1,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.54*fontscale,'Position',[0.10 0.92 0.8 0.05],'backgroundcolor',get(ROI_crop_MW,'color'));
+    ROI_crop_MW_S2 = uicontrol(ROI_crop_MW,'Style','text','String', ROI_crop_MW_INFO2,'Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.64*fontscale,'HorizontalAlignment', 'left','Position',[0.048 0.87 0.91 0.040],'backgroundcolor',get(ROI_crop_MW,'color'));
+    ROI_crop_MW_S3 = uicontrol(ROI_crop_MW,'Style','text','String', '% threshold','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.44*fontscale,'HorizontalAlignment', 'left','Position',[0.84 0.475 0.13 0.055],'backgroundcolor',get(ROI_crop_MW,'color'));
     ROI_crop_MW_S4 = uicontrol(ROI_crop_MW,'Style','text','String', 'Removed ROIs:','Units', 'normalized', 'fontunits','normalized', 'fontSize', 0.50,'HorizontalAlignment', 'left','Position',[0.05 0.395 0.2 0.05],'backgroundcolor',get(ROI_crop_MW,'color'));
 
     ROI_crop_MW_remove_selected = uicontrol(ROI_crop_MW,'Style','pushbutton', 'String', 'Remove selected','Units', 'normalized','fontunits','normalized', 'fontSize', 0.4,'Position',[0.047 0.48 0.24 0.063], 'callback', @remove_selected);
@@ -825,8 +833,8 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
 
     %----------------------------------------------------------------------
     function ROI_crop_MW_EXIT(~,~)
-    	delete(ROI_crop_MW);
     	disp('ROIs not selected.');
+        uiresume(ROI_crop_MW);
     end
 
     %----------------------------------------------------------------------
@@ -844,7 +852,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
     %----------------------------------------------------------------------
     function remove_selected(~,~)
         if isempty(ROI_crop_MW_IND1)
-            warning('No ROIs selected for removal.');
+            fprintf(2,'No ROIs selected for removal.\n');
         else
             updated_ROIs = {};  
             new_ROIs_flag = 0;
@@ -907,7 +915,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
             if new_ROIs_flag == 2
                     fprintf('ROIs selected for removal: %d. \n', size(ROI_crop_MW_L2,1));
             elseif new_ROIs_flag == 0
-                    warning('Selected ROIs are already present in the removal list, no new ROIs to remove.');
+                    fprintf(2,'Selected ROIs are already present in the removal list, no new ROIs to remove.\n');
             else
                     fprintf('New selected ROIs for removal: %d. \n', new_ROIs_flag); 
             end 
@@ -930,10 +938,10 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
             threshold = str2double(ROI_crop_thr); 
 
             if isnan(threshold)
-                warning('Entered threshold should be a natural number, please re-enter.');
+                fprintf(2,'Entered threshold should be a natural number, please re-enter.\n');
 
             elseif (threshold<0) || (threshold>100)
-                warning('Please enter a threshold between 0 and 100%.');
+                fprintf(2,'Please enter a threshold between 0 and 100.\n');
 
             else
                 temp_ROI_list = [];
@@ -999,10 +1007,10 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
                         fprintf('ROIs selected for removal: %d. \n', size(ROI_crop_MW_L2,1));
 
                 elseif new_ROIs_flag(1) == 2 && size(ROI_crop_MW_L2,1) == 0
-                        warning('ROIs below this threshold do not exist.');
+                        fprintf(2,'ROIs below this threshold do not exist.\n');
 
                     elseif new_ROIs_flag(1) == 0
-                        warning('All ROIs below this threshold have already been removed.');
+                        fprintf(2,'All ROIs below this threshold have already been removed.\n');
 
                     else
                         fprintf('%d ROIs selected for removal at threshold %d percents. \n', new_ROIs_flag(1),threshold);     
@@ -1014,16 +1022,16 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
             end
 
         else            
-            warning('The entered threshold is empty or invalid, please re-enter.');
+            fprintf(2,'The entered threshold is empty or invalid, please re-enter.\n');
         end
     end
 
     %----------------------------------------------------------------------
     function return_selected(~,~)
         if isempty(ROI_crop_MW_L2)
-            warning('No ROIs present to return.');
+            fprintf(2,'No ROIs present to return.\n');
         elseif isempty(ROI_crop_MW_IND2)
-            warning('No ROIs selected to return.');
+            fprintf(2,'No ROIs selected to return.\n');
         else
             if length(ROI_crop_MW_IND2) >= 2
                 set_index = 0;
@@ -1039,7 +1047,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
 
             if isempty(ROI_crop_MW_L2)
                 ROI_crop_MW_L2 = {};
-               set(ROI_crop_MW_LB2, 'String', ROI_crop_MW_L2); 
+                set(ROI_crop_MW_LB2, 'String', ROI_crop_MW_L2); 
             else
                 set(ROI_crop_MW_LB2, 'String', ROI_crop_MW_L2(:,2,1));
                 set(ROI_crop_MW_LB2, 'Value', []);
@@ -1050,7 +1058,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
     %----------------------------------------------------------------------
     function return_all(~,~)
         if isempty(ROI_crop_MW_L2)
-            warning('No ROIs present to return.');
+            fprintf(2,'No ROIs present to return.\n');
         else
             ROI_crop_MW_L2 = {};
             set(ROI_crop_MW_LB2, 'String', ROI_crop_MW_L2);
@@ -1063,10 +1071,10 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
     function confirm_selection(~,~)
         if isempty(ROI_crop_MW_L2)
             disp('New ROI set has been defined. All selected ROIs have been saved.');
-            delete(ROI_crop_MW);
+            uiresume(ROI_crop_MW);
         else
             if length(ROI_crop_MW_L1) == length(ROI_crop_MW_L2)
-                warning('All ROIs have been removed, please try again.');
+                fprintf(2,'All ROIs have been removed, please try again.\n');
             else
                 disp('New ROI set has been defined. Highly cropped ROIs have been removed.');
                 ROI_index = 0;
@@ -1074,13 +1082,14 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
                     ROI_set.ROIs(ROI_crop_MW_L2{jROI,1,1} - ROI_index) = [];
                     ROI_index = ROI_index + 1;
                 end
-                delete(ROI_crop_MW);
+                uiresume(ROI_crop_MW);
             end
         end
         ROI_set_crop = ROI_set;    
     end
 
-    uiwait();
+    uiwait(ROI_crop_MW);
+    delete(ROI_crop_MW);
 end
 
 %% =========================[Fixed spheres GUI]============================
@@ -1105,8 +1114,8 @@ function [ROI_select] = select_ROIs_case_2()
     
     function no_select_exit(~,~)
         ROI_select = [];
-        delete(FS_GUI);
         disp('ROIs not selected');
+        uiresume(FS_GUI);
     end
 
     function list_select(~,~)
@@ -1146,14 +1155,9 @@ function [ROI_select] = select_ROIs_case_2()
         ROI_path = spm_select(1,{'.csv','.txt','.mat','.xlsx'},'Select ROI masks',{},pwd);
         
         if ~isempty(ROI_path)
-            %ROI_paths = cellstr(ROI_paths);
             
             if strfind(ROI_path, '.mat') > 0
-                
-                % Loading data into workspace
-                
-                % NEED TO ADD ERROR CASE FOR EMPTY VARIABLES OR NON
-                % Compatible files
+
                 try
                     temp_var = load(ROI_path);
                     var_names=fieldnames(temp_var);
@@ -1259,7 +1263,7 @@ function [ROI_select] = select_ROIs_case_2()
     
     function remove_all(~,~)
         if isempty(ROI_string)
-            warning('No ROIs present to remove.');
+            fprintf(2,'No ROIs present to remove.\n');
         else
             ROI_string = {};
             ROI_select = [];
@@ -1274,10 +1278,10 @@ function [ROI_select] = select_ROIs_case_2()
     function remove(~,~)
         
         if isempty(ROI_string)
-            warning('No ROIs present to remove');
+            fprintf(2,'No ROIs present to remove.\n');
             
         elseif isempty(ROI_index)
-            warning('No ROIs seleted remove.');
+            fprintf(2,'No ROIs seleted to remove.\n');
             
         else   
             ROI_string = {};
@@ -1307,28 +1311,31 @@ function [ROI_select] = select_ROIs_case_2()
             '','1) ROI name', '2) Fixed center coordinate: X','3) Fixed center coordinate: Y','4) Fixed center coordinate: Z', '5) Fixed sphere radius (inner radius)','',...
             'For examples of coordinate tables, see the TMFC_toolbox folder.'};
         movegui(FS_ROI_HW, 'center');
+
+        if isunix; fontscale = 0.8; else; fontscale = 1; end
         
-        FS_ROI_HW_txt_1 = uicontrol(FS_ROI_HW,'Style','text','String', FS_str_1,'Units', 'normalized', 'Position',[0.05 0.22 0.90 0.75],'fontunits','normalized', 'fontSize', 0.075, 'HorizontalAlignment', 'left','backgroundcolor','w');
+        FS_ROI_HW_txt_1 = uicontrol(FS_ROI_HW,'Style','text','String', FS_str_1,'Units', 'normalized', 'Position',[0.05 0.22 0.90 0.75],'fontunits','normalized', 'fontSize', 0.075*fontscale, 'HorizontalAlignment', 'left','backgroundcolor','w');
         FS_ROI_HW_OK = uicontrol(FS_ROI_HW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.36 0.08 0.250 0.11],'fontunits','normalized', 'fontSize', 0.40,'callback', @close_GUI);
         
         function close_GUI(~,~)
-            delete(FS_ROI_HW); 
+            uiresume(FS_ROI_HW); 
         end
 
         uiwait(FS_ROI_HW);
+        delete(FS_ROI_HW);
     end
         
     function export(~,~)
         if ~isempty(ROI_select)
             fprintf('\n Number of ROIs exported are: %d\n', size(ROI_select,2));
-            delete(FS_GUI);
+            uiresume(FS_GUI);
         else
             fprintf('No ROIs added to export\n');
         end
     end
  
-    uiwait();
-
+    uiwait(FS_GUI);
+    delete(FS_GUI);
 end
 
 %% ==================[Add custom fixed sphrere GUI]========================
@@ -1341,7 +1348,7 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
     
     % GUI to add fixed sphere ROI from user
     add_NS_GUI = figure('Name', 'Add new sphere', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.22 0.25],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @close_new_ROI, 'WindowStyle', 'modal');
-    add_NS_txt_1 = uicontrol(add_NS_GUI,'Style','text','String', 'Define fixed spheres','Units', 'normalized', 'Position',[0.272 0.88 0.450 0.1],'fontunits','normalized', 'fontSize', 0.66,'backgroundcolor','w');
+    add_NS_txt_1 = uicontrol(add_NS_GUI,'Style','text','String', 'Define fixed sphere','Units', 'normalized', 'Position',[0.272 0.88 0.450 0.1],'fontunits','normalized', 'fontSize', 0.66,'backgroundcolor','w');
     add_NS_txt_2 = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'ROI name','Units', 'normalized', 'Position',[0.272 0.76 0.450 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
     add_NS_txt_3 = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'Center coordinates, mm','Units', 'normalized', 'Position',[0.095 0.52 0.550 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
     add_NS_txt_X = uicontrol(add_NS_GUI , 'Style', 'text', 'String', 'X','Units', 'normalized', 'Position',[0.125 0.44 0.1 0.08],'fontunits','normalized', 'fontSize', 0.68,'HorizontalAlignment','center','backgroundcolor','w');
@@ -1362,7 +1369,7 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
         ROI_name = '';
         center_coordinates = '';
         radius = '';
-        delete(add_NS_GUI);
+        uiresume(add_NS_GUI);
     end
     
     % Function to check and export created ROI
@@ -1398,33 +1405,33 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
                         
                         % Check if Radius is natural number
                         if ~(isreal(tmp_rad))
-                            warning('Please enter natural number for Radius of spheres.');
+                            fprintf(2,'Please enter natural number for Radius of spheres.\n');
                         elseif tmp_rad <= 0 
-                            warning('Please enter positive number for Radius of spheres.');
+                            fprintf(2,'Please enter positive number for Radius of spheres.\n');
                         else
                             % Exporting selected variables
                             radius = tmp_rad;     
                             fprintf('Name of ROI: %s.\n', ROI_name);   
                             fprintf('Coordinates (X, Y, Z) %d %d %d\n', center_coordinates{1}, center_coordinates{2}, center_coordinates{3});
                             fprintf('Radius of Fixed sphere: %d.\n', radius);
-                            delete(add_NS_GUI);
+                            uiresume(add_NS_GUI);
                         end
                     else
-                        warning('Fixed sphere radius not entered or is invalid, please re-enter.'); 
+                        fprintf(2,'Fixed sphere radius not entered or is invalid, please re-enter.\n'); 
                     end
                 else
-                    warning('Please enter natural number for coordinates.');
+                    fprintf(2,'Please enter natural number for coordinates.\n');
                 end
             else 
-                warning('Coordinates are not entered or is invalid, please re-enter.');                
+                fprintf(2,'Coordinates are not entered or is invalid, please re-enter.\n');                
             end
         else
-            warning('ROI Name not entered or is invalid, please re-enter.');
+            fprintf(2,'ROI Name not entered or is invalid, please re-enter.\n');
         end
     end
 
-    uiwait();
-    
+    uiwait(add_NS_GUI);
+    delete(add_NS_GUI);
 end
 
 %% ===============[Moving spheres inside fixed spheres GUI]================
@@ -1449,8 +1456,8 @@ function [ROI_select] = select_ROIs_case_3()
     
     function no_select_exit(~,~)
         ROI_select = [];
-        delete(MS_GUI);
         disp('ROIs not selected');
+        uiresume(MS_GUI);
     end
     
     function list_select(~,~)
@@ -1491,7 +1498,6 @@ function [ROI_select] = select_ROIs_case_3()
         ROI_path = spm_select(1,{'.csv','.txt','.mat','.xlsx'},'Select ROI masks',{},pwd);
         
         if ~isempty(ROI_path)
-            %ROI_paths = cellstr(ROI_paths);
             
             if strfind(ROI_path, '.mat') > 0
                 
@@ -1564,7 +1570,7 @@ function [ROI_select] = select_ROIs_case_3()
                     end
                 
                 catch 
-                    error('The selected .mat file is not in format, please try again');
+                    error('The selected .mat file is not in the correct format, please try again');
                 end
 
             else
@@ -1607,7 +1613,7 @@ function [ROI_select] = select_ROIs_case_3()
     
     function remove_all(~,~)
         if isempty(ROI_string)
-            warning('No ROIs present to remove.');
+            fprintf(2,'No ROIs present to remove.\n');
         else
             ROI_string = {};
             ROI_select = [];
@@ -1622,10 +1628,10 @@ function [ROI_select] = select_ROIs_case_3()
     function remove(~,~)
         
         if isempty(ROI_string)
-            warning('No ROIs present to remove');
+            fprintf(2,'No ROIs present to remove.\n');
             
         elseif isempty(ROI_index)
-            warning('No ROIs seleted remove.');
+            fprintf(2,'No ROIs seleted to remove.\n');
             
         else
             ROI_string = {};
@@ -1652,30 +1658,30 @@ function [ROI_select] = select_ROIs_case_3()
                     '','For examples of coordinate tables, see the TMFC_toolbox folder.','','The center of the sphere will be moved to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.',...
                     '','Local maxima are determined using the omnibus F-contrast for the selected conditions of interest. ','','Additionally, moving spheres can be masked by the thresholded F-map of an individual subject. This can significantly reduce ROI size.'};
         
-        MS_ROI_HW = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.22 0.50],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off', 'WindowStyle', 'Modal', 'CloseRequestFcn',@MS_HW_close);
+        MS_ROI_HW = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.22 0.50],'MenuBar','none','ToolBar','none','color','w','Resize','off','WindowStyle','Modal');
         
-        MS_HW_txt = uicontrol(MS_ROI_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.16 0.89 0.80], 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.0351,'backgroundcolor','w');
+        if isunix; fontscale = 0.8; else; fontscale = 1; end
+
+        MS_HW_txt = uicontrol(MS_ROI_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.16 0.89 0.80], 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.0351*fontscale,'backgroundcolor','w');
         MS_HW_OK = uicontrol(MS_ROI_HW,'Style','pushbutton','String', 'OK','Units', 'normalized', 'Position', [0.34 0.06 0.30 0.06],'callback', @MS_HW_close,'fontunits','normalized', 'fontSize', 0.35);
         movegui(MS_ROI_HW,'center');
         
         function MS_HW_close(~,~)
-            delete(MS_ROI_HW);
-        end
-        
-        uiwait(MS_ROI_HW);        
+            close(MS_ROI_HW);
+        end      
     end
 
     function export(~,~)
         if ~isempty(ROI_select)
             fprintf('\n Number of ROIs exported are: %d\n', size(ROI_select,2));
-            delete(MS_GUI);
+            uiresume(MS_GUI);
         else
             fprintf('No ROIs added to export\n');
         end
     end
 
-    uiwait();
-
+    uiwait(MS_GUI);
+    delete(MS_GUI);
 end
 
 %% ===================[Add custom moving sphere GUI]=======================
@@ -1711,7 +1717,7 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
         ROI_name = '';
         center_coordinates = '';
         radius = '';
-        delete(add_NMS_GUI);
+        uiresume(add_NMS_GUI);
     end
 
     % Function to check and export created ROI
@@ -1745,21 +1751,21 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
                     
                     % Check for empty Radius value
                     if isnan(tmp_rad_m)
-                        warning('Moving sphere radius not entered or is invalid, please re-enter.'); 
+                        fprintf(2,'Moving sphere radius not entered or is invalid, please re-enter.\n'); 
                     elseif isnan(tmp_rad_f)
-                        warning('Fixed sphere radius not entered or is invalid, please re-enter.'); 
+                        fprintf(2,'Fixed sphere radius not entered or is invalid, please re-enter.\n'); 
                     else                        
                         % Check if Radius is natural number
                         if ~(isreal(tmp_rad_m))
-                            warning('Please enter natural number for radius of (inner) moving spheres.');
+                            fprintf(2,'Please enter natural number for radius of (inner) moving spheres.\n');
                         elseif tmp_rad_m <= 0 
-                            warning('Please enter positive number for radius of (inner) moving spheres.');
+                            fprintf(2,'Please enter positive number for radius of (inner) moving spheres.\n');
                         elseif ~(isreal(tmp_rad_f))
-                            warning('Please enter natural number for radius of (outer) fixed spheres.');
+                            fprintf(2,'Please enter natural number for radius of (outer) fixed spheres.\n');
                         elseif tmp_rad_f <= 0 
-                            warning('Please enter positive number for radius of (outer) fixed spheres.');
+                            fprintf(2,'Please enter positive number for radius of (outer) fixed spheres.\n');
                         elseif tmp_rad_m >= tmp_rad_f
-                            warning('The radius of (inner) moving spheres cannot be smaller or equal to the radius of (outer) fixed spheres, please re-enter.'); 
+                            fprintf(2,'The radius of (inner) moving spheres cannot be smaller or equal to the radius of (outer) fixed spheres, please re-enter.\n'); 
                         else                     
                             % Exporting selected variables
                             radius = {tmp_rad_m, tmp_rad_f};     
@@ -1767,29 +1773,33 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
                             fprintf('Coordinates (X, Y, Z) %d %d %d\n', center_coordinates{1}, center_coordinates{2}, center_coordinates{3});
                             fprintf('Radius of Moving sphere: %d.\n', radius{1});
                             fprintf('Radius of Fixed sphere: %d.\n', radius{2});
-                            delete(add_NMS_GUI);
+                            uiresume(add_NMS_GUI);
                         end
                     end
                 else
-                    warning('Please enter natural number for coordinates.');
+                    fprintf(2,'Please enter natural number for coordinates.\n');
                 end
             else 
-                warning('Coordinates are not entered or is invalid, please re-enter.');                
+                fprintf(2,'Coordinates are not entered or is invalid, please re-enter.\n');                
             end
         else
-            warning('ROI Name not entered or is invalid, please re-enter.');
+            fprintf(2,'ROI Name not entered or is invalid, please re-enter.\n');
         end
     end
 
-    uiwait();
+    uiwait(add_NMS_GUI);
+    delete(add_NMS_GUI);
 end
 
 %% ============[Moving spheres inside ROI binary images GUI]===============
 function [radius_vector] = select_ROIs_case_4(nROI)
 
 radius_vector = {};
-vec_rad_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.22 0.18],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @exit);
-vec_rad_txt = uicontrol(vec_rad_GUI,'Style','text','String', 'Enter vector for radii of moving spheres','Units', 'normalized', 'Position',[0.075 0.64 0.85 0.18],'fontunits','normalized', 'fontSize', 0.54,'HorizontalAlignment', 'center','backgroundcolor','w');
+
+if isunix; fontscale = 0.8; else; fontscale = 1; end
+
+vec_rad_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.30 0.22 0.18],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn',@exit);
+vec_rad_txt = uicontrol(vec_rad_GUI,'Style','text','String', 'Enter vector for radii of moving spheres','Units', 'normalized', 'Position',[0.075 0.64 0.85 0.18],'fontunits','normalized', 'fontSize', 0.54*fontscale,'HorizontalAlignment', 'center','backgroundcolor','w');
 vec_rad_edit = uicontrol(vec_rad_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.075 0.44 0.85 0.2],'fontunits','normalized', 'fontSize', 0.46,'backgroundcolor','w');
 vec_rad_OK = uicontrol(vec_rad_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.074 0.12 0.35 0.19],'fontunits','normalized', 'fontSize', 0.36,'callback', @extract_vector);
 vec_rad_help = uicontrol(vec_rad_GUI,'Style','pushbutton','String', 'Help','Units', 'normalized','Position',[0.575 0.12 0.35 0.19],'fontunits','normalized', 'fontSize', 0.36,'callback', @help_win);
@@ -1799,46 +1809,46 @@ movegui(vec_rad_GUI,'center');
         tmp_vector = get(vec_rad_edit, 'String');
         
         if isnan(tmp_vector) 
-            warning('Vector contain NaN values, please try again');            
+            fprintf(2,'Vector contain NaNs, please try again.\n');            
         else
             try
                 radius_vector = str2num(tmp_vector);
                 if length(radius_vector) == nROI
-                    delete(vec_rad_GUI);
+                    uiresume(vec_rad_GUI);
                 else
-                    warning('The length of the radius vector must be equal to the number of selected ROI binary images.');
+                    fprintf(2,'The length of the radius vector must be equal to the number of selected ROI binary images.\n');
                 end
             catch
-                warning('Entered vector is incorrect or invalid, please try again.');
+                fprintf(2,'Entered vector is incorrect or invalid, please try again.\n');
             end
         end
     end
 
     function exit(~,~)
         radius_vector = {};
-        delete(vec_rad_GUI);
+        uiresume(vec_rad_GUI);
     end
 
-
     function help_win(~,~)
-        
         help_text = {'Suppose you select 100 ROI masks. You need to define the radius of moving spheres inside each of these 100 ROI masks.',...
             '','If you want to use the same radii for all spheres (e.g. 5 mm), enter the vector [5*ones(1,100)] or enter the scalar [5].',...
             '','If you want to use 5 mm radii for the first 50 ROIs and 4 mm radii for the last 50 ROIs, enter the vector: [5*ones(1,50) 4*ones(1,50)].',...
             '','You can also copy and paste the radius vector from an external file (*.mat, *.xlsx, *.csv, *.txt).',...
             '','The length of the vector should be equal to the number of selected ROI masks.'};
+
+        if isunix; fontscale = 0.9; else; fontscale = 1; end
         
         vr_help = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.25 0.22 0.45],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','off','WindowStyle','modal');
-        vr_help_txt = uicontrol(vr_help,'Style','text','String', help_text,'Units', 'normalized', 'Position',[0.07 0.18 0.86 0.75],'fontunits','normalized', 'fontSize', 0.045,'HorizontalAlignment', 'left','backgroundcolor','w');
-        vr_help_ok = uicontrol(vr_help,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.29 0.08 0.40 0.08],'fontunits','normalized', 'fontSize', 0.36,'callback', @close_help);
+        vr_help_txt = uicontrol(vr_help,'Style','text','String', help_text,'Units', 'normalized', 'Position',[0.07 0.18 0.86 0.75],'fontunits','normalized', 'fontSize', 0.045*fontscale,'HorizontalAlignment', 'left','backgroundcolor','w');
+        vr_help_ok = uicontrol(vr_help,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.29 0.08 0.40 0.08],'fontunits','normalized', 'fontSize', 0.36,'callback',@close_help);
         movegui(vr_help,'center');
         function close_help(~,~)
-            delete(vr_help);
+            close(vr_help);
         end
-                
     end
 
-uiwait();
+uiwait(vec_rad_GUI);
+delete(vec_rad_GUI);
 
 end
 
@@ -1878,38 +1888,40 @@ movegui(F_contrast_MW, 'center');
             
             fprintf('Selected threshold for F-contrast: %f \n', threshold);
             
-            delete(F_contrast_MW);
+            uiresume(F_contrast_MW);
             
         else
-            warning('Please enter a threshold value between 0.0 and 1.0');
+            fprintf(2,'Please enter a threshold value between 0.0 and 1.0 \n');
         end        
         
     end
 
     function help_window(~,~)
-        F_contrast_HW = figure('Name', 'F-contrast: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.30 0.44 0.28 0.25],'Resize','off','MenuBar', 'none', 'ToolBar', 'none', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @close_HW); 
+        F_contrast_HW = figure('Name', 'F-contrast: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.30 0.44 0.28 0.25],'Resize','off','MenuBar', 'none', 'ToolBar', 'none', 'color', 'w','WindowStyle','modal'); 
         
         string_help = {'The center of the moving sphere will be moved to the local maximum inside a fixed sphere of larger radius.','',...
             'Local maxima are determined using the omnibus F-contrast for the selected conditions of interest.','',...
             'Additionally, moving spheres can be masked by the thresholded F-map of an individual subject. This can significantly reduce ROI size.',''};
+
+        if isunix; fontscale = 0.8; else; fontscale = 1; end
         
-        FC_HW_txt = uicontrol(F_contrast_HW,'Style','text','String', string_help,'Units', 'normalized', 'Position',[0.055 0.2 0.9 0.75],'fontunits','normalized', 'fontSize', 0.087, 'horizontalAlignment', 'left','backgroundcolor','w');
+        FC_HW_txt = uicontrol(F_contrast_HW,'Style','text','String', string_help,'Units', 'normalized', 'Position',[0.055 0.2 0.9 0.75],'fontunits','normalized', 'fontSize', 0.087*fontscale, 'horizontalAlignment', 'left','backgroundcolor','w');
         FC_HW_OK = uicontrol(F_contrast_HW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.37 0.05 0.25 0.14],'fontunits','normalized', 'fontSize', 0.4,'callback', @close_HW);
         movegui(F_contrast_HW, 'center');
     
         function close_HW(~,~)
-            delete(F_contrast_HW);
+            close(F_contrast_HW);
         end
-        uiwait(F_contrast_HW);
     end
 
     % If exit, do we return default values or ''
     function exit_MW(~,~)
         threshold = '';
         mask_status = '';
-        delete(F_contrast_MW);
+        uiresume(F_contrast_MW);
     end
 
-uiwait();
+uiwait(F_contrast_MW);
+delete(F_contrast_MW);
 end
 

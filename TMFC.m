@@ -1611,7 +1611,7 @@ function LSS_FIR_GUI(~,~,~)
     elseif track_LSS_after_FIR == 0
 
         % Ask user to restart LSS_after_FIR computation
-        restart_LSS_after_FIR = tmfc_restart_GUI(2);
+        restart_LSS_after_FIR = tmfc_restart_GUI(3);
 
         if restart_LSS_after_FIR == 1
             start_sub = 1;
@@ -1626,7 +1626,7 @@ function LSS_FIR_GUI(~,~,~)
     else
 
         % Ask user to continue or restart LSS_after_FIR computation
-        continue_LSS_after_FIR = tmfc_continue_GUI(track_LSS_after_FIR,2);
+        continue_LSS_after_FIR = tmfc_continue_GUI(track_LSS_after_FIR,3);
 
         % Continue LSS_after_FIR computation
         if continue_LSS_after_FIR == 1
@@ -1963,14 +1963,14 @@ function tools_GUI(~,~,~)
     function denoise(~,~)
         tmfc_denoise;
         % Close tool window
-        delete(tmfc_tools_GUI);
+        close(tmfc_tools_GUI);
     end
     
     % Change Paths --------------------------------------------------------
     function change_paths(~,~)
 
         % Close tool window
-        delete(tmfc_tools_GUI);
+        close(tmfc_tools_GUI);
 
         disp('Select SPM.mat files to change paths...');
 
@@ -1988,7 +1988,7 @@ function tools_GUI(~,~,~)
     function gPPI_asm(~,~)
 
         % Close tool window
-        delete(tmfc_tools_GUI);
+        close(tmfc_tools_GUI);
 
         disp('Work in progress. Please wait for future updates.');
         %tmfc_estimate_gPPI_asymmetry_GUI();
@@ -2005,7 +2005,7 @@ function settings_GUI(~,~,~)
 
     tmfc_set = figure('Name', 'TMFC Toolbox','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.380 0.0875 0.250 0.850], 'color', 'w', 'Tag', 'TMFC_GUI_Settings','resize', 'off','WindowStyle','modal');
 
-    set_str_1 = {'Parallel computing use Parallel Computing Toolbox. The number of workers in a parallel pool can be changed in MATLAB settings.'};
+    set_str_1 = {'The number of workers in a parallel pool can be changed in MATLAB settings. NOTE: Parallel computations may perform slower than sequential computations for low-end PCs.'};
     set_str_2 = {'This option temporary changes resmem variable in spm_defaults, which governing whether temporary files during GLM estimation are stored on disk or kept in memory. If you have enough available RAM, not writing the files to disk will speed the estimation.'};
     set_str_3 = {'Max RAM temporary changes maxmem variable in spm_defaults, which indicates how much memory can be used at the same time during GLM estimation. If your computer has a large amount of RAM, you can increase that memory setting:'};
     set_str_4 = {'* 2^31 = 2GB','* 2^32 = 4GB', '* 2^33 = 8GB','* 2^34 = 16GB','* 2^35 = 32GB'};
@@ -2027,12 +2027,14 @@ function settings_GUI(~,~,~)
     tmfc_set_ok = uicontrol(tmfc_set,'Style', 'pushbutton', 'String', 'OK', 'Units', 'normalized', 'Position', [0.3 0.03 0.40 0.05],'FontUnits','normalized','FontSize',0.33,'callback', @sync_set);
     tmfc_set_E1 = uicontrol(tmfc_set,'Style','edit','String', tmfc.defaults.maxmem,'Units', 'normalized', 'HorizontalAlignment', 'center','Position',[0.72 0.615 0.22 0.05],'fontunits','normalized', 'fontSize', 0.38);
     
-    tmfc_set_S1 = uicontrol(tmfc_set,'Style','text','String', set_str_1,'Units', 'normalized', 'Position',[0.05 0.87 0.90 0.07],'fontunits','normalized','fontSize', 0.245, 'HorizontalAlignment', 'left','backgroundcolor','w');
-    tmfc_set_S2 = uicontrol(tmfc_set,'Style','text','String', set_str_2,'Units', 'normalized', 'Position',[0.05 0.69 0.90 0.11],'fontunits','normalized','fontSize', 0.16, 'HorizontalAlignment', 'left','backgroundcolor','w');
-    tmfc_set_S3a = uicontrol(tmfc_set,'Style','text','String', 'Max RAM for GLM esimtation (bits):','Units', 'normalized', 'Position',[0.048 0.61 0.65 0.04],'fontunits','normalized', 'fontSize', 0.46,'HorizontalAlignment', 'left','backgroundcolor','w');%
-    tmfc_set_S3 = uicontrol(tmfc_set,'Style','text','String', set_str_3,'Units', 'normalized', 'Position',[0.05 0.495 0.90 0.11],'fontunits','normalized','fontSize', 0.16, 'HorizontalAlignment', 'left','backgroundcolor','w');
-    tmfc_set_S4 = uicontrol(tmfc_set,'Style','text','String', set_str_4,'Units', 'normalized', 'Position',[0.39 0.38 0.27 0.11],'fontunits','normalized','fontSize', 0.15, 'HorizontalAlignment', 'left','backgroundcolor','w');
-    tmfc_set_S5 = uicontrol(tmfc_set,'Style','text','String', set_str_5,'Units', 'normalized', 'Position',[0.05 0.11 0.90 0.20],'fontunits','normalized','fontSize', 0.088, 'HorizontalAlignment', 'left','backgroundcolor','w');
+    if isunix; fontscale = [0.9, 0.85, 0.9, 0.83]; else; fontscale = [1, 1 ,1, 1]; end
+
+    tmfc_set_S1 = uicontrol(tmfc_set,'Style','text','String', set_str_1,'Units', 'normalized', 'Position',[0.05 0.87 0.90 0.07],'fontunits','normalized','fontSize', 0.245*fontscale(1), 'HorizontalAlignment', 'left','backgroundcolor','w');
+    tmfc_set_S2 = uicontrol(tmfc_set,'Style','text','String', set_str_2,'Units', 'normalized', 'Position',[0.05 0.69 0.90 0.11],'fontunits','normalized','fontSize', 0.16*fontscale(2), 'HorizontalAlignment', 'left','backgroundcolor','w');
+    tmfc_set_S3a = uicontrol(tmfc_set,'Style','text','String', 'Max RAM for GLM estimation (bits):','Units', 'normalized', 'Position',[0.048 0.61 0.65 0.04],'fontunits','normalized', 'fontSize', 0.46,'HorizontalAlignment', 'left','backgroundcolor','w');%
+    tmfc_set_S3 = uicontrol(tmfc_set,'Style','text','String', set_str_3,'Units', 'normalized', 'Position',[0.05 0.495 0.90 0.11],'fontunits','normalized','fontSize', 0.16*fontscale(3), 'HorizontalAlignment', 'left','backgroundcolor','w');
+    tmfc_set_S4 = uicontrol(tmfc_set,'Style','text','String', set_str_4,'Units', 'normalized', 'Position',[0.39 0.38 0.27 0.11],'fontunits','normalized','fontSize', 0.15*fontscale(3), 'HorizontalAlignment', 'left','backgroundcolor','w');
+    tmfc_set_S5 = uicontrol(tmfc_set,'Style','text','String', set_str_5,'Units', 'normalized', 'Position',[0.05 0.11 0.90 0.20],'fontunits','normalized','fontSize', 0.088*fontscale(4), 'HorizontalAlignment', 'left','backgroundcolor','w');
     
     tmfc_copy = tmfc;
 
@@ -2112,9 +2114,9 @@ end
 function close_GUI(~,~,~) 
        
     exit_msg = figure('Name', 'TMFC: Exit', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.20 0.15],'Resize','off','color','w','MenuBar', 'none', 'ToolBar', 'none', 'Tag', 'EXIT_FIN', 'WindowStyle','modal');
-
+    
     exit_str1 = uicontrol(exit_msg,'Style','text','String', 'Would you like to save your progress','Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'fontSize', 0.38, 'Position',[0.04 0.55 0.94 0.260],'backgroundcolor',get(exit_msg,'color'));
-    exit_str2 = uicontrol(exit_msg,'Style','text','String', 'before exiting TMFC toolbox?', 'Units','normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'fontSize', 0.38,'Position',[0.10 0.40 0.80 0.260],'backgroundcolor',get(exit_msg,'color'));
+    exit_str2 = uicontrol(exit_msg,'Style','text','String', 'before exiting TMFC toolbox?', 'Units','normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'fontSize', 0.38, 'Position',[0.10 0.40 0.80 0.260],'backgroundcolor',get(exit_msg,'color'));
 
     exit_yes = uicontrol(exit_msg,'Style','pushbutton','String', 'Yes','Units', 'normalized','fontunits','normalized', 'fontSize', 0.40,'Position',[0.16 0.18 0.300 0.200],'callback', @exit_save);
     exit_no = uicontrol(exit_msg,'Style','pushbutton', 'String', 'No','Units', 'normalized','fontunits','normalized', 'fontSize', 0.40,'Position',[0.57 0.18 0.300 0.200],'callback', @exit_no_save);     
@@ -2504,13 +2506,19 @@ function [sub_names] = tmfc_subject_naming_GUI
     
     sub_names_options = {'TMFC subject naming format','Original subject naming format'};
     
-    SN_GUI_MW = figure('Name','Subject names','NumberTitle','off','Units','normalized','Position',[0.35 0.42 0.3 0.2],'Resize','on','MenuBar','none','ToolBar','none','Tag','tmfc_sub_naming_GUI','color','w','WindowStyle','modal','CloseRequestFcn',@exit_MW); 
+    SN_GUI_MW = figure('Name','Subject names','NumberTitle','off','Units','normalized', ...
+        'Position',[0.35 0.42 0.3 0.2],'Resize','on','MenuBar','none','ToolBar','none', ...
+        'Tag','tmfc_sub_naming_GUI','color','w','WindowStyle','modal','CloseRequestFcn',@exit_MW); 
+
     movegui(SN_GUI_MW,'center');
 
-    SN_txt = uicontrol(SN_GUI_MW,'Style','text','String',MW_str,'Units','normalized','Position',[0.03 0.57 0.95 0.23],'fontunits','normalized','fontSize',0.37,'backgroundcolor','w'); 
-    SN_pop = uicontrol(SN_GUI_MW,'Style','popupmenu','String',sub_names_options,'Units','normalized','Position',[0.26 0.28 0.5 0.23],'fontunits','normalized','FontSize',0.36);     
+    if isunix; fontscale = 0.9; else; fontscale = 1; end
+
+    SN_txt = uicontrol(SN_GUI_MW,'Style','text','String',MW_str,'Units','normalized','Position',[0.03 0.57 0.95 0.23],'fontunits','normalized','fontSize',0.32*fontscale,'backgroundcolor','w'); 
+    SN_pop = uicontrol(SN_GUI_MW,'Style','popupmenu','String',sub_names_options,'Units','normalized','Position',[0.26 0.28 0.5 0.23],'fontunits','normalized','FontSize',0.32);     
     
-    SN_MW_OK = uicontrol(SN_GUI_MW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.41 0.09 0.2 0.15],'fontunits','normalized','FontSize',0.40,'callback',@read_data);
+    SN_MW_OK = uicontrol(SN_GUI_MW,'Style','pushbutton','String','OK','Units','normalized', ...
+        'Position',[0.41 0.09 0.2 0.15],'fontunits','normalized','FontSize',0.40,'callback',@read_data);
           
     % Read & Sync Data
     function read_data(~,~)       
@@ -2518,17 +2526,18 @@ function [sub_names] = tmfc_subject_naming_GUI
        if temp_sub_names == 2
            sub_names = 'original';
        end      
-       delete(SN_GUI_MW);
+       uiresume(SN_GUI_MW);
     end
     
     % Exit
     function exit_MW(~,~)
         sub_names = 'standard';
         disp('TMFC subject naming format will be used (i.e., Subject_XXXX).');
-        delete(SN_GUI_MW);
+        uiresume(SN_GUI_MW);
     end
     
-    uiwait();
+    uiwait(SN_GUI_MW);
+    delete(SN_GUI_MW);
 end
 
 %% ========================[ PPI centering GUI ]===========================
@@ -2545,10 +2554,12 @@ function [centering, whitening] = PPI_centering_GUI
     
     PPI_GUI_MW = figure('Name', 'Psycho-physiological interaction', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.3 0.42 0.4 0.30],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_PPI_term_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
     
-    PPI_centering_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_1,'Units', 'normalized', 'Position',[0.02 0.76 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35,'backgroundcolor','w'); 
+    if isunix; fontscale = 0.95; else; fontscale = 1; end
+
+    PPI_centering_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_1,'Units', 'normalized', 'Position',[0.02 0.76 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35*fontscale,'backgroundcolor','w'); 
     PPI_centering_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_centering,'Units', 'normalized', 'Position',[0.35 0.60 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
     
-    PPI_whitening_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_2,'Units', 'normalized', 'Position',[0.02 0.40 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35,'backgroundcolor','w'); 
+    PPI_whitening_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_2,'Units', 'normalized', 'Position',[0.02 0.40 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35*fontscale,'backgroundcolor','w'); 
     PPI_whitening_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_whitening,'Units', 'normalized', 'Position',[0.35 0.24 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
     
     PPI_MW_OK = uicontrol(PPI_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.41 0.09 0.2 0.12],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
@@ -2566,17 +2577,18 @@ function [centering, whitening] = PPI_centering_GUI
            whitening = 'none';
        end
        
-       delete(PPI_GUI_MW);
+       uiresume(PPI_GUI_MW);
     end
     
     % Exit
     function exit_MW(~,~)
         centering = '';
         whitening = '';
-        delete(PPI_GUI_MW);
+        uiresume(PPI_GUI_MW);
     end
     
-    uiwait();
+    uiwait(PPI_GUI_MW);
+    delete(PPI_GUI_MW);
 end
 
 %% =======================[ BSC extraction GUI ]===========================
@@ -2597,17 +2609,17 @@ function [summary] = BSC_extraction_GUI
        if temp_var == 2
            summary = 'mean';
        end      
-       delete(BSC_GUI_MW);
-
+       uiresume(BSC_GUI_MW);
     end
 
     % If exit, we return cancel operation & return ''
     function exit_MW(~,~)
         summary = '';
-        delete(BSC_GUI_MW);
+        uiresume(BSC_GUI_MW);
     end
     
-    uiwait();
+    uiwait(BSC_GUI_MW);
+    delete(BSC_GUI_MW);
 end
 
 %% =================[ Freeze/unfreeze main TMFC GUI ]======================
@@ -3053,20 +3065,24 @@ end
 %% =================[ Select TMFC project folder GUI ]=====================
 function tmfc_select_project_path(nSub)
 
-    tmfc_project_path_GUI = figure('Name', 'Select TMFC project path', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.40 0.45 0.24 0.14], 'MenuBar', 'none', 'ToolBar', 'none', ...
-                            	   'color', 'w', 'Resize', 'off', 'WindowStyle', 'modal', 'CloseRequestFcn', @ok_action, 'Tag', 'TMFC_project_path');
+    tmfc_project_path_GUI = figure('Name', 'Select TMFC project path', 'NumberTitle', 'off', 'Units', 'normalized', ...
+        'Position', [0.40 0.45 0.24 0.14], 'MenuBar', 'none', 'ToolBar', 'none', ...
+        'color', 'w', 'Resize', 'off', 'WindowStyle', 'modal', 'CloseRequestFcn', @ok_action, ...
+        'Tag', 'TMFC_project_path');
     project_path_string = {'Next, select the project path where all results and temporary files will be stored.'};
     % PP = project path
     tmfc_PP_GUI_S1 = uicontrol(tmfc_project_path_GUI, 'Style', 'text', 'String', strcat(num2str(nSub), ' subjects selected'), 'Units', 'normalized', 'Position', [0.30 0.72 0.40 0.17], 'backgroundcolor', 'w', 'fontunits', 'normalized', 'fontSize', 0.64,'ForegroundColor', [0.219, 0.341, 0.137]);
     tmfc_PP_GUI_S2 = uicontrol(tmfc_project_path_GUI, 'Style', 'text', 'String', project_path_string, 'Units', 'normalized', 'Position', [0.055 0.38 0.90 0.30], 'backgroundcolor', 'w', 'fontunits', 'normalized', 'fontSize', 0.38);
-    tmfc_PP_GUI_OK = uicontrol(tmfc_project_path_GUI, 'Style', 'pushbutton', 'String', 'OK', 'Units', 'normalized', 'Position', [0.35 0.12 0.3 0.2], 'fontunits', 'normalized', 'fontSize', 0.42, 'callback', @ok_action);
+    tmfc_PP_GUI_OK = uicontrol(tmfc_project_path_GUI, 'Style', 'pushbutton', 'String', 'OK', 'Units', 'normalized', ...
+        'Position', [0.35 0.12 0.3 0.2], 'fontunits', 'normalized', 'fontSize', 0.42, 'callback', @ok_action);
     movegui(tmfc_project_path_GUI,'center');
 
     function ok_action(~,~)
-        delete(tmfc_project_path_GUI);
+        uiresume(tmfc_project_path_GUI);
     end
 
-    uiwait();
+    uiwait(tmfc_project_path_GUI);
+    delete(tmfc_project_path_GUI);
 end
 
 %% ==================[ ROI set related subfunctions ]======================
@@ -3136,16 +3152,17 @@ function [ROI_set_check, ROI_set_number] = ROI_set_switcher(ROI_set_list)
     function ROI_set_ok(~,~)
         ROI_set_check = 0;
         ROI_set_number = tmp_set_number;
-        close(ROI_set_GUI);
+        uiresume(ROI_set_GUI);
     end
 
     function ROI_set_add_new(~,~)
         ROI_set_check = 1;
         ROI_set_number = 0;
-        close(ROI_set_GUI);
+        uiresume(ROI_set_GUI);
     end
 
-    uiwait();  
+    uiwait(ROI_set_GUI);  
+    delete(ROI_set_GUI);
 end
 
 %% ======================[ Restart/continue GUI ]==========================
@@ -3189,11 +3206,13 @@ function [restart_status] = tmfc_restart_GUI(option)
             restart_str_0 = 'PPI computation';
             restart_str_1 = {'Recompute PPIs', 'for all subjects?'};
     end
+    
+    if isunix; fontscale = 0.95; else; fontscale = 1; end
 
     tmfc_restart_MW = figure('Name', restart_str_0, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.18 0.14], ...
                       'Resize','off','color','w','MenuBar', 'none', 'ToolBar', 'none', 'Tag', 'Restart_WIN','CloseRequestFcn', @cancel);
     tmfc_restart_str = uicontrol(tmfc_restart_MW,'Style','text','String',restart_str_1 ,'Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', ...
-                           'fontSize', 0.40, 'Position', [0.10 0.55 0.80 0.260],'backgroundcolor',get(tmfc_restart_MW,'color'));
+                           'fontSize', 0.40*fontscale, 'Position', [0.10 0.55 0.80 0.260],'backgroundcolor',get(tmfc_restart_MW,'color'));
     tmfc_restart_ok = uicontrol(tmfc_restart_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','fontunits','normalized', ...
                            'fontSize', 0.48, 'Position', [0.14 0.22 0.320 0.20],'callback', @restart);
     tmfc_restart_cancel = uicontrol(tmfc_restart_MW,'Style','pushbutton', 'String', 'Cancel','Units', 'normalized','fontunits','normalized', ...
@@ -3203,15 +3222,16 @@ function [restart_status] = tmfc_restart_GUI(option)
 
     function cancel(~,~)
         restart_status = 0;
-        delete(tmfc_restart_MW);
+        uiresume(tmfc_restart_MW);
     end
 
     function restart(~,~)
         restart_status = 1;
-        delete(tmfc_restart_MW);
+        uiresume(tmfc_restart_MW);
     end
 
-    uiwait();    
+    uiwait(tmfc_restart_MW);  
+    delete(tmfc_restart_MW);
 end
 
 %--------------------------------------------------------------------------
@@ -3279,13 +3299,14 @@ function [continue_status] = tmfc_continue_GUI(iSub,option)
             restart_str = 'Cancel';            
     end
 
+    if isunix; fontscale = 0.95; else; fontscale = 1; end
 
     tmfc_cont_MW = figure('Name', cont_str_0, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.20 0.18], 'Resize', 'off', 'color', 'w', ...
                       'MenuBar', 'none', 'ToolBar', 'none', 'Tag', 'Contd_FIR','CloseRequestFcn', @cancel); 
     tmfc_cont_str1 = uicontrol(tmfc_cont_MW,'Style','text','String', cont_str_1,'Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', ...
-                            'fontSize', 0.38, 'Position',[0.10 0.55 0.80 0.260],'backgroundcolor',get(tmfc_cont_MW,'color'));
-    tmfc_cont_str2 = uicontrol(tmfc_cont_MW,'Style','text','String', strcat('subject No',num2str(iSub),'?'), 'Units','normalized', 'HorizontalAlignment', 'center', ...
-                            'fontunits','normalized', 'fontSize', 0.38, 'Position',[0.10 0.40 0.80 0.260],'backgroundcolor',get(tmfc_cont_MW,'color'));
+                            'fontSize', 0.38*fontscale, 'Position',[0.10 0.55 0.80 0.260],'backgroundcolor',get(tmfc_cont_MW,'color'));
+    tmfc_cont_str2 = uicontrol(tmfc_cont_MW,'Style','text','String', strcat('subject No. ',num2str(iSub),'?'), 'Units','normalized', 'HorizontalAlignment', 'center', ...
+                            'fontunits','normalized', 'fontSize', 0.38*fontscale, 'Position',[0.10 0.40 0.80 0.260],'backgroundcolor',get(tmfc_cont_MW,'color'));
     tmfc_cont_yes = uicontrol(tmfc_cont_MW,'Style','pushbutton','String', 'Yes','Units', 'normalized','fontunits','normalized', 'fontSize', 0.28, ...
                              'Position',[0.12 0.15 0.320 0.270],'callback', @cont);
     tmfc_cont_restart = uicontrol(tmfc_cont_MW,'Style','pushbutton', 'String', restart_str,'Units', 'normalized','fontunits','normalized', 'fontSize', 0.28, ...
@@ -3294,25 +3315,26 @@ function [continue_status] = tmfc_continue_GUI(iSub,option)
 
     function cancel(~,~)
         continue_status = -1;
-        delete(tmfc_cont_MW);
+        uiresume(tmfc_cont_MW);
     end
 
     function cont(~,~)
         continue_status = 1;
-        delete(tmfc_cont_MW);
+        uiresume(tmfc_cont_MW);
     end
 
     function restart(~,~)
         if ~strcmp(restart_str, 'Cancel')
             continue_status = 0;
-            delete(tmfc_cont_MW);
+            uiresume(tmfc_cont_MW);
         else
             continue_status = -1;
-            delete(tmfc_cont_MW);
+            uiresume(tmfc_cont_MW);
         end
     end
 
-    uiwait();
+    uiwait(tmfc_cont_MW);
+    delete(tmfc_cont_MW);
 end
 
 %% ================[ Dialog box for PPI recomputation ]====================
@@ -3321,17 +3343,20 @@ function PPI_recompute()
                            'ToolBar', 'none','color','w','Resize','off','WindowStyle', 'modal','CloseRequestFcn', @ok_action, 'Tag', 'PPI');
     PPI_details = {'PPI computation completed.','To change conditions of interest, recompute VOIs.'};
     
+    if isunix; fontscale = 0.95; else; fontscale = 1; end
+
     PPI_recomp_str = uicontrol(PPI_recomp_GUI,'Style','text','String',PPI_details,'Units', 'normalized', 'Position',[0.05 0.5 0.90 0.30], ...
-                            'backgroundcolor','w','fontunits','normalized','fontSize', 0.38);
+                            'backgroundcolor','w','fontunits','normalized','fontSize', 0.38*fontscale);
     PPI_recomp_ok = uicontrol(PPI_recomp_GUI,'Style','pushbutton', 'String', 'OK','Units', 'normalized', 'Position',[0.38 0.18 0.23 0.2], ...
                             'fontunits','normalized','fontSize', 0.48,'callback', @ok_action);
     
     movegui(PPI_recomp_GUI,'center');
     
     function ok_action(~,~)
-        delete(PPI_recomp_GUI);
+        uiresume(PPI_recomp_GUI);
     end
-    uiwait();
+    uiwait(PPI_recomp_GUI);
+    delete(PPI_recomp_GUI);
 end
 
 %% ==[ GUI: window length and time bins for FIR or gPPI-FIR regression ]===
@@ -3355,8 +3380,11 @@ function [window, bins] = tmfc_FIR_GUI(cases)
     
     tmfc_FIR_BW_GUI = figure('Name', GUI_title, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.28 0.18],'Resize','off',...
         'MenuBar', 'none', 'ToolBar', 'none','Tag','TMFC_WB_NUM', 'WindowStyle','modal','color', 'w','CloseRequestFcn', @tmfc_FIR_BW_GUI_Exit); 
-    tmfc_FIR_BW_GUI_S1 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_1,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40, 'Position',[0.08 0.62 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
-    tmfc_FIR_BW_GUI_S2 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_2,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40,'Position',[0.08 0.37 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
+
+    if isunix; fontscale = 0.95; else; fontscale = 1; end
+
+    tmfc_FIR_BW_GUI_S1 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_1,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40*fontscale, 'Position',[0.08 0.62 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
+    tmfc_FIR_BW_GUI_S2 = uicontrol(tmfc_FIR_BW_GUI,'Style','text','String', GUI_str_2,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.40*fontscale,'Position',[0.08 0.37 0.65 0.200],'backgroundcolor',get(tmfc_FIR_BW_GUI,'color'));
     tmfc_FIR_BW_GUI_E1 = uicontrol(tmfc_FIR_BW_GUI,'Style','edit','Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'Position', [0.76 0.67 0.185 0.170], 'fontSize', 0.44);
     tmfc_FIR_BW_GUI_E2 = uicontrol(tmfc_FIR_BW_GUI,'Style','edit','Units', 'normalized', 'HorizontalAlignment', 'center','fontunits','normalized', 'Position', [0.76 0.42 0.185 0.170], 'fontSize', 0.44);
     tmfc_FIR_BW_GUI_ok = uicontrol(tmfc_FIR_BW_GUI,'Style','pushbutton','String', 'OK','Units', 'normalized','fontunits','normalized','fontSize', 0.4, 'Position', [0.21 0.13 0.230 0.170],'callback', @tmfc_FIR_BW_extract);
@@ -3367,7 +3395,7 @@ function [window, bins] = tmfc_FIR_GUI(cases)
     function tmfc_FIR_BW_GUI_Exit(~,~)
     	window = NaN; 
     	bins = NaN; 
-    	delete(tmfc_FIR_BW_GUI);
+    	uiresume(tmfc_FIR_BW_GUI);
     end
 
     %----------------------------------------------------------------------
@@ -3391,8 +3419,10 @@ function [window, bins] = tmfc_FIR_GUI(cases)
             '(TR). Therefore, the number of FIR time bins is equal to:',''};
             TMFC_BW_DETAILS_2 = {'Number of FIR bins = FIR window length/TR'};
 
-        tmfc_FIR_help_S1 = uicontrol(tmfc_FIR_help,'Style','text','String', tmfc_help_str,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.035, 'Position',[0.06 0.16 0.885 0.800],'backgroundcolor',get(tmfc_FIR_help,'color'));
-        tmfc_FIR_help_S2 = uicontrol(tmfc_FIR_help,'Style','text','String', TMFC_BW_DETAILS_2,'Units', 'normalized', 'HorizontalAlignment', 'Center','fontunits','normalized', 'fontSize', 0.30, 'Position',[0.06 0.10 0.885 0.10],'backgroundcolor',get(tmfc_FIR_help,'color'));
+        if isunix; fontscale = 0.8; else; fontscale = 1; end    
+
+        tmfc_FIR_help_S1 = uicontrol(tmfc_FIR_help,'Style','text','String', tmfc_help_str,'Units', 'normalized', 'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.035*fontscale, 'Position',[0.06 0.16 0.885 0.800],'backgroundcolor',get(tmfc_FIR_help,'color'));
+        tmfc_FIR_help_S2 = uicontrol(tmfc_FIR_help,'Style','text','String', TMFC_BW_DETAILS_2,'Units', 'normalized', 'HorizontalAlignment', 'Center','fontunits','normalized', 'fontSize', 0.30*fontscale, 'Position',[0.06 0.10 0.885 0.10],'backgroundcolor',get(tmfc_FIR_help,'color'));
         tmfc_FIR_help_ok = uicontrol(tmfc_FIR_help,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.35, 'Position',[0.39 0.04 0.240 0.070],'callback', @tmfc_FIR_help_close);
         movegui(tmfc_FIR_help,'center');
 
@@ -3409,21 +3439,22 @@ function [window, bins] = tmfc_FIR_GUI(cases)
         bins_tmp = str2double(get(tmfc_FIR_BW_GUI_E2, 'String'));
 
         if isnan(window_tmp)
-        	warning('Please enter non-negative number for the window length.');
+        	fprintf(2,'Please enter non-negative number for the window length.\n');
         elseif ~isnan(window_tmp) && isnan(bins_tmp)
-        	warning('Please enter natural number for time bins.');
+        	fprintf(2,'Please enter natural number for time bins.\n');
         elseif ~(window_tmp > 0)
-        	warning('Please enter non-negative number for the window length.');
+        	fprintf(2,'Please enter non-negative number for the window length.\n');
         elseif ~(bins_tmp > 0 && floor(bins_tmp) == bins_tmp)
-        	warning('Please enter natural number for time bins.');
+        	fprintf(2,'Please enter natural number for time bins.\n');
         else
         	window = window_tmp; 
         	bins = bins_tmp;   
-        	delete(tmfc_FIR_BW_GUI);
+        	uiresume(tmfc_FIR_BW_GUI);
         end
     end
 
-    uiwait();    
+    uiwait(tmfc_FIR_BW_GUI);    
+    delete(tmfc_FIR_BW_GUI);
 end
 
 %% ===============[ Dialog box for BGFC recomputation ]====================
@@ -3434,15 +3465,19 @@ recompute_BGFC_GUI = figure('Name', 'BGFC', 'NumberTitle', 'off', 'Units', 'norm
 BGFC_details = {strcat('BGFC was calculated for all subjects. FIR settings: ', 32, num2str(tmfc.FIR.window), ...
              ' [s] window and ', 32, num2str(tmfc.FIR.bins),' time bins.'),...
              'To calculate BGFC with different FIR settings, recompute FIR task regression with desired window length and number of time bins.'};
-BGFC_recomp_GUI_S1 = uicontrol(recompute_BGFC_GUI,'Style','text','String',BGFC_details,'Units', 'normalized', 'Position',[0.05 0.5 0.90 0.30],'fontunits','normalized','fontSize', 0.38,'backgroundcolor','w');
+
+if isunix; fontscale = 0.9; else; fontscale = 1; end
+
+BGFC_recomp_GUI_S1 = uicontrol(recompute_BGFC_GUI,'Style','text','String',BGFC_details,'Units', 'normalized', 'Position',[0.05 0.5 0.90 0.30],'fontunits','normalized','fontSize', 0.38*fontscale,'backgroundcolor','w');
 BGFC_recomp_ok = uicontrol(recompute_BGFC_GUI,'Style','pushbutton', 'String', 'OK','Units', 'normalized', 'Position',[0.45 0.18 0.1 0.24],'fontunits','normalized','fontSize', 0.40,'callback', @ok_action);
 movegui(recompute_BGFC_GUI,'center');
 
 function ok_action(~,~)
-    delete(recompute_BGFC_GUI);
+    uiresume(recompute_BGFC_GUI);
 end
 
-uiwait();
+uiwait(recompute_BGFC_GUI);
+delete(recompute_BGFC_GUI);
 
 end
 

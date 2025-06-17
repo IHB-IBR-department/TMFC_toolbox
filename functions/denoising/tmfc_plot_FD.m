@@ -59,13 +59,14 @@ ax_frame = axes(FD_MW,'Units','normalized','Position',[0.075 0.43 .85 .3],'color
 box on; xlabel(ax_frame,'Scans','FontSize',9); ylabel(ax_frame,'FD, [mm]','FontSize',9); S = plot([0]);
 
 % GUI elements
+if isunix; fontscale = 0.85; else; fontscale = 1; end
 note_str = {'NOTE: Selected FD threshold will be used to create spike regressors (SpikeReg). For each flagged time point, a unit impulse function is included in general linear model. The number of spike regressors is equal to the number of flagged scans.'};
 FD_MW_panel_1 = uipanel(FD_MW,'Units','normalized','Position',[0.075 0.15 0.48 0.22],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
 FD_MW_panel_2 = uipanel(FD_MW,'Units','normalized','Position',[0.57 0.15 0.356 0.22],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');
-FD_MW_info_box = uicontrol(FD_MW,'Style','text','String',[],'Units','normalized','Position',[0.09 0.160 0.45 0.2],'fontunits','normalized','FontSize',0.09,'HorizontalAlignment','left','backgroundcolor','w');
+FD_MW_info_box = uicontrol(FD_MW,'Style','text','String',[],'Units','normalized','Position',[0.09 0.160 0.45 0.2],'fontunits','normalized','FontSize',0.09*fontscale,'HorizontalAlignment','left','backgroundcolor','w');
 FD_MW_threshold = uicontrol(FD_MW,'Style','pushbutton','String','FD threshold [mm]:','Units','normalized','Position',[0.66 0.27 0.18 0.050],'FontUnits','normalized','FontSize',0.34,'callback',@get_FDthr);
 FD_MW_thres_edit = uicontrol(FD_MW,'Style','Edit','String','0.5','Units','normalized','Position',[0.66 0.20 0.18 0.050],'FontUnits','normalized','FontSize',0.4,'backgroundcolor','w');
-FD_MW_note_txt = uicontrol(FD_MW,'Style','text','String',note_str,'Units','normalized','Position',[0.075 0.06 0.85 0.078],'fontunits','normalized','FontSize',0.22,'HorizontalAlignment','left','backgroundcolor','w','Visible',spikenote);
+FD_MW_note_txt = uicontrol(FD_MW,'Style','text','String',note_str,'Units','normalized','Position',[0.075 0.06 0.85 0.078],'fontunits','normalized','FontSize',0.22*fontscale,'HorizontalAlignment','left','backgroundcolor','w','Visible',spikenote);
 FD_MW_OK = uicontrol(FD_MW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.30 0.03 0.15 0.045],'FontUnits','normalized','FontSize',0.34,'callback',@confirm_FDthr);
 FD_MW_SAVE = uicontrol(FD_MW,'Style','pushbutton','String','Save','Units','normalized','Position',[0.55 0.03 0.15 0.045],'FontUnits','normalized','FontSize',0.34,'callback',@save_data);
 
@@ -89,9 +90,9 @@ end
 function FD_MW_exit(~,~)
     FDthr = 0.5;
     if spikenote == 1
-        warning('The default FD threshold of 0.5 mm will be used for spike regression.');
+        fprintf(2,'The default FD threshold of 0.5 mm will be used for spike regression.\n');
     end
-    delete(FD_MW);
+    uiresume(FD_MW);
 end
 
 % Change FDthr
@@ -99,9 +100,9 @@ end
 function get_FDthr(~,~)    
     temp_prefix = str2double(get(FD_MW_thres_edit,'String'));
     if isnan(temp_prefix)
-        warning('Please enter a non-negative value for the FD threshold.');
+        fprintf(2,'Please enter a non-negative value for the FD threshold.\n');
     elseif temp_prefix < 0
-        warning('Please enter a non-negative value for the FD threshold.');
+        fprintf(2,'Please enter a non-negative value for the FD threshold.\n');
     else
         FDthr = temp_prefix;
         selected_subject = get(FD_MW_LB1,'Value');
@@ -113,7 +114,7 @@ end
 %--------------------------------------------------------------------------
 function confirm_FDthr(~,~)
     fprintf('Selected FD threshold is: %.3f mm.\n',FDthr);
-    delete(FD_MW);
+    uiresume(FD_MW);
 end
 
 % Generate FD plot
@@ -196,7 +197,7 @@ function save_data(~,~)
     if isempty(SPM_paths)
         [filename, pathname] = uiputfile('*.mat', 'Save FD group statistics');
         if isequal(filename,0) || isequal(pathname,0)
-            warning('FD group statistics not saved. File name or path not selected.'); 
+            fprintf(2,'FD group statistics not saved. File name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             save(fullpath,'FD','FDthr','flagged','N_25prc','N_50prc','N_75prc','N_95prc', ...
@@ -206,7 +207,7 @@ function save_data(~,~)
     else   
         [filename, pathname] = uiputfile('*.mat', 'Save FD group statistics and TMFC denoise settings');
         if isequal(filename,0) || isequal(pathname,0)
-            warning('FD group statistics not saved. File name or path not selected.'); 
+            fprintf(2,'FD group statistics not saved. File name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             denoising_settings.SPM_paths = SPM_paths;
@@ -222,5 +223,6 @@ function save_data(~,~)
     end
 end
 
-uiwait();
+uiwait(FD_MW);
+delete(FD_MW);
 end

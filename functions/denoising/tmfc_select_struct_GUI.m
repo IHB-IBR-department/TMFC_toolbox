@@ -26,8 +26,6 @@ function [struct_paths] =  tmfc_select_struct_GUI(subject_paths)
 %
 % Contact email: masharipov@ihb.spb.ru
 
-
-warning('backtrace','off')
 struct_paths = [];
 txt_filter = '';
 struct_subfolder = '';
@@ -58,8 +56,8 @@ movegui(ST_MW,'center');
 % Close GUI 
 function ST_MW_exit(~,~)
     struct_paths = [];
-    warning('Structural images are not selected.');
-    delete(ST_MW);
+    fprintf(2,'Structural images are not selected.\n');
+    uiresume(ST_MW);
 end
 
 % Select 'struct' subfolder for the first subject
@@ -70,12 +68,13 @@ function select_subfolder(~,~)
        set(ST_MW_LB1,'String','');
        set(ST_MW_S1_txt,'String','Selected','ForegroundColor',[0.219 0.341 0.137])
     else
-       warning('Please select ''structural'' subfolder for 1st subject.'); 
+       fprintf(2,'Please select ''structural'' subfolder for 1st subject.\n'); 
     end
 end
 
 % Apply text filter and generate paths 
 function apply_filter(~,~)
+    f = msgbox('Selecting structural images. Please wait . . .');
     if ~isempty(struct_subfolder)
         txt_filter = get(ST_MW_S2_E,'String');
         txt_filter = strrep(txt_filter,' ','');
@@ -101,11 +100,12 @@ function apply_filter(~,~)
             set(ST_MW_LB1,'String',struct_paths);
             clear struct_file
         else
-            warning('Filter is empty or invalid, please re-enter.');
+            fprintf(2,'Filter is empty or invalid, please re-enter.\n');
         end
     else
-        warning('Please select ''structural'' subfolder for 1st subject before applying text filter.');
+        fprintf(2,'Please select ''structural'' subfolder for 1st subject before applying text filter.\n');
     end
+    try; close(f); end
 end
 
 % Clear struct paths
@@ -128,7 +128,7 @@ function add_images(~,~)
     struct_paths = spm_select(inf,'any','Select structural images for all subjects',{},subject_paths{1},'T1.*\.nii$');
     struct_paths = cellstr(struct_paths);
     if isempty(struct_paths)
-        warning('Structural images are not selected, please try again.');
+        fprintf(2,'Structural images are not selected, please try again.\n');
     end
     set(ST_MW_LB1,'String',struct_paths);
 end
@@ -138,9 +138,9 @@ function export_paths(~,~)
     if ~isempty(struct_paths)
         if size(struct_paths,1) == size(subject_paths,1) 
             disp('Structural images have been selected.');
-            delete(ST_MW);
+            uiresume(ST_MW);
         elseif size(struct_paths,1) > size(subject_paths,1) 
-            warning('The number of structural images should be equal to the number of selected SPM.mat files. Please try again.');
+            fprintf(2,'The number of structural images should be equal to the number of selected SPM.mat files. Please try again.\n');
         else
             if isempty(no_file)
                 no_file = [];
@@ -151,7 +151,7 @@ function export_paths(~,~)
             missing_file_GUI(no_file);
          end
     else 
-        warning('No images selected, please try again.');
+        fprintf(2,'No images selected, please try again.\n');
     end
 end
 
@@ -162,11 +162,12 @@ function missing_file_GUI(file_missing)
     ST_WW_S1 = uicontrol(ST_WW,'Style','text','String','Warning, structural images are missing for the following subjects:','Units','normalized','Position',[0.15 0.820 0.720 0.095],'FontUnits','normalized','FontSize',0.5,'backgroundcolor','w');
     ST_WW_close = uicontrol(ST_WW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.415 0.06 0.180 0.120],'FontUnits','normalized','FontSize',0.30,'callback',@close_SS_WW);
     movegui(ST_WW,'center');
-    uiwait();        
+    uiwait(ST_WW); 
     function close_SS_WW(~,~)
         close(ST_WW);
     end
 end
 
-uiwait();
+uiwait(ST_MW);
+delete(ST_MW);
 end
