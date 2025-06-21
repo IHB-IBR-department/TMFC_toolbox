@@ -233,7 +233,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
         % Contrast weights
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
         cond_col = [];
-        if ~isnan(conditions)
+        if isstruct(conditions)
             for iCond = 1:length(conditions)
                 FCi = [];
                 FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
