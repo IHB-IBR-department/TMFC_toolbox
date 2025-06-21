@@ -1,4 +1,4 @@
-function y = tmfc_extract_GM_residuals(SPM,GM_path,c)
+function GM_res = tmfc_extract_GM_residuals(SPM,GM_path,c)
 
 % This is a modification of the original 'spm_write_residuals' function.
 %
@@ -29,6 +29,8 @@ DIM = SPM.xY.VY(1).dim(1:min(numel(SPM.xY.VY(1).dim),3));
 chunksize = floor(spm_get_defaults('stats.maxmem') / 8 / nScan);
 nbchunks  = ceil(prod(DIM) / chunksize);
 chunks    = min(cumsum([1 repmat(chunksize,1,nbchunks)]),prod(DIM)+1);
+
+GM_res = [];
 
 for i=1:nbchunks
     chunk = chunks(i):chunks(i+1)-1;
@@ -74,6 +76,8 @@ for i=1:nbchunks
             y = y - SPM.xX.xKXs.X * beta;
         end 
     end
+
+    GM_res = [GM_res y];
 end
 
 cd(cwd);
