@@ -5,7 +5,7 @@
 
 -------------------------------------------------------------------------------------------
 
-**TMFC** is a MATLAB toolbox for SPM12 for task-modulated functional connectivity analysis.
+**TMFC** is a MATLAB toolbox for SPM12/SPM25 for task-modulated functional connectivity analysis.
 
 TMFC toolbox implements:
  - Beta-series correlations based on the least-squares separate appoach (**BSC-LSS**);
@@ -23,7 +23,7 @@ If you use TMFC toolbox, please cite this study: <br/>
 
 The current version of the toolbox is fully functional on MATLAB R2014a and later releases.
 
-1) Add SPM12 to your MATLAB path (in case the user has not already done so);
+1) Add SPM12/SPM25 to your MATLAB path (in case the user has not already done so);
 2) Add TMFC toolbox to your MATLAB path (Home --> Set path --> Add with Subfolders --> Select TMFC_toolbox folder);
 3) Enter **TMFC** in command window to open TMFC GUI <br/>
    or <br/>
@@ -49,7 +49,7 @@ To prepare example data and estimate basic GLMs run this code:
 ```matlab
 
 % BEFORE RUNNING THIS SCRIPT:
-% 1) Set path to SPM12
+% 1) Set path to SPM12/SPM25
 % 2) Set path to TMFC_toolbox (Add with subfolders)
 % 3) Change current working directory to: '...\TMFC_toolbox\examples'
 
@@ -217,7 +217,7 @@ Click **LSS GLM** button and select conditions of interest (individual betas wil
 <img src = "illustrations/03_Select_conditions_of_interest.PNG">
 </p>
 
-Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\LSS_regression"** folder with subfolders for each subject. Subjects' subfolders will contain **trial-wise beta images** and **SPM12 batches for individual trial GLMs**. 
+Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\LSS_regression"** folder with subfolders for each subject. Subjects' subfolders will contain **trial-wise beta images** and **SPM batches for individual trial GLMs**. 
 
 ## Beta-series correlaction based on LSS regression (BSC-LSS)
 
@@ -248,7 +248,7 @@ Click OK to calculate the new contrast. Each time you need to calculate a new co
 
 ### Seed-to-voxel results
 
-You can use the SPM12 software to perform voxel-wise statistical inference. Click "Specify 2nd-level" button, select "One-sample t-test" and specify 20 contrast files for the "Cond_A_vs_Cond_B" contrast and the selected seed ROI from the **...\Seed_to_voxel\ROI_name** subfolder.
+You can use the SPM12/SPM25 software to perform voxel-wise statistical inference. Click "Specify 2nd-level" button, select "One-sample t-test" and specify 20 contrast files for the "Cond_A_vs_Cond_B" contrast and the selected seed ROI from the **...\Seed_to_voxel\ROI_name** subfolder.
 
 ### ROI-to-ROI results
 
@@ -328,7 +328,7 @@ Click **"FIR task regression"** button and specify FIR window length and the num
 <img src = "illustrations/05_FIR_GUI.PNG">
 </p>
 
-Click OK. Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\FIR_regression"** folder with subjects' subfolders. Subjects' subfolders will contain **residuals (*.nii images)**, as well as **SPM12 batches and SPM.mat files for FIR GLMs**. 
+Click OK. Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\FIR_regression"** folder with subjects' subfolders. Subjects' subfolders will contain **residuals (*.nii images)**, as well as **SPM batches and SPM.mat files for FIR GLMs**. 
 
 To perform BSC-LSS analysis after FIR task regression (using residual time series), click **BSC LSS after FIR** button. The following steps are similar to those for the BSC-LSS analysis.
 
@@ -338,26 +338,26 @@ To perform gPPI analysis, we first need to extract time series from the seed ROI
 
 ### Volume of interest (VOI) 
 
-Click **"VOIs"** button to extract time series for the selected ROI set. Select conditions of interest. All other conditions will be considered as nuisance conditions. TMFC toolbox uses SPM12 volume of interest (VOI) function to extract time series. It extracts the first eigenvariate for the seed ROI after removing effects of no interest (using nuisance regressors, such as motion regressors, aCompCorr regressors, regressors for conditions of no interest, etc), and performing whitening and high-pass filtering.
+Click **"VOIs"** button to extract time series for the selected ROI set. Select conditions of interest. All other conditions will be considered as nuisance conditions. TMFC toolbox uses SPM volume of interest (VOI) function to extract time series. It extracts the first eigenvariate for the seed ROI after removing effects of no interest (using nuisance regressors, such as motion regressors, aCompCorr regressors, regressors for conditions of no interest, etc), and performing whitening and high-pass filtering.
 
-Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\VOIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM12 **VOI .mat files**.
+Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\VOIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **VOI .mat files**.
 
 ### Psyhophysiological interaction (PPI) terms
 
-Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM12 Parametric Empirical Bayes (PEB) function to calulate PPI terms.
+Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM Parametric Empirical Bayes (PEB) function to calulate PPI terms.
 Select two options:
 1) "Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
 2) "Enable/Disable whitening inversion" ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
 
    
-Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\PPIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM12 **PPI .mat files**.
+Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\PPIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **PPI .mat files**.
 
 ### gPPI analysis
 
 Click **"gPPI"** button to perform gPPI analysis. 
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\gPPI"** folder with three subfolders:
-* **GLM_batches** - containes SPM12 batches for gPPI GLMs;
+* **GLM_batches** - containes SPM batches for gPPI GLMs;
 * **ROI_to_ROI**  - containes **gPPI functional connectivity matrices** (asymmetrical and symmetrical, symmetrization is carried out by averaging the upper and lower diagonal elements);
 * **Seed_to_voxel** - containes **voxel-by-voxel gPPI images** calculated for each seed ROI.
 
