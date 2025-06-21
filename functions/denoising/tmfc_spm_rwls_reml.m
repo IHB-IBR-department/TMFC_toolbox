@@ -113,7 +113,7 @@ end
 % hyperpriors
 %--------------------------------------------------------------------------
 try, hE = hE(:);                               catch, hE = 0;   end
-try, hP = inv(hC + speye(length(hC))/exp(16)); catch, hP = 1/256; end
+try, hP = inv(hC + speye(length(hC))/exp(16)); catch, hP = 1/32; end % hP changed from 1/256 tp 1/32 to improve rWLS estimation
  
 % check sise
 %--------------------------------------------------------------------------

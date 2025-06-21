@@ -3299,7 +3299,7 @@ function [continue_status] = tmfc_continue_GUI(iSub,option)
             restart_str = 'Cancel';            
     end
 
-    if isunix; fontscale = 0.95; else; fontscale = 1; end
+    if isunix; fontscale = 0.8; else; fontscale = 1; end
 
     tmfc_cont_MW = figure('Name', cont_str_0, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.20 0.18], 'Resize', 'off', 'color', 'w', ...
                       'MenuBar', 'none', 'ToolBar', 'none', 'Tag', 'Contd_FIR','CloseRequestFcn', @cancel); 
@@ -3466,7 +3466,7 @@ BGFC_details = {strcat('BGFC was calculated for all subjects. FIR settings: ', 3
              ' [s] window and ', 32, num2str(tmfc.FIR.bins),' time bins.'),...
              'To calculate BGFC with different FIR settings, recompute FIR task regression with desired window length and number of time bins.'};
 
-if isunix; fontscale = 0.9; else; fontscale = 1; end
+if isunix; fontscale = 0.85; else; fontscale = 1; end
 
 BGFC_recomp_GUI_S1 = uicontrol(recompute_BGFC_GUI,'Style','text','String',BGFC_details,'Units', 'normalized', 'Position',[0.05 0.5 0.90 0.30],'fontunits','normalized','fontSize', 0.38*fontscale,'backgroundcolor','w');
 BGFC_recomp_ok = uicontrol(recompute_BGFC_GUI,'Style','pushbutton', 'String', 'OK','Units', 'normalized', 'Position',[0.45 0.18 0.1 0.24],'fontunits','normalized','fontSize', 0.40,'callback', @ok_action);

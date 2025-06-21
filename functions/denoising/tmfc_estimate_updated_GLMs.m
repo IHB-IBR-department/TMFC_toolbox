@@ -77,15 +77,21 @@ spm('defaults','fmri');
 spm_jobman('initcfg');
 jSub = 0;
 for iSub = 1:length(SPM_paths)
-    if exist(fullfile(output_paths{iSub},'SPM.mat'),'file')
-        SPMnew = load(fullfile(output_paths{iSub},'SPM.mat'));
-        if ~isfield(SPMnew.SPM,'Vbeta')
-            rmdir(output_paths{iSub},'s');
-        end
-        clear SPMnew
+%     % Delete GLM folder, if model has not been estimated:
+%     if exist(fullfile(output_paths{iSub},'SPM.mat'),'file')
+%         SPMnew = load(fullfile(output_paths{iSub},'SPM.mat'));
+%         if ~isfield(SPMnew.SPM,'Vbeta')
+%             rmdir(output_paths{iSub},'s');
+%         end
+%         clear SPMnew
+%     end
+    % Delete previosly created GLM folder:
+    if exist(output_paths{iSub},'dir')
+        rmdir(output_paths{iSub},'s');
     end
-    if ~exist(fullfile(output_paths{iSub}),'dir')
-        mkdir(fullfile(output_paths{iSub}));
+
+    if ~exist(output_paths{iSub},'dir')
+        mkdir(output_paths{iSub});
     end
 
     % Specify GLM with noise regressors
@@ -200,7 +206,7 @@ for iSub = 1:length(SPM_paths)
             Conf = []; ConfName = {};
             % HMP
             if ~strcmp(options.motion,'6HMP')
-                Conf = [Conf HMP(jSess).Sess(:,7:end)]; % Start with 7th HMP, as 6HMP is already added
+                Conf = [Conf HMP(jSess).Sess(:,7:end)]; % Start with 7th HMP, since 6HMP is already added
                 C = cell(size(HMP(jSess).Sess(:,7:end),2),1); C(:) = {'HMP'};
                 ConfName = [ConfName; C]; clear C
             end

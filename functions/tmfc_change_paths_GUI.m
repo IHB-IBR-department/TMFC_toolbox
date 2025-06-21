@@ -34,16 +34,16 @@ function tmfc_change_paths_GUI(paths)
 
 tmfc_CP_MW = figure('Name', 'Change paths', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.30 0.40 0.35 0.26],'Resize','off','color','w','MenuBar', 'none','ToolBar', 'none');
 
-if isunix; fontscale1 = 0.8; xloc = 1.25; else; fontscale1 = 1; xloc = 1; end
+if isunix; fontscale1 = 0.8; xloc = 1.2; else; fontscale1 = 1; xloc = 1; end
 
 tmfc_CP_MW_S1 = uicontrol(tmfc_CP_MW,'Style','text','String', 'Change paths in SPM.mat files','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20, 'Position', [0.18 0.66 0.660 0.300],'backgroundcolor',get(tmfc_CP_MW,'color'));
-tmfc_CP_MW_S2 = uicontrol(tmfc_CP_MW,'Style','text','String', 'Old pattern (e.g., C:\Project_folder\Subjects):','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20*fontscale1, 'Position', [0.05*xloc 0.55 0.450 0.260],'backgroundcolor',get(tmfc_CP_MW,'color'));
+tmfc_CP_MW_S2 = uicontrol(tmfc_CP_MW,'Style','text','String', 'Old pattern (e.g., C:\Project_folder\Subjects):','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20*fontscale1, 'Position', [0.055*xloc 0.55 0.450 0.260],'backgroundcolor',get(tmfc_CP_MW,'color'));
 tmfc_CP_MW_E1 = uicontrol(tmfc_CP_MW,'Style','edit','String', '','Units', 'normalized','fontunits','normalized', 'fontSize', 0.50,'HorizontalAlignment', 'left', 'Position', [0.05 0.60 0.880 0.110]);
 
 tmfc_CP_MW_S3 = uicontrol(tmfc_CP_MW,'Style','text','String', 'New pattern (e.g., E:\All_Projects\Project_folder\Subjects):','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20*fontscale1, 'Position', [0.048 0.29 0.590 0.260],'backgroundcolor',get(tmfc_CP_MW,'color'));
 tmfc_CP_MW_E2 = uicontrol(tmfc_CP_MW,'Style','edit','String', '','Units', 'normalized','fontunits','normalized', 'fontSize', 0.50,'HorizontalAlignment', 'left', 'Position', [0.05 0.35 0.880 0.110]);
 
-tmfc_CP_MW_S4 = uicontrol(tmfc_CP_MW,'Style','text','String', 'Backups of original SPM.mat files are made with the ''.old'' suffix','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20*fontscale1, 'Position', [0.048 0.06 0.640 0.260],'backgroundcolor',get(tmfc_CP_MW,'color'));
+tmfc_CP_MW_S4 = uicontrol(tmfc_CP_MW,'Style','text','String', 'Backups of original SPM.mat files are made with the ''.old'' suffix','Units', 'normalized','fontunits','normalized', 'fontSize', 0.20*fontscale1, 'Position', [0.046 0.06 0.640 0.260],'backgroundcolor',get(tmfc_CP_MW,'color'));
 
 tmfc_CP_MW_OK = uicontrol(tmfc_CP_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized','fontunits','normalized', 'fontSize', 0.35, 'Position', [0.26 0.05 0.180 0.130],'callback', @execute_change);
 tmfc_CP_MW_Help = uicontrol(tmfc_CP_MW,'Style','pushbutton', 'String', 'Help','Units', 'normalized','fontunits','normalized', 'fontSize', 0.35, 'Position', [0.54 0.05 0.180 0.130],'callback', @help_window);
