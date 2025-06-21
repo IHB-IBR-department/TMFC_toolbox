@@ -12,6 +12,7 @@ TMFC toolbox implements:
  - Generalized psyhophysiological interactions (**gPPI**) with deconvolution procedure;
  - **Seed-to-voxel** analysis and **ROI-to-ROI** analysis (to create FC matrices);
  - Finite impulse response (**FIR**) task regression to remove co-activations;
+ - **TMFC denoise**: toolbox to perform denoising for further TMFC analysis. Caluclates 12HMP/24HMP, FD/DVARS, aCompCorr, GSR, WM/CSF regression, spike regression and robust WLS.
  - Graphical user interface (**GUI**) and command line interface (**CLI**);
  - RAM control (allows to estimate model parameters in the whole-brain at a time without dividing into chunks);
  - Parralel computations.
@@ -28,6 +29,48 @@ The current version of the toolbox is fully functional on MATLAB R2014a and late
 3) Enter **TMFC** in command window to open TMFC GUI <br/>
    or <br/>
 4) See [TMFC_command_window_example.m](examples/TMFC_command_window_example.m) to run TMFC functions via command line.
+
+## Prepare your data
+
+TMFC toolbox uses information from SPM.mat files to obtain paths to fMRI files.
+
+**If you estimated first-level GLMs and then moved the GLM and fMRI data folders to another location, you need to change paths in SPM.mat files**.
+
+Click **Tools** button:
+
+<p align="center">
+<img src = "illustrations/08_Change_paths_1.PNG">
+</p>
+
+Next, click **Change paths** button and select subjects for which you want to update the SPM.mat files. Enter the old path pattern (see **SPM.swd** field in SPM.mat file) and the new path pattern:
+
+<p align="center">
+<img src = "illustrations/08_Change_paths_2.PNG">
+</p>
+
+Click OK.
+
+## TMFC denoise
+
+To perform denoising for TMFC analysis, click **Tools** button and then click **Denoise**. 
+
+Select select subjects for which you want to update the SPM.mat files. 
+
+Select **denoising parameters**:
+
+<p align="center">
+<img src = "illustrations/TMFC_denoise_options.PNG" width = 470>
+</p>
+
+Inspect FD/DVARS correlation after denoising:
+
+<p align="center">
+<img src = "illustrations/TMFC_denoise_results.PNG" width = 700>
+</p>
+
+TMFC denoise will add denoising regressors to the selected models. SPM.mat files for updated models will be stored in **TMFC_denoise subfolders**.
+
+The updated models with noise regressors can be used for further TMFC analysis (select the updated SPM.mat files during **Subject selection**).
 
 ## Example data
 
@@ -415,24 +458,6 @@ Results for edge-wise inference with FDR-correction ("TaskA vs TaskB"):
 <p align="center">
 <img src = "illustrations/07_gPPI_FIR_results.png">
 </p>
-
-## Change paths
-
-TMFC toolbox uses information from SPM.mat files to obtain paths to fMRI files. If you estimated first-level GLMs and then moved the GLM and fMRI data folders to another location, you need to change paths in SPM.mat files.
-
-Click **Tools** button:
-
-<p align="center">
-<img src = "illustrations/08_Change_paths_1.PNG">
-</p>
-
-Next, click **Change paths** button and select subjects for which you want to update the SPM.mat files. Enter the old path pattern (see **SPM.swd** field in SPM.mat file) and the new path pattern:
-
-<p align="center">
-<img src = "illustrations/08_Change_paths_2.PNG">
-</p>
-
-Click OK.
 
 ## Example of TMFC usage from command line
 
