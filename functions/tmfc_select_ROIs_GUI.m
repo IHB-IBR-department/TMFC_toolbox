@@ -437,7 +437,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
             otherwise
                 for jSub = 1:nSub
                     binary_mask = [];
-                    binary_mask = spm_data_read(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',['Subject_' num2str(jSub,'%04.f')],[ROI_set.ROIs(iROI).name '.nii']),'xyz',XYZ);
+                    binary_mask = spm_data_read(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(jSub).name,[ROI_set.ROIs(iROI).name '.nii']),'xyz',XYZ);
                     sub_size(jSub) = nnz(binary_mask);
                 end
                 ROI_set.ROIs(iROI).raw_size = min(sub_size);
