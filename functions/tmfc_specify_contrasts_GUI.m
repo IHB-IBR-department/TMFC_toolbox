@@ -353,22 +353,22 @@ function [title,weights] = specify_contrast(tmfc, ROI_set_number,TMFC_analysis)
         contrast_weight = get(SW_MW_CW, 'String');
 
         if strcmp(contrast_title,'') || strcmp(contrast_title(1),' ') 
-            fprintt(2,'Title not entered or invalid, please re-enter.\n');            
+            fprintf(2,'Title not entered or invalid, please re-enter.\n');            
 
         elseif ~isempty(str2num(contrast_title(1)))
-            fprintt(2,'The title name cannot consist only of numbers, please re-enter.\n');
+            fprintf(2,'The title name cannot consist only of numbers, please re-enter.\n');
 
         elseif strcmp(contrast_weight, '') || strcmp(contrast_weight, ' ')
-            fprintt(2,'Contrast weights not entered or invalid, please re-enter.\n');
+            fprintf(2,'Contrast weights not entered or invalid, please re-enter.\n');
 
         elseif isempty(str2num(contrast_weight))
-            fprintt(2,'Contrast weights are not numeric, please re-enter.\n');
+            fprintf(2,'Contrast weights are not numeric, please re-enter.\n');
 
         elseif length(str2num(contrast_weight)) > nCondOfInterest
-            fprintt(2,'Contrast length is greater than the number of conditions of interest, please re-enter.\n');
+            fprintf(2,'Contrast length is greater than the number of conditions of interest, please re-enter.\n');
 
         elseif length(str2num(contrast_weight)) < nCondOfInterest
-            fprintt(2,'Contrast length is less than the number of conditions of interest, please re-enter.\n');
+            fprintf(2,'Contrast length is less than the number of conditions of interest, please re-enter.\n');
 
         else
             title = contrast_title;
