@@ -170,8 +170,8 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 %% BSC-LSS: Results
 
 % Load BSC-LSS matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-for i = 1:data.N 
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
+for iSub = 1:data.N 
+    M(iSub).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
         [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
@@ -253,8 +253,8 @@ contrast_number = [3,4];            % Calculate contrast #3 and #4
 
 % Load BSC-LSS (after FIR) matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
 clear M marices conval_1 thresholded_1
-for i = 1:data.N 
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI',...
+for iSub = 1:data.N 
+    M(iSub).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS_after_FIR','ROI_to_ROI',...
         [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
@@ -361,8 +361,8 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 
 % Load gPPI matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
 clear M marices conval_1 thresholded_1
-for i = 1:data.N 
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','ROI_to_ROI','symmetrical',...
+for iSub = 1:data.N 
+    M(iSub).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI','ROI_to_ROI','symmetrical',...
         [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
@@ -419,8 +419,8 @@ contrast_number = [3,4];            % Calculate contrasts #3 and #4
 
 % Load gPPI-FIR matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
 clear M marices conval_1 thresholded_1
-for i = 1:data.N 
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
+for iSub = 1:data.N 
+    M(iSub).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
         [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
 end
 matrices = cat(3,M(:).paths);
