@@ -456,10 +456,11 @@ function [file_dir,subject_file_dir] = check_file_dir(file_correct,subject_file_
         SPM = load(file_correct{iSub}).SPM;
 
         if ~isfield(SPM, 'swd')
+            close(w);
             error('SPM.swd field does not exist. Check SPM.mat files. Try to estimate GLM.');
         end
 
-        if exist(SPM.swd, 'dir') 
+        if exist(SPM.swd, 'dir')
             file_dir{iSub,1} = file_correct{iSub};
             subject_file_dir{iSub,1} = subject_file_correct{iSub};
         else

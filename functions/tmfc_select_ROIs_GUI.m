@@ -232,25 +232,26 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
         % Contrast weights
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
-        cond_col = [];
         if isstruct(conditions)
-            for iCond = 1:length(conditions)
-                FCi = [];
-                FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
-                try
-                    FCp = []; 
-                    FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
-                    FCi = FCi(FCp==conditions(iCond).pmod);
-                end
-                cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
-            end 
-            weights = zeros(length(cond_col),size(SPM.xX.X,2));
-            for iCond = 1:length(cond_col)
-                weights(iCond,cond_col(iCond)) = 1;
-            end
-            % Estimate contrasts
             w = waitbar(0,'Please wait...','Name','Calculating F-contrasts');
             for iSub = 1:nSub
+                cond_col = [];
+                SPM = load(tmfc.subjects(iSub).path).SPM;
+                for iCond = 1:length(conditions)
+                    FCi = [];
+                    FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
+                    try
+                        FCp = []; 
+                        FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
+                        FCi = FCi(FCp==conditions(iCond).pmod);
+                    end
+                    cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
+                end 
+                weights = zeros(length(cond_col),size(SPM.xX.X,2));
+                for iCond = 1:length(cond_col)
+                    weights(iCond,cond_col(iCond)) = 1;
+                end
+                % Estimate contrasts
                 matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
                 matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
                 matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
@@ -258,7 +259,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 matlabbatch{1}.spm.stats.con.delete = 0;
                 spm_get_defaults('cmdline',true);
                 spm_jobman('run',matlabbatch);
-                clear matlabbatch
+                clear matlabbatch SPM weights
                 try
                     waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
                 end

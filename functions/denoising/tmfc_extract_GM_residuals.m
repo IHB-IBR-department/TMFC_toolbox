@@ -34,6 +34,8 @@ GM_res = [];
 
 for i=1:nbchunks
     chunk = chunks(i):chunks(i+1)-1;
+
+    %disp(['Chunk  ' num2str(i) '/' num2str(nbchunks)]);
     
     %-Get GM mask
     %----------------------------------------------------------------------

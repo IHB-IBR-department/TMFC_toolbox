@@ -38,7 +38,7 @@ if nargin == 3
 end
 
 % GUI elements
-DVARS_MW = figure('Name','Framewise displacement','NumberTitle','off','Units','normalized','Position',[0.25 0.09 0.50 0.80],'MenuBar','none','ToolBar','none','color','w','CloseRequestFcn',@DVARS_MW_exit);
+DVARS_MW = figure('Name','Framewise displacement and DVARS','NumberTitle','off','Units','normalized','Position',[0.25 0.09 0.50 0.80],'MenuBar','none','ToolBar','none','color','w','CloseRequestFcn',@DVARS_MW_exit);
 DVARS_MW_txt = uicontrol(DVARS_MW,'Style','text','String','Select subject:','Units','normalized','Position',[0.075 0.94 0.85 0.038],'fontunits','normalized','FontSize',0.55,'HorizontalAlignment','Left','backgroundcolor','w');
 DVARS_MW_LB1 = uicontrol(DVARS_MW,'Style','listbox','String',[],'Max',1,'Value',1,'Units','normalized','Position',[0.075 0.76 0.85 0.180],'FontUnits','points','FontSize',12,'callback',@update_plot);
 movegui(DVARS_MW,'center');

@@ -77,19 +77,20 @@ spm('defaults','fmri');
 spm_jobman('initcfg');
 jSub = 0;
 for iSub = 1:length(SPM_paths)
-%     % Delete GLM folder, if model has not been estimated:
-%     if exist(fullfile(output_paths{iSub},'SPM.mat'),'file')
-%         SPMnew = load(fullfile(output_paths{iSub},'SPM.mat'));
-%         if ~isfield(SPMnew.SPM,'Vbeta')
-%             rmdir(output_paths{iSub},'s');
-%         end
-%         clear SPMnew
-%     end
-    % Delete previosly created GLM folder:
-    if exist(output_paths{iSub},'dir')
-        rmdir(output_paths{iSub},'s');
+    % Delete GLM folder, if model has not been estimated:
+    if exist(fullfile(output_paths{iSub},'SPM.mat'),'file')
+        SPMnew = load(fullfile(output_paths{iSub},'SPM.mat'));
+        if ~isfield(SPMnew.SPM,'Vbeta')
+            rmdir(output_paths{iSub},'s');
+        end
+        clear SPMnew
     end
-
+    
+%     % Delete previosly created GLM folder:
+%     if exist(output_paths{iSub},'dir')
+%         rmdir(output_paths{iSub},'s');
+%     end
+ 
     if ~exist(output_paths{iSub},'dir')
         mkdir(output_paths{iSub});
     end
