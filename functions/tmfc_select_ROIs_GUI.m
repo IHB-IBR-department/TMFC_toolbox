@@ -315,7 +315,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.roi{2}.sphere.centre =  [ROI_MS(jROI).X ROI_MS(jROI).Y ROI_MS(jROI).Z];
                     job.roi{2}.sphere.radius = ROI_MS(jROI).fixed_radius;
                     job.roi{2}.sphere.move.fixed = 1;
-                    job.roi{3}.sphere.centre = [0 0 0];
+                    job.roi{3}.sphere.centre = [ROI_MS(jROI).X ROI_MS(jROI).Y ROI_MS(jROI).Z];
                     job.roi{3}.sphere.radius = ROI_MS(jROI).moving_radius;
                     job.roi{3}.sphere.move.global.spm = 1;
                     job.roi{3}.sphere.move.global.mask = 'i2';
@@ -354,6 +354,16 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
             start_time = tic;
             count_sub = 1;
             cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
+            % Calculate centroid coordinates before masking
+            for iROI = 1:size(ROI_paths,1)
+                binary_mask = [];
+                coord = [];
+                binary_mask = spm_data_read(ROI_set.ROIs(iROI).path,'xyz',XYZ);
+                coord = XYZmm(:,(binary_mask ~= 0));
+                centre(iROI).X = mean(coord(1,:));
+                centre(iROI).Y = mean(coord(2,:));
+                centre(iROI).Z = mean(coord(3,:));
+            end
             for iSub = 1:nSub
                 SPM = load(tmfc.subjects(iSub).path).SPM;
                 for jROI = 1:size(ROI_paths,1)   
@@ -368,7 +378,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.roi{1}.spm.mask = struct('contrast', {}, 'thresh', {}, 'mtype', {});
                     job.roi{2}.mask.image = {ROI_set.ROIs(jROI).path};
                     job.roi{2}.mask.threshold = 0.1;
-                    job.roi{3}.sphere.centre = [0 0 0];
+                    job.roi{3}.sphere.centre = [centre(jROI).X centre(jROI).Y centre(jROI).Z];
                     job.roi{3}.sphere.radius = radius_vector(jROI);
                     job.roi{3}.sphere.move.global.spm = 1;
                     job.roi{3}.sphere.move.global.mask = 'i2';
@@ -1856,7 +1866,7 @@ end
 %% ===================[ F-contrast threshold GUI ]=========================
 function [threshold, mask_status] = F_contrast_GUI
 
-threshold = 0.005;
+threshold = 0.05;
 mask_status = 0;
 
 F_contrast_MW = figure('Name', 'Select ROIs: F-contrast', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.38 0.44 0.28 0.2],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_F_contrast_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
