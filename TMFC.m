@@ -2188,7 +2188,8 @@ function tmfc = update_tmfc_progress(tmfc)
         if ROI_check == 1
             set(main_GUI.TMFC_GUI_S2,'String', horzcat(tmfc.ROI_set(tmfc.ROI_set_number).set_name, ' (',num2str(length(tmfc.ROI_set(tmfc.ROI_set_number).ROIs)),' ROIs)'),'ForegroundColor',[0.219, 0.341, 0.137]); 
         else
-            warning('One or more ROI masks are missing. Check the ROI_sets subfolder.');
+            freeze_GUI(0); try; delete(w); end
+            error('One or more ROI masks are missing. Check the ROI_sets subfolder.');
         end
     end
     
@@ -2543,7 +2544,7 @@ end
 %% ========================[ PPI centering GUI ]===========================
 function [centering, whitening] = PPI_centering_GUI
 
-    centering = 'mean_centering';
+    centering = 'with_mean_centering';
     whitening = 'inverse';
     
     MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di, Reynolds and Biswal, 2017; Masharipov et al., 2024)'};

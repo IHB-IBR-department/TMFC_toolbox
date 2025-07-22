@@ -134,7 +134,7 @@ end
 if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI_whitening')
     tmfc.ROI_set(ROI_set_number).PPI_whitening = 'inverse';
 elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_whitening)
-    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'with_mean_centering';
+    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'inverse';
 end
 
 % Check subject names
@@ -359,7 +359,7 @@ for i = 1:size(U.u,2)
 end
 
 % Mean centering
-if strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'with_mean_centering')
+if strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'with_mean_centering') || strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'mean_centering') 
     PSY = spm_detrend(PSY);
 end
 
