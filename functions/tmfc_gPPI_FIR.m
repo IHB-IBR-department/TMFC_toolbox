@@ -262,7 +262,6 @@ for iSub = start_sub:nSub
             % Add PHYS regressors
             matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).name = ['Seed_' tmfc.ROI_set(ROI_set_number).ROIs(jROI).name];
             matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = PPI(find(sess == sess_num(kSess),1)).PPI.Y;
-            VOI.sess(kSess).Y(:,jROI) = PPI(find(sess == sess_num(kSess),1)).PPI.Y;
             
             % Confounds       
             for conf = 1:length(SPM.Sess(sess_num(kSess)).C.name)
