@@ -1,6 +1,6 @@
 function options = tmfc_denoise_options_GUI()
 
-% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% =[ Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.3 ]=
 % 
 % Opens a GUI for selecting denoising options.
 %
@@ -62,7 +62,7 @@ set_WM_CSM = {'None','Add WM and CSF signals (2Phys)','Add WM and CSF signals al
 set_GSR = {'None','Add whole-brain signal (GSR)','Add whole-brain signal and its temporal derivative (2GSR)','Add whole-brain signal, its temporal derivative and 2 quadratic terms (4GSR)'};
 set_PAR = {'None','Enable parallel computations'};
 
-tmfc_DN_GUI = figure('Name','TMFC denoise','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.345 0.062 0.310 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on','CloseRequestFcn',@close_options_GUI);
+tmfc_DN_GUI = figure('Name','TMFC denoise v1.3','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.345 0.062 0.310 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on','CloseRequestFcn',@close_options_GUI);
 movegui(tmfc_DN_GUI,'center');
 
 DN_MP_1 = uipanel(tmfc_DN_GUI,'Units','normalized','Position',[0.025 0.915 0.95 0.078],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType','line');

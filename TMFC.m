@@ -1,6 +1,6 @@
 function TMFC
     
-% ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
+% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.7.4 ]====
 %
 % Opens the main GUI window.
 %
@@ -86,7 +86,7 @@ if isempty(findobj('Tag', 'TMFC_GUI')) == 1
     tmfc.defaults.analysis = 1;
     
     % Main TMFC GUI
-    main_GUI.TMFC_GUI = figure('Name','TMFC Toolbox','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.63 0.0875 0.250 0.850], 'color', 'w', 'Tag', 'TMFC_GUI');
+    main_GUI.TMFC_GUI = figure('Name','TMFC Toolbox v1.7.4','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'norm', 'Position', [0.63 0.0875 0.250 0.850], 'color', 'w', 'Tag', 'TMFC_GUI');
     
     % Box Panels
     main_GUI.MP1 = uipanel(main_GUI.TMFC_GUI,'Units', 'normalized','Position',[0.03 0.85 0.94 0.13],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');

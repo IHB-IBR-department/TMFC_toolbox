@@ -1,6 +1,6 @@
 function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,display_FD,estimate_GLMs,clear_all)
 
-% =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
+% =[ Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.3 ]=
 % 
 % The TMFC denoise toolbox updates a selected general linear model with
 % the addition of noise regressors. It can be used prior to TMFC analysis 
@@ -161,7 +161,7 @@ function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,
 %
 % Contact email: masharipov@ihb.spb.ru
 
-disp('=============[TMFC denoise]=============');
+disp('=============[TMFC denoise: v1.3]=============');
 
 output_paths = [];
 
@@ -224,7 +224,15 @@ end
 
 % Clear "TMFC_denoise" subfolders
 if nargin<7
-    clear_all = 0;
+    answer = questdlg('Delete previosly created TMFC denoise files?', ...
+    'TMFC denoise', ...
+    'Do not delete','Delete','Do not delete');
+    switch answer
+        case 'Do not delete'
+            clear_all = 0;
+        case 'Delete'
+            clear_all = 1;
+    end
 end
 
 %-Create TMFC denoise subfolders
