@@ -1,4 +1,4 @@
-function output_paths = tmfc_denoise(SPM_paths,options,struct_paths,funct_paths,display_FD,estimate_GLMs,clear_all)
+function output_paths = TMFC_denoise(SPM_paths,options,struct_paths,funct_paths,display_FD,estimate_GLMs,clear_all)
 
 % =[ Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.3 ]=
 % 

@@ -1961,7 +1961,7 @@ function tools_GUI(~,~,~)
     
     % Denoising -----------------------------------------------------------
     function denoise(~,~)
-        tmfc_denoise;
+        TMFC_denoise;
         % Close tool window
         close(tmfc_tools_GUI);
     end

@@ -34,7 +34,7 @@ end
 
 % Create mask subfolders
 %--------------------------------------------------------------------------
-tmfc_dir = fileparts(which('tmfc_denoise.m'));
+tmfc_dir = fileparts(which('TMFC_denoise.m'));
 for iSub = 1:length(SPM_paths)
     GLM_subfolder = fileparts(SPM_paths{iSub});
     segment_paths{iSub,1} = fullfile(GLM_subfolder,'TMFC_denoise','Segment');
@@ -350,7 +350,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
         if ~exist(wWM_eroded_final{iSub},'file')  
             SPM = load(SPM_paths{iSub}).SPM;
             input_images{1,1} = wWM_eroded{iSub};
-            input_images{2,1} = fullfile(tmfc_dir,'masks','Harvard_Oxford_Brainstem_mask.nii');
+            input_images{2,1} = fullfile(tmfc_dir,'functions','masks','Harvard_Oxford_Brainstem_mask.nii');
             input_images{3,1} = fullfile(SPM.swd,SPM.VM.fname); 
             spm_imcalc(input_images,wWM_eroded_final{iSub},'(i1-i2).*i3>0.5',{0,0,0,2});
             clear input_images SPM
@@ -367,7 +367,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
         if ~exist(wCSF_eroded_final{iSub},'file')
             SPM = load(SPM_paths{iSub}).SPM;
             input_images{1,1} = wCSF_eroded{iSub};
-            input_images{2,1} = fullfile(tmfc_dir,'masks','ALVIN_mask.nii');
+            input_images{2,1} = fullfile(tmfc_dir,'functions','masks','ALVIN_mask.nii');
             input_images{3,1} = fullfile(SPM.swd,SPM.VM.fname); 
             spm_imcalc(input_images,wCSF_eroded_final{iSub},'(i1.*(i2>50).*i3)>0.5',{0,0,0,2});
             clear input_images SPM
