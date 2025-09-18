@@ -8,13 +8,13 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 %
 % The difference between classic gPPI GLM and gPPI-FIR GLM is that the
 % latter uses finite impulse response (FIR) functions (instead of canonical
-% HRF function) to model activations for conditions of interst and
+% HRF function) to model activations for conditions of interest and
 % conditions of no interest. The FIR model allows to model activations
-% with any possible hemodynamic response shape.
+% with arbitrary hemodynamic response shapes.
 %
 % Note: If the original GLMs contain parametric or time modulators, they
-% will be included in the gPPI-FIR GLMs. If the original GLMs contain time
-% and dispersion derivatives, they will be removed from the gPPI-FIR GLMs.
+% will be included in the gPPI-FIR GLMs. If the original GLMs contain temporal
+% or dispersion derivatives, these will be removed from the gPPI-FIR GLMs.
 %
 % FORMAT [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc)
 % Run a function starting from the first subject in the list.
@@ -25,7 +25,7 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 %   tmfc.project_path      - Path where all results will be saved
 %   tmfc.defaults.parallel - 0 or 1 (sequential or parallel computing)
 %   tmfc.defaults.maxmem   - e.g. 2^31 = 2GB (how much RAM can be used)
-%   tmfc.defaults.resmem   - true or false (store temporaty files in RAM)
+%   tmfc.defaults.resmem   - true or false (store temporary files in RAM)
 %   tmfc.defaults.analysis - 1 (Seed-to-voxel and ROI-to-ROI analyses)
 %                          - 2 (ROI-to-ROI analysis only)
 %                          - 3 (Seed-to-voxel analysis only)
@@ -51,7 +51,7 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
+% contain three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
 % structure must be specified (see tmfc_conditions_GUI, nested function:
 % [cond_list] = generate_conditions(SPM_path)):
@@ -84,7 +84,7 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).pmod   = 2;
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).name = 'Cond_BxModulator1^1';
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator1^1]'; 
-% e.g. second modulator for second condition:
+% e.g. second modulator for fourth condition:
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).sess   = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).number = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).pmod = 3; 
@@ -104,29 +104,14 @@ function [sub_check,contrasts] = tmfc_gPPI_FIR(tmfc,ROI_set_number,start_sub)
 % Run the function starting from a specific subject in the path list for
 % the selected ROI set.
 %
-%   tmfc                   - As above
-%   ROI_set_number         - Number of the ROI set in the tmfc structure
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   ROI_set_number - Number of the ROI set in the tmfc structure
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
-
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 1
    ROI_set_number = 1;
@@ -189,11 +174,11 @@ spm_jobman('initcfg');
 
 % Loop through subjects
 for iSub = start_sub:nSub
-    %=======================[ Specify gPPI GLM ]===========================
+    %=====================[ Specify gPPI-FIR GLM ]=========================
     SPM = load(tmfc.subjects(iSub).path).SPM;
 
     % Check if SPM.mat has concatenated sessions 
-    % (if spm_fmri_concatenate.m sript was used)
+    % (if spm_fmri_concatenate.m script was used)
     if size(SPM.nscan,2) == size(SPM.Sess,2)
         SPM_concat(iSub) = 0;
     else
@@ -205,6 +190,7 @@ for iSub = start_sub:nSub
     for jROI = 1:nROI
         if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',tmfc.subjects(iSub).name,tmfc.ROI_set(ROI_set_number).ROIs(jROI).name))
             rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',tmfc.subjects(iSub).name,tmfc.ROI_set(ROI_set_number).ROIs(jROI).name),'s');
+            pause(0.1);
         end
         mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR',tmfc.subjects(iSub).name,tmfc.ROI_set(ROI_set_number).ROIs(jROI).name));
         % Loop through conditions of interest
@@ -218,7 +204,7 @@ for iSub = start_sub:nSub
         matlabbatch{1}.spm.stats.fmri_spec.timing.RT = SPM.xY.RT;
         matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t = SPM.xBF.T;
         matlabbatch{1}.spm.stats.fmri_spec.timing.fmri_t0 = SPM.xBF.T0;
-        % Loop throuph sessions
+        % Loop through sessions
         for kSess = 1:nSess
             % Functional images
             if SPM_concat(iSub) == 0
@@ -414,7 +400,7 @@ for iSub = start_sub:nSub
                 end
         end
 
-        % ROI-to_ROI
+        % ROI-to-ROI
         Y = [];
         for kSess = 1:nSess
             for jROI = 1:nROI

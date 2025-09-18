@@ -2,10 +2,10 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Opens a GUI window for selecting ROI masks. Creates group mean binary 
-% mask based on 1st-level masks (see SPM.VM) and applies it to all selected
+% Opens a GUI window for selecting ROI masks. Creates a group mean binary 
+% mask based on first-level masks (see SPM.VM) and applies it to all selected
 % ROIs. Empty ROIs will be removed. Masked ROIs will be limited to only
-% voxels which have data for all subjects. The dimensions, orientation, and
+% voxels that have data for all subjects. The dimensions, orientation, and
 % voxel sizes of the masked ROI images will be adjusted according to the
 % group mean binary mask.
 %
@@ -15,20 +15,20 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 % be masked by the group mean binary image.
 % -------------------------------------------------------------------------
 % Case 2: Fixed spheres
-% Create spheres that are the same for all subjects. The center of the sphere
+% Create spheres that are the same for all subjects. The sphere center 
 % is fixed. These spheres will be masked by the group mean binary image.
 % -------------------------------------------------------------------------
 % Case 3: Moving spheres inside fixed spheres
-% Create spheres individual for each subject. The center of the sphere is 
+% Create subject-specific spheres. The sphere center is 
 % moved to the local maximum* inside a fixed sphere of larger radius. These 
 % spheres will be masked by the group mean binary image.
 % -------------------------------------------------------------------------
 % Case 4: Moving spheres inside ROI binary images
-% Create spheres individual for each subject. The center of the sphere is
+% Create subject-specific spheres. The sphere center is
 % moved to the local maximum* inside a binary image. These spheres will be 
 % masked by selected binary images and the group mean binary image.
 % -------------------------------------------------------------------------
-% (*) - The local maximum is determined using the omnibus F-test and
+% (*) - The local maximum is determined using the omnibus F-test with an
 %       uncorrected threshold of 0.005 (by default).
 %
 %
@@ -41,26 +41,12 @@ function [ROI_set] = tmfc_select_ROIs_GUI(tmfc)
 %   tmfc.project_path     - The path where all results will be saved
 %
 % Output:
-%   ROI_Set               - Structure with information about selected ROIs
+%   ROI_set               - Structure with information about selected ROIs
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 % Initial checks
 if ~isfield(tmfc,'subjects')
@@ -142,7 +128,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 warning('ROIs not selected.');  return;
             end
         % -----------------------------------------------------------------
-        case 'moving_sphreres_inside_fixed_spheres'
+        case 'moving_spheres_inside_fixed_spheres'
             ROI_MS = select_ROIs_case_3();
             if ~isempty(ROI_MS)                
                 for iROI = 1:size(ROI_MS,2)
@@ -162,7 +148,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 warning('ROIs not selected.');  return;
             end
         % -----------------------------------------------------------------
-        case 'moving_sphreres_inside_binary_images'
+        case 'moving_spheres_inside_binary_images'
             ROI_paths = spm_select(inf,'any','Select ROI masks',{},pwd);
             if ~isempty(ROI_paths)
                 for iROI = 1:size(ROI_paths,1)
@@ -190,7 +176,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
 
     % ---------------------------------------------------------------------
     % Select omnibus F-contrast threshold
-    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+    if strcmp(ROI_type,'moving_spheres_inside_fixed_spheres') || strcmp(ROI_type,'moving_spheres_inside_binary_images')
         [Fthresh, Fmask] = F_contrast_GUI();
         if isempty(Fthresh)
             ROI_set = [];
@@ -202,13 +188,14 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     % Clear & create 'Masked_ROIs' folder
     if isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name),'s');
+        pause(0.1);
     end
     
     if ~isdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'))
         mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs'));
     end
 
-    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+    if strcmp(ROI_type,'moving_spheres_inside_fixed_spheres') || strcmp(ROI_type,'moving_spheres_inside_binary_images')
         for iSub = 1:nSub
             mkdir(fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name));
         end
@@ -229,7 +216,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
 
     % ---------------------------------------------------------------------
     % Calculate F-contrast for all conditions of interest
-    if strcmp(ROI_type,'moving_sphreres_inside_fixed_spheres') || strcmp(ROI_type,'moving_sphreres_inside_binary_images')
+    if strcmp(ROI_type,'moving_spheres_inside_fixed_spheres') || strcmp(ROI_type,'moving_spheres_inside_binary_images')
         % Contrast weights
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
         if isstruct(conditions)
@@ -296,7 +283,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 end
             end
         %------------------------------------------------------------------  
-        case 'moving_sphreres_inside_fixed_spheres'
+        case 'moving_spheres_inside_fixed_spheres'
             start_time = tic;
             count_sub = 1;
             cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
@@ -350,7 +337,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 clear SPM jobs
             end
         %-----------------------------------------------------------------
-        case 'moving_sphreres_inside_binary_images'
+        case 'moving_spheres_inside_binary_images'
             start_time = tic;
             count_sub = 1;
             cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
@@ -464,7 +451,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     end
         
     % ---------------------------------------------------------------------
-    % Mask ROI images by the goup mean binary mask
+    % Mask ROI images by the group mean binary mask
     w = waitbar(0,'Please wait...','Name','Masking ROIs by group mean mask');
     input_images{1,1} = group_mask.fname;
     
@@ -540,7 +527,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked,'xyz',XYZ);
                 ROI_set.ROIs(iROI).masked_size = nnz(binary_mask);
                 ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
-            case 'moving_sphreres_inside_fixed_spheres'
+            case 'moving_spheres_inside_fixed_spheres'
                 for jSub = 1:nSub
                     binary_mask = [];
                     binary_mask = spm_data_read(ROI_set.ROIs(iROI).path_masked(jSub).subjects,'xyz',XYZ);
@@ -550,7 +537,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                 ROI_set.ROIs(iROI).masked_size = min(sub_size);
                 ROI_set.ROIs(iROI).masked_size_percents = 100*ROI_set.ROIs(iROI).masked_size/ROI_set.ROIs(iROI).raw_size;
                 clear sub_size
-            case 'moving_sphreres_inside_binary_images'
+            case 'moving_spheres_inside_binary_images'
                 for jSub = 1:nSub
                     binary_mask = [];
                     coord = [];
@@ -700,7 +687,7 @@ function [ROI_set_name] = ROI_set_name_GUI(~,~)
     function ROI_set_name_HW(~,~)
 
         help_string = {'First, define a name for the set of ROIs. TMFC results for this ROI set will be stored in:','','"TMFC_project_name\ROI_sets\ROI_set_name"','',...
-        'Second, select one or more ROI masks (*.nii files). TMFC toolbox will create a group mean binary mask based on individual subjects 1st-level masks (see SPM.VM) and apply it to all selected ROIs Empty ROIs will be excluded from further analysis. Masked ROIs will be limited to only voxels which have data for all subjects. The dimensions, orientation, and voxel sizes of the masked ROI images will be adjusted according to the group mean binary mask. These files will be stored in "Masked_ROIs"',...
+        'Second, select one or more ROI masks (*.nii files). TMFC toolbox will create a group mean binary mask based on individual subjects 1st-level masks (see SPM.VM) and apply it to all selected ROIs. Empty ROIs will be excluded from further analysis. Masked ROIs will be limited to only voxels which have data for all subjects. The dimensions, orientation, and voxel sizes of the masked ROI images will be adjusted according to the group mean binary mask. These files will be stored in "Masked_ROIs"',...
         '','Third, exclude heavily cropped ROIs from further analysis, if necessary.','','Note: You can define several ROI sets and switch between them. Push the "ROI_set" button and then push "Add new ROI set". Each time you need to switch between ROI sets push the "ROI_set" button.'};
         
         if isunix; fontscale = 0.85; else; fontscale = 1; end
@@ -730,9 +717,9 @@ function [ROI_type] = ROI_type_GUI(~,~)
     sel_ROI_MP4 = uipanel(select_ROI_type_GUI ,'Units', 'normalized','Position',[0.03 0.082 0.94 0.21],'HighLightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');
 
     txt_1 = {'Use binary images that are the same for all subjects. These images will be masked by the group mean binary image.'};
-    txt_2 = {'Create spheres that are the same for all subjects. The center of the sphere is fixed. These spheres will be masked by the group mean binary image.'};
-    txt_3 = {'Create spheres individual for each subject. The center of the sphere moves to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.'};
-    txt_4 = {'Create spheres individual for each subject. The center of the sphere moves to the local maximum inside a binary image. These spheres will be masked by selected binary images and the group mean binary image.'};
+    txt_2 = {'Create spheres that are the same for all subjects. The sphere center is fixed. These spheres will be masked by the group mean binary image.'};
+    txt_3 = {'Create subject-specific spheres. The sphere center moves to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.'};
+    txt_4 = {'Create subject-specific spheres. The sphere center moves to the local maximum inside a binary image. These spheres will be masked by selected binary images and the group mean binary image.'};
 
     sel_ROI_B1 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Select ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.875 0.90 0.074],'FontUnits','normalized','FontSize',0.33, 'callback', @binary_images);
     sel_ROI_B2 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.648 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @fixed_spheres);
@@ -758,12 +745,12 @@ function [ROI_type] = ROI_type_GUI(~,~)
     end
 
     function moving_inside_fixed_spheres(~,~)
-        ROI_type = 'moving_sphreres_inside_fixed_spheres';
+        ROI_type = 'moving_spheres_inside_fixed_spheres';
         uiresume(select_ROI_type_GUI);
     end
 
     function moving_indise_binary_images(~,~)
-        ROI_type = 'moving_sphreres_inside_binary_images';
+        ROI_type = 'moving_spheres_inside_binary_images';
         uiresume(select_ROI_type_GUI);
     end
 
@@ -949,7 +936,7 @@ function [ROI_set_crop] = remove_cropped_ROIs_GUI(ROI_set)
             threshold = str2double(ROI_crop_thr); 
 
             if isnan(threshold)
-                fprintf(2,'Entered threshold should be a natural number, please re-enter.\n');
+                fprintf(2,'Please enter a threshold between 0 and 100.\n');
 
             elseif (threshold<0) || (threshold>100)
                 fprintf(2,'Please enter a threshold between 0 and 100.\n');
@@ -1136,7 +1123,7 @@ function [ROI_select] = select_ROIs_case_2()
 
     function add_ROI(~,~)
         
-        [ROI_name, coord, radius] = add_fixed_shpere_GUI();
+        [ROI_name, coord, radius] = add_fixed_sphere_GUI();
         
         if ~isempty(ROI_name)
             
@@ -1292,7 +1279,7 @@ function [ROI_select] = select_ROIs_case_2()
             fprintf(2,'No ROIs present to remove.\n');
             
         elseif isempty(ROI_index)
-            fprintf(2,'No ROIs seleted to remove.\n');
+            fprintf(2,'No ROIs selected to remove.\n');
             
         else   
             ROI_string = {};
@@ -1308,7 +1295,7 @@ function [ROI_select] = select_ROIs_case_2()
                 ROI_string = vertcat(ROI_string, full_string);
             end
             
-            %REMOVE SELECTED ROIs
+            % Remove selected ROIs
             set(FS_lst, 'String', ROI_string);
             set(FS_lst,'Value',[]);
             fprintf('Number of ROIs removed: %d \n', len_ROI_removed);            
@@ -1349,8 +1336,8 @@ function [ROI_select] = select_ROIs_case_2()
     delete(FS_GUI);
 end
 
-%% ==================[Add custom fixed sphrere GUI]========================
-function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
+%% ==================[Add custom fixed sphere GUI]-========================
+function [ROI_name, center_coordinates, radius] = add_fixed_sphere_GUI(~,~)
 
     % Variables to store new ROI from user
     ROI_name = '';
@@ -1403,7 +1390,7 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
             % Check for empty coordinates
             if ~isnan(tmp_center_X) && ~isnan(tmp_center_Y) && ~isnan(tmp_center_Z)
                 
-                % Check if Coordinates are natural numbers
+                % Check if coordinates are real numbers
                 if (isreal(tmp_center_X)) && (isreal(tmp_center_Y)) && (isreal(tmp_center_Z))
                     
                     center_coordinates = {tmp_center_X, tmp_center_Y, tmp_center_Z};
@@ -1414,11 +1401,11 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
                     % Check for empty Radius value
                     if ~isnan(tmp_rad)
                         
-                        % Check if Radius is natural number
+                        % Check if radius is a non-negative real number
                         if ~(isreal(tmp_rad))
-                            fprintf(2,'Please enter natural number for Radius of spheres.\n');
+                            fprintf(2,'Please enter non-negative real number for the radius of spheres.\n');
                         elseif tmp_rad <= 0 
-                            fprintf(2,'Please enter positive number for Radius of spheres.\n');
+                            fprintf(2,'Please enter non-negative real number for the radius of spheres.\n');
                         else
                             % Exporting selected variables
                             radius = tmp_rad;     
@@ -1431,7 +1418,7 @@ function [ROI_name, center_coordinates, radius] = add_fixed_shpere_GUI(~,~)
                         fprintf(2,'Fixed sphere radius not entered or is invalid, please re-enter.\n'); 
                     end
                 else
-                    fprintf(2,'Please enter natural number for coordinates.\n');
+                    fprintf(2,'Please enter a real number for coordinates.\n');
                 end
             else 
                 fprintf(2,'Coordinates are not entered or is invalid, please re-enter.\n');                
@@ -1454,7 +1441,7 @@ function [ROI_select] = select_ROIs_case_3()
     
     MS_GUI = figure('Name', 'Select ROIs', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.29 0.29 0.40 0.5],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','CloseRequestFcn', @no_select_exit);
     MS_txt_1 = uicontrol(MS_GUI,'Style','text','String', 'Define moving spheres','Units', 'normalized', 'Position',[0.270 0.925 0.450 0.05],'fontunits','normalized', 'fontSize', 0.65,'backgroundcolor','w');
-    MS_txt_2 = uicontrol(MS_GUI , 'Style', 'text', 'String', '№ # :: ROI name :: Fixed center coordinates [x y z] :: Moving sphere radius :: Fixed sphere radius','Units', 'normalized', 'Position',[0.045 0.855 0.900 0.045],'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment','left','backgroundcolor','w');
+    MS_txt_2 = uicontrol(MS_GUI , 'Style', 'text', 'String', 'No. :: ROI name :: Fixed center coordinates [x y z] :: Moving sphere radius :: Fixed sphere radius','Units', 'normalized', 'Position',[0.045 0.855 0.900 0.045],'fontunits','normalized', 'fontSize', 0.64,'HorizontalAlignment','left','backgroundcolor','w');
     MS_lst = uicontrol(MS_GUI , 'Style', 'listbox', 'String', '','Value', [],'Max', 100000,'Units', 'normalized', 'Position',[0.045 0.40 0.910 0.450],'fontunits','points', 'fontSize', 12,'Enable','inactive', 'callback', @list_select);
     
     MS_add = uicontrol(MS_GUI,'Style','pushbutton','String', 'Add new','Units', 'normalized','Position',[0.044 0.3 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @add_ROI);
@@ -1478,7 +1465,7 @@ function [ROI_select] = select_ROIs_case_3()
 
     function add_ROI(~,~)
         
-        [ROI_name, coord, radius] = add_moving_shpere_GUI();
+        [ROI_name, coord, radius] = add_moving_sphere_GUI();
         
         if ~isempty(ROI_name)
             
@@ -1642,7 +1629,7 @@ function [ROI_select] = select_ROIs_case_3()
             fprintf(2,'No ROIs present to remove.\n');
             
         elseif isempty(ROI_index)
-            fprintf(2,'No ROIs seleted to remove.\n');
+            fprintf(2,'No ROIs selected to remove.\n');
             
         else
             ROI_string = {};
@@ -1666,7 +1653,7 @@ function [ROI_select] = select_ROIs_case_3()
     function help_window(~,~)
         string_info = {'Define moving spheres manually or select them from the coordinate table (*.mat, *.xlsx, *.csv, *.txt file). The coordinate table must contain the following columns:',...
                     '','1) ROI name','2) Fixed center coordinate: X','3) Fixed center coordinate: Y','4) Fixed center coordinate: Z','5) Moving sphere radius (inner radius)','6) Fixed sphere radius (outer radius)',...
-                    '','For examples of coordinate tables, see the TMFC_toolbox folder.','','The center of the sphere will be moved to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.',...
+                    '','For examples of coordinate tables, see the TMFC_toolbox folder.','','The sphere center will be moved to the local maximum inside a fixed sphere of larger radius. These spheres will be masked by the group mean binary image.',...
                     '','Local maxima are determined using the omnibus F-contrast for the selected conditions of interest. ','','Additionally, moving spheres can be masked by the thresholded F-map of an individual subject. This can significantly reduce ROI size.'};
         
         MS_ROI_HW = figure('Name', 'Define moving spheres: Help', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.67 0.31 0.22 0.50],'MenuBar','none','ToolBar','none','color','w','Resize','off','WindowStyle','Modal');
@@ -1696,7 +1683,7 @@ function [ROI_select] = select_ROIs_case_3()
 end
 
 %% ===================[Add custom moving sphere GUI]=======================
-function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
+function [ROI_name, center_coordinates, radius] = add_moving_sphere_GUI()
 
     % Variables to store new ROI info from user
     ROI_name = '';
@@ -1751,7 +1738,7 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
             % Check for empty coordinates
             if ~isnan(tmp_center_X) && ~isnan(tmp_center_Y) && ~isnan(tmp_center_Z)
                 
-                % Check if Coordinates are natural numbers
+                % Check if coordinates are real numbers
                 if (isreal(tmp_center_X)) && (isreal(tmp_center_Y)) && (isreal(tmp_center_Z))
                     
                     center_coordinates = {tmp_center_X, tmp_center_Y, tmp_center_Z};
@@ -1766,15 +1753,15 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
                     elseif isnan(tmp_rad_f)
                         fprintf(2,'Fixed sphere radius not entered or is invalid, please re-enter.\n'); 
                     else                        
-                        % Check if Radius is natural number
+                        % Check if radius is a non-negative real number
                         if ~(isreal(tmp_rad_m))
-                            fprintf(2,'Please enter natural number for radius of (inner) moving spheres.\n');
+                            fprintf(2,'Please enter a non-negative real number for radius of (inner) moving spheres.\n');
                         elseif tmp_rad_m <= 0 
-                            fprintf(2,'Please enter positive number for radius of (inner) moving spheres.\n');
+                            fprintf(2,'Please enter a non-negative real number for radius of (inner) moving spheres.\n');
                         elseif ~(isreal(tmp_rad_f))
-                            fprintf(2,'Please enter natural number for radius of (outer) fixed spheres.\n');
+                            fprintf(2,'Please enter a non-negative real number for radius of (outer) fixed spheres.\n');
                         elseif tmp_rad_f <= 0 
-                            fprintf(2,'Please enter positive number for radius of (outer) fixed spheres.\n');
+                            fprintf(2,'Please enter a non-negative real number for radius of (outer) fixed spheres.\n');
                         elseif tmp_rad_m >= tmp_rad_f
                             fprintf(2,'The radius of (inner) moving spheres cannot be smaller or equal to the radius of (outer) fixed spheres, please re-enter.\n'); 
                         else                     
@@ -1788,7 +1775,7 @@ function [ROI_name, center_coordinates, radius] = add_moving_shpere_GUI()
                         end
                     end
                 else
-                    fprintf(2,'Please enter natural number for coordinates.\n');
+                    fprintf(2,'Please enter a real number for coordinates.\n');
                 end
             else 
                 fprintf(2,'Coordinates are not entered or is invalid, please re-enter.\n');                

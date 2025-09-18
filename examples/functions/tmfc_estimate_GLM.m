@@ -1,4 +1,4 @@
-function tmfc_parallel_estimate_GLM(stat_path,sots_path,exp_folder,N,TR,model)
+function tmfc_estimate_GLM(stat_path,sots_path,exp_folder,N,TR,model,parallel)
 
 % ========================================================================
 % Ruslan Masharipov, 2025
@@ -51,12 +51,24 @@ for subji = 1:N
     
 end
 
-parfor subji = 1:N
-    spm('defaults','fmri');
-    spm_jobman('initcfg');
-    spm_get_defaults('cmdline',true);
-    spm_get_defaults('stats.resmem',1);
-    spm_get_defaults('stats.maxmem',2^34);
-    spm_get_defaults('stats.fmri.ufp',1);
-    spm_jobman('run',batch{subji});
+if parallel == 0
+    for subji = 1:N
+        spm('defaults','fmri');
+        spm_jobman('initcfg');
+        spm_get_defaults('cmdline',true);
+        spm_get_defaults('stats.resmem',1);
+        spm_get_defaults('stats.maxmem',2^34);
+        spm_get_defaults('stats.fmri.ufp',1);
+        spm_jobman('run',batch{subji});
+    end
+else
+    parfor subji = 1:N
+        spm('defaults','fmri');
+        spm_jobman('initcfg');
+        spm_get_defaults('cmdline',true);
+        spm_get_defaults('stats.resmem',1);
+        spm_get_defaults('stats.maxmem',2^34);
+        spm_get_defaults('stats.fmri.ufp',1);
+        spm_jobman('run',batch{subji});
+    end
 end

@@ -1,9 +1,9 @@
 function [xVi, mask] = tmfc_spm_rwls_est_non_sphericity(SPM)
 
-% This is a copy of the original function from rWLS toolbox v4.1
+% This is a copy of the original function from the rWLS toolbox v4.1
 % (Diedrichsen & Shadmehr, 2006). The function name has been prefixed with 
-% 'tmfc' to avoid conflicts with the original rWLS toolbox 
-% (in case it is already added to the MATLAB path).
+% 'tmfc' to avoid conflicts if the original rWLS toolbox is already
+% on the MATLAB path.
 %
 % Non-sphericity estimation using ReML
 % Modified version to allow for RWLS estimation (temporal non-stationarity
@@ -43,7 +43,6 @@ function [xVi, mask] = tmfc_spm_rwls_est_non_sphericity(SPM)
 %
 %__________________________________________________________________________
 % Copyright (C) 1994-2012 Wellcome Trust Centre for Neuroimaging
-
 % Karl Friston & Guillaume Flandin
 % Additons by Joern Diedrichsen
 

@@ -2,36 +2,21 @@ function [tmfc] = tmfc_specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Opens a GUI window for LSS regression. Allows to choose conditions of
-% interest for LSS regression.
+% Opens a GUI window to specify contrasts.
 % 
 % FORMAT [tmfc] = tmfc_specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis)
-%   tmfc           - The tmfc structure (see TMFC.m)
-%   ROI_set_number - Number of the ROI set in the tmfc structure
-%   TMFC_type      - TMFC analysis type
-%                    1: gPPI
-%                    2: gPPI-FIR
-%                    3: BSC-LSS
-%                    4: BSC-LSS after FIR
+%   tmfc               - The tmfc structure (see TMFC.m)
+%   ROI_set_number     - Number of the ROI set in the tmfc structure
+%   TMFC_analysis      - TMFC analysis type:
+%                          1: gPPI
+%                          2: gPPI-FIR
+%                          3: BSC-LSS
+%                          4: BSC-LSS after FIR
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 existing_contrasts = get_contrasts_info(tmfc,ROI_set_number,TMFC_analysis);
 
@@ -42,13 +27,13 @@ else
     % Show warning if contrasts not generated
     switch(TMFC_analysis)
         case 1
-            warning('gPPI: Default contrasts have not calculated.');
+            warning('gPPI: Default contrasts have not been calculated.');
         case 2 
-            warning('gPPI FIR: Default contrasts have not calculated.');
+            warning('gPPI FIR: Default contrasts have not been calculated.');
         case 3
-            warning('BSC: Default contrasts have not calculated.');
+            warning('BSC: Default contrasts have not been calculated.');
         case 4
-            warning('BSC FIR: Default contrasts have not calculated.');
+            warning('BSC FIR: Default contrasts have not been calculated.');
     end   
 end
 end
@@ -64,11 +49,11 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
     SC_MW_S1  = uicontrol(SC_MW,'Style','text','String', 'Define contrasts','Units', 'normalized', 'Position',[0.270 0.93 0.450 0.05],'fontunits','normalized', 'fontSize', 0.64,'backgroundcolor','w');
 
     SC_MW_S2  = uicontrol(SC_MW,'Style','text','String', 'Existing contrasts:','Units', 'normalized', 'Position',[0.045 0.86 0.300 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.62,'backgroundcolor','w');
-    SC_MW_S3 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No## :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.816 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
+    SC_MW_S3 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No. :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.816 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
     SC_MW_LB1 = uicontrol(SC_MW , 'Style', 'listbox', 'String', existing_contrasts,'Value', [],'Max', 100,'Units', 'normalized', 'Position',[0.045 0.62 0.920 0.200],'fontunits','points', 'fontSize', 11,'Enable','inactive');
 
     SC_MW_S4  = uicontrol(SC_MW,'Style','text','String', 'Add new contrasts:','Units', 'normalized', 'Position',[0.045 0.535 0.450 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.62,'backgroundcolor','w');
-    SC_MW_S5 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No## :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.492 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
+    SC_MW_S5 = uicontrol(SC_MW , 'Style', 'text', 'String', 'No. :: Title :: Contrast weights','Max', 100,'Units', 'normalized', 'Position',[0.045 0.492 0.900 0.045],'fontunits','normalized', 'fontSize', 0.62,'HorizontalAlignment','left','backgroundcolor','w');
     SC_MW_LB2 = uicontrol(SC_MW , 'Style', 'listbox', 'String', new_contrasts,'Value', [],'Max',100,'Units', 'normalized', 'Position',[0.045 0.26 0.920 0.230],'fontunits','points', 'fontSize', 11,'callback', @MW_LB2_select);
 
     SC_MW_add = uicontrol(SC_MW,'Style','pushbutton','String', 'Add new','Units', 'normalized','Position',[0.045 0.15 0.290 0.075],'fontunits','normalized', 'fontSize', 0.36,'callback', @MW_add);
@@ -195,7 +180,7 @@ function [tmfc] = specify_contrasts_GUI(tmfc,ROI_set_number,TMFC_analysis,existi
             fprintf(2,'Please specify new contrast(s). \n');
         else
             tmfc = add_new_contrasts(tmfc,contrasts,TMFC_analysis,ROI_set_number);
-            fprintf('Number of newly added contrast for processing: %d.\n',length(new_contrasts));
+            fprintf('Number of newly added contrasts for processing: %d.\n',length(new_contrasts));
             uiresume(SC_MW);
         end
     end
@@ -238,7 +223,7 @@ function [contrasts_string] = get_contrasts_info(tmfc,ROI_set_number,tmfc_analys
 
     % gPPI ----------------------------------------------------------------
     case 1           
-        % Genereate list of existing contrasts
+        % Generate list of existing contrasts
         contrasts = vertcat(contrasts, tmfc.ROI_set(ROI_set_number).contrasts.gPPI.title);
         % Create string of existing contrasts for GUI
         for iCon = 1:size(contrasts,1)
@@ -248,7 +233,7 @@ function [contrasts_string] = get_contrasts_info(tmfc,ROI_set_number,tmfc_analys
 
     % gPPI FIR ------------------------------------------------------------
     case 2        
-        % Genereate list of existing contrasts
+        % Generate list of existing contrasts
         contrasts = vertcat(contrasts, tmfc.ROI_set(ROI_set_number).contrasts.gPPI_FIR.title);
         % Create string of existing contrasts for GUI
         for iCon = 1:size(contrasts,1)
@@ -258,7 +243,7 @@ function [contrasts_string] = get_contrasts_info(tmfc,ROI_set_number,tmfc_analys
 
     % BSC -----------------------------------------------------------------
     case 3        
-        % Genereate list of existing contrasts
+        % Generate list of existing contrasts
         contrasts = vertcat(contrasts, tmfc.ROI_set(ROI_set_number).contrasts.BSC.title);
         % Create string of existing contrasts for GUI
         for iCon = 1:size(contrasts,1)
@@ -268,7 +253,7 @@ function [contrasts_string] = get_contrasts_info(tmfc,ROI_set_number,tmfc_analys
 
     % BSC_after_FIR -------------------------------------------------------
     case 4        
-        % Genereate list of existing contrasts
+        % Generate list of existing contrasts
         contrasts = vertcat(contrasts, tmfc.ROI_set(ROI_set_number).contrasts.BSC_after_FIR.title);
         % Create string of existing contrasts for GUI
         for iCon = 1:size(contrasts,1)

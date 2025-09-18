@@ -39,8 +39,9 @@ end
 
 function generator(~,~)
     if ~isempty(thresholded)
-        res_win = figure('Name','TMFC results','NumberTitle', 'off','Units', 'normalized', 'Position', [0.4 0.25 0.55 0.42], 'Tag', 'TMFC results','WindowStyle', 'modal');
-        ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));  
+        res_win = figure('Name','TMFC results','NumberTitle', 'off','Units', 'normalized', 'Position', [0.225 0.28 0.55 0.42], 'Tag', 'TMFC results','WindowStyle', 'modal');
+        movegui(res_win,'center');
+        ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(ax1,tmfc_axis(conval,1));  
         ax2 = subplot(1,2,2); imagesc(thresholded);   subtitle(['p' correction '<' num2str(alpha)]); axis square; colorbar;  
         colormap(subplot(1,2,1),'turbo')  
         set(findall(gcf,'-property','FontSize'),'FontSize',16)
@@ -51,7 +52,7 @@ function generator(~,~)
         set(save_data_btn,'callback', @int_data_saver)
         set(save_plot_btn ,'callback', @int_plot_saver)
 
-        tmfc_res.threshold = thresholded;
+        tmfc_res.sig = thresholded;
         tmfc_res.pval = pval;
         tmfc_res.tval = tval;
         tmfc_res.conval = conval;
@@ -141,7 +142,7 @@ function SAVER_STAT =  saver_plot(save_path)
 % 0 - Successfull save, 1 - Failed save  
     try
         temp_res_win = figure('NumberTitle', 'off','Units', 'normalized', 'Position', [0.4 0.25 0.55 0.42], 'Tag', 'TMFC results: Output','visible', 'off');
-        temp_ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(tmfc_axis(conval,1));  
+        temp_ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(temp_ax1,tmfc_axis(conval,1));  
         temp_ax2 = subplot(1,2,2); imagesc(thresholded);   subtitle(['p' correction '<' num2str(alpha)]); axis square; colorbar;  
         colormap(subplot(1,2,1),'turbo')  
         set(findall(gcf,'-property','FontSize'),'FontSize',16)

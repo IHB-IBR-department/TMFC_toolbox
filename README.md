@@ -8,14 +8,14 @@
 **TMFC** is a MATLAB toolbox for SPM12/SPM25 for task-modulated functional connectivity analysis.
 
 TMFC toolbox implements:
- - Beta-series correlations based on the least-squares separate appoach (**BSC-LSS**);
- - Generalized psyhophysiological interactions (**gPPI**) with deconvolution procedure;
+ - Beta-series correlations based on the least-squares separate approach (**BSC-LSS**);
+ - Generalized psychophysiological interactions (**gPPI**) with deconvolution procedure;
  - **Seed-to-voxel** analysis and **ROI-to-ROI** analysis (to create FC matrices);
  - Finite impulse response (**FIR**) task regression to remove co-activations;
- - **TMFC denoise**: toolbox to perform denoising for further TMFC analysis. Caluclates 12HMP/24HMP, FD/DVARS, aCompCorr, GSR, WM/CSF regression, spike regression and robust WLS.
+ - **TMFC denoise**: toolbox to perform denoising for further TMFC analysis. Calculates 12HMP/24HMP, FD/DVARS, aCompCorr, GSR, WM/CSF regression, spike regression and robust WLS.
  - Graphical user interface (**GUI**) and command line interface (**CLI**);
  - RAM control (allows to estimate model parameters in the whole-brain at a time without dividing into chunks);
- - Parralel computations.
+ - Parallel computations.
 
 If you use TMFC toolbox, please cite this study: <br/>
 [Masharipov et al. "Comparison of whole-brain task-modulated functional connectivity methods for fMRI task connectomics." Commun Biol 7, 1402 (2024)](https://doi.org/10.1038/s42003-024-07088-3).
@@ -24,7 +24,7 @@ If you use TMFC toolbox, please cite this study: <br/>
 
 The current version of the toolbox is fully functional on MATLAB R2014a and later releases.
 
-1) Add SPM12/SPM25 to your MATLAB path (in case the user has not already done so);
+1) Add SPM12/SPM25 to your MATLAB path (if not already done);
 2) Add TMFC toolbox to your MATLAB path (Home --> Set path --> Add with Subfolders --> Select TMFC_toolbox folder);
 3) Enter **TMFC** in command window to open TMFC GUI <br/>
    or <br/>
@@ -34,7 +34,7 @@ The current version of the toolbox is fully functional on MATLAB R2014a and late
 
 TMFC toolbox uses information from SPM.mat files to obtain paths to fMRI files.
 
-**If you estimated first-level GLMs and then moved the GLM and fMRI data folders to another location, you need to change paths in SPM.mat files**.
+**If you estimated first-level GLMs and then moved the GLM and fMRI data folders to another location, you need to change paths in SPM.mat files.**
 
 Click **Tools** button:
 
@@ -42,7 +42,7 @@ Click **Tools** button:
 <img src = "illustrations/08_Change_paths_1.PNG">
 </p>
 
-Next, click **Change paths** button and select subjects for which you want to update the SPM.mat files. Enter the old path pattern (see **SPM.swd** field in SPM.mat file) and the new path pattern:
+Next, click **Change paths** button and select subjects for which you want to update the SPM.mat files. Enter the old path pattern (see **SPM.swd** field in the SPM.mat file) and the new path pattern:
 
 <p align="center">
 <img src = "illustrations/08_Change_paths_2.PNG">
@@ -54,7 +54,7 @@ Click OK.
 
 To perform denoising for TMFC analysis, click **Tools** button and then click **Denoise**. 
 
-Select select subjects for which you want to update the SPM.mat files. 
+Select subjects for which you want to update the SPM.mat files. 
 
 Select **denoising parameters**:
 
@@ -85,7 +85,7 @@ Task design parameters:
 - Dummy scans: first 3 time points (6 s)
 - Total scan time = 9.7 min
 
-Simulation procedure is described in details in [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and here: <br/>
+Simulation procedure is described in detail in [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and here: <br/>
 [https://github.com/IHB-IBR-department/TMFC_simulations](https://github.com/IHB-IBR-department/TMFC_simulations)
 
 To prepare example data and estimate basic GLMs run this code:
@@ -117,8 +117,9 @@ data.sim_path = fullfile(pwd,'data','SIMULATED_BOLD_EVENT_RELATED_[2s_TR]_[1s_DU
 % Set path for task design *.mat file (stimulus onset times, SOTs)
 data.sots_path = fullfile(pwd,'data','TASK_DESIGN_EVENT_RELATED_[2s_TR]_[1s_DUR]_[6s_ISI]_[40_TRIALS].mat');
 
-% Generate *.nii images and calculate GLMs
-tmfc_prepare_example_data(data)
+% Generate *.nii images and estimate GLMs
+parallel = 1;         % Parallel (1) or serial (0)
+tmfc_prepare_example_data(data,parallel)
 
 % Change current directory to new TMFC project folder
 cd(data.stat_path)
@@ -127,9 +128,9 @@ cd(data.stat_path)
 
 This code creates *.nii files for 20 subjects (we select 20 subjects out of 100 and consider high SNR = 1 to reduce the number of computations).
 
-Each *.nii file represents single time point and consists of 100 voxels. Each voxel correspons to one ROI. In this case, seed-to-voxel and ROI-to-ROI analyses are equivalent.
+Each *.nii file represents a single time point and consists of 100 voxels. Each voxel corresponds to one ROI. In this case, seed-to-voxel and ROI-to-ROI analyses are equivalent.
 
-In real datasets, the number of voxels are not equal to the number of ROIs. However, all steps of TMFC analysis will be the same as described below.
+In real datasets, the number of voxels is not equal to the number of ROIs. However, all steps of TMFC analysis will be the same as described below.
 
 ## Example of TMFC GUI usage
 
@@ -252,7 +253,7 @@ Click **ROI_set** button a third time and select "100_ROIs" set:
 
 ## Least-squares separate (LSS) regression 
 
-To perfrom beta-series correlation (BSC) analysis, we first need to calculate parameter estimates (betas) for individual trials using LSS regression.
+To perform beta-series correlation (BSC) analysis, we first need to calculate parameter estimates (betas) for individual trials using LSS regression.
 
 Click **LSS GLM** button and select conditions of interest (individual betas will be calculated only for the selected conditions):
 
@@ -262,16 +263,16 @@ Click **LSS GLM** button and select conditions of interest (individual betas wil
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\LSS_regression"** folder with subfolders for each subject. Subjects' subfolders will contain **trial-wise beta images** and **SPM batches for individual trial GLMs**. 
 
-## Beta-series correlaction based on LSS regression (BSC-LSS)
+## Beta-series correlation based on LSS regression (BSC-LSS)
 
 To perform BSC-LSS analysis for selected ROI set, click **BSC LSS** button.
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\BSC_LSS"** folder with three subfolders:
-* **Beta_series** - containes beta series extracted for the selected ROI set (beta parameters are averaged across voxels for each ROI mask);
-* **ROI_to_ROI**  - containes **BSC-LSS functional connectivity matrices** (Person's r converted to Fisher's Z);
-* **Seed_to_voxel** - containes **voxel-by-voxel BSC-LSS images** (*.nii files containing Fisher's Z values) calculated for each seed ROI.
+* **Beta_series** - contains beta series extracted for the selected ROI set (beta parameters are averaged across voxels for each ROI mask);
+* **ROI_to_ROI**  - contains **BSC-LSS functional connectivity matrices** (Pearson’s r converted to Fisher's Z);
+* **Seed_to_voxel** - contains **voxel-by-voxel BSC-LSS images** (*.nii files containing Fisher's Z values) calculated for each seed ROI.
 
-**NOTE:** You don't need to recalculare LSS regression to perform the BSC-LSS analysis for a different ROI set. Just select a different ROI set by clicking the **ROI set** button and then click the **BSC-LSS** button.
+**NOTE:** You don't need to recalculate LSS regression to perform the BSC-LSS analysis for a different ROI set. Just select a different ROI set by clicking the **ROI set** button and then click the **BSC-LSS** button.
 
 ## BSC-LSS results
 
@@ -313,7 +314,7 @@ You can save the results by clicking **Save data** button and re-open them later
 Non-parametric statistics, Network-based statistics (NBS) and threshold-free cluster enhancement (TFCE) with network-level FWE correction will be available in future releases.
 TMFC matrices (*.mat files) can be analysed in any MATLAB toolbox for ROI-to-ROI statistical inference. For example, you can use the network-based statistics (NBS) toolbox (https://www.nitrc.org/projects/nbs/). 
 
-To visualisaze the ROI-to-ROI results, you can also enter this code in MATLAB command window:
+To visualize the ROI-to-ROI results, you can also enter this code in MATLAB command window:
 
 ```matlab
 % Select TMFC project path
@@ -322,15 +323,18 @@ ROI_set_number = 1;
 tmfc.ROI_set(ROI_set_number).set_name = '100_ROIs';
 
 % Load BSC-LSS matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-for i = 1:20
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+M(data.N).paths = [];
+for iSub = 1:data.N
+    file = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS','ROI_to_ROI', ...
+                    [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat']);
+    S  = load(file); fn = fieldnames(S); M(iSub).paths = S.(fn{1});
 end
-matrices = cat(3,M(:).paths);
+clear S fn file
+matrices = cat(3, M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
 contrast = 1;                       % A > B effect
-alpha = 0.001/2;                    % alpha = 0.001 thredhold corrected for two-sided comparison
+alpha = 0.001/2;                    % alpha = 0.001 threshold corrected for two-sided comparison
 correction = 'FDR';                 % False Discovery Rate (FDR) correction (Benjamini–Hochberg procedure)
 [thresholded_1,pval,tval,conval_1] = tmfc_ttest(matrices,contrast,alpha,correction); 
 contrast = -1;                      % B > A effect
@@ -361,7 +365,7 @@ Results for edge-wise inference with FDR-correction ("TaskA vs TaskB"):
 
 ## BSC-LSS after FIR task regression
 
-Co-activations can spuriosly inflate TMFC estimates (see [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and [Cole et al., 2019](https://doi.org/10.1016/j.neuroimage.2018.12.054)).
+Co-activations can spuriously inflate TMFC estimates (see [the referenced paper](https://doi.org/10.1038/s42003-024-07088-3) and [Cole et al., 2019](https://doi.org/10.1016/j.neuroimage.2018.12.054)).
 
 To remove co-activations, we can perform task regression with finite impulse response (FIR) functions prior to BSC analysis.
 
@@ -375,9 +379,9 @@ Click OK. Once the calculations are complete, TMFC toolbox will create a **"...\
 
 To perform BSC-LSS analysis after FIR task regression (using residual time series), click **BSC LSS after FIR** button. The following steps are similar to those for the BSC-LSS analysis.
 
-## Generalized psyhophysiological interactions (gPPI)
+## Generalized psychophysiological interactions (gPPI)
 
-To perform gPPI analysis, we first need to extract time series from the seed ROIs and calculate psyhophysiological interaction (PPI) terms.
+To perform gPPI analysis, we first need to extract time series from the seed ROIs and calculate psychophysiological interaction (PPI) terms.
 
 ### Volume of interest (VOI) 
 
@@ -385,9 +389,9 @@ Click **"VOIs"** button to extract time series for the selected ROI set. Select 
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\VOIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **VOI .mat files**.
 
-### Psyhophysiological interaction (PPI) terms
+### psychophysiological interaction (PPI) terms
 
-Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM Parametric Empirical Bayes (PEB) function to calulate PPI terms.
+Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM Parametric Empirical Bayes (PEB) function to calculate PPI terms.
 Select two options:
 1) "Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
 2) "Enable/Disable whitening inversion" ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
@@ -400,14 +404,14 @@ Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_proje
 Click **"gPPI"** button to perform gPPI analysis. 
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\gPPI"** folder with three subfolders:
-* **GLM_batches** - containes SPM batches for gPPI GLMs;
-* **ROI_to_ROI**  - containes **gPPI functional connectivity matrices** (asymmetrical and symmetrical, symmetrization is carried out by averaging the upper and lower diagonal elements);
-* **Seed_to_voxel** - containes **voxel-by-voxel gPPI images** calculated for each seed ROI.
+* **GLM_batches** - contains SPM batches for gPPI GLMs;
+* **ROI_to_ROI**  - contains **gPPI functional connectivity matrices** (asymmetrical and symmetrical, symmetrization is carried out by averaging the upper and lower diagonal elements);
+* **Seed_to_voxel** - contains **voxel-by-voxel gPPI images** calculated for each seed ROI.
 
 ## gPPI-FIR analysis
 
 To remove co-activations with arbitrary shape of HRF function, we can combine FIR task regression with gPPI regression. The difference between classic gPPI GLM and gPPI-FIR GLM is that the
-latter uses finite impulse response (FIR) functions (instead of canonical HRF function) to model activations for conditions of interst and conditions of no interest. The FIR model allows to model activations with any possible hemodynamic response shape.
+latter uses finite impulse response (FIR) functions (instead of canonical HRF function) to model activations for conditions of interest and conditions of no interest. The FIR model allows to model activations with arbitrary hemodynamic response shapes.
 
 Click **"gPPI-FIR"** button to perform gPPI-FIR analysis. 
 
@@ -415,7 +419,7 @@ Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_proje
 
 ### gPPI-FIR results
 
-To visualisaze the ROI-to-ROI results, enter this code in MATLAB command window:
+To visualize the ROI-to-ROI results, enter this code in MATLAB command window:
 ```matlab
 % Select TMFC project path
 tmfc.project_path = spm_select(1,'dir','Select TMFC project folder');
@@ -423,12 +427,15 @@ ROI_set_number = 1;
 tmfc.ROI_set(ROI_set_number).set_name = '100_ROIs';
 
 % Load gPPI-FIR matrices for the 'TaskA_vs_TaskB' contrast (contrast # 3)
-clear M marices conval_1 thresholded_1
-for i = 1:20 
-    M(i).paths = struct2array(load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical',...
-        ['Subject_' num2str(i,'%04.f') '_Contrast_0003_[TaskA_vs_TaskB].mat'])));
+clear conval_1 thresholded_1
+M(data.N).paths = [];
+for iSub = 1:data.N
+    file = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'gPPI_FIR','ROI_to_ROI','symmetrical', ...
+                    [tmfc.subjects(iSub).name '_Contrast_0003_[TaskA_vs_TaskB].mat']);
+    S  = load(file); fn = fieldnames(S); M(iSub).paths = S.(fn{1});
 end
-matrices = cat(3,M(:).paths);
+clear S fn file
+matrices = cat(3, M(:).paths);
 
 % Perform one-sample t-test (two-sided, FDR-correction) 
 contrast = 1;                       % A > B effect

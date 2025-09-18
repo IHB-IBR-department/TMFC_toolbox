@@ -26,7 +26,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 % regressed out during the FIR task regression.
 %
 % This function does not apply temporal autocorrelation modeling (AR(1) or
-% FAST models) since the residuals have already been whitened during the
+% FAST models) since the residuals were already whitened during the
 % FIR task regression.  
 %
 % This function does not apply high-pass filter (HPF) since the residuals
@@ -40,7 +40,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 % dispersion derivatives, they will be removed from the LSS GLMs.
 %
 % FORMAT [sub_check] = tmfc_LSS_after_FIR(tmfc)
-% Run a function starting from the first subject in the list.
+% Run the function starting from the first subject in the list.
 %
 %   tmfc.subjects.path     - Paths to individual SPM.mat files
 %   tmfc.subjects.name     - Subject names within the TMFC project
@@ -49,7 +49,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 %   tmfc.defaults.parallel - 0 or 1 (sequential or parallel computing)
 %   tmfc.defaults.maxmem   - e.g. 2^31 = 2GB (how much RAM can be used at
 %                            the same time during GLM estimation)
-%   tmfc.defaults.resmem   - true or false (store temporaty files during
+%   tmfc.defaults.resmem   - true or false (store temporary files during
 %                            GLM estimation in RAM or on disk)
 %
 %   tmfc.LSS_after_FIR.conditions        - List of conditions of interest
@@ -65,7 +65,7 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
+% contain three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
 % structure must be specified (see tmfc_conditions_GUI, nested function:
 % [cond_list] = generate_conditions(SPM_path)):
@@ -93,28 +93,13 @@ function [sub_check] = tmfc_LSS_after_FIR(tmfc,start_sub)
 % FORMAT [sub_check] = tmfc_LSS_after_FIR(tmfc, start_sub)
 % Run the function starting from a specific subject in the path list.
 %
-%   tmfc                   - As above
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
-
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 1
    start_sub = 1;
@@ -156,7 +141,7 @@ for iSub = start_sub:nSub
     SPM = load(tmfc.subjects(iSub).path).SPM;
 
     % Check if SPM.mat has concatenated sessions 
-    % (if spm_fmri_concatenate.m sript was used)
+    % (if spm_fmri_concatenate.m script was used)
     if size(SPM.nscan,2) == size(SPM.Sess,2)
         SPM_concat(iSub) = 0;
     else
@@ -166,6 +151,7 @@ for iSub = start_sub:nSub
     
     if isdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name),'s');
+        pause(0.1);
     end
 
     if ~isdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name))
@@ -210,6 +196,7 @@ for iSub = start_sub:nSub
 
             if isdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]))
                 rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');
+                pause(0.1);
             end
             
             mkdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]));
@@ -230,7 +217,7 @@ for iSub = start_sub:nSub
                 end
             end
     
-            % Current trial vs all other trials (of interest and no interrest)
+            % Current trial vs all other trials (of interest and no interest)
             current_trial_ons = ons_of_int(kTrial);
             current_trial_dur = dur_of_int(kTrial);
             other_trials = all_trials_number(all_trials_number~=kTrial);
@@ -251,7 +238,7 @@ for iSub = start_sub:nSub
             matlabbatch{1}.spm.stats.fmri_spec.sess.cond(2).pmod = struct('name', {}, 'param', {}, 'poly', {});
             matlabbatch{1}.spm.stats.fmri_spec.sess.cond(2).orth = 1;
 
-            % Confounds       
+            % No confounds are added (already regressed out during FIR step)       
             matlabbatch{1}.spm.stats.fmri_spec.sess.regress = struct('name', {}, 'val', {});
             matlabbatch{1}.spm.stats.fmri_spec.sess.multi = {''};
             matlabbatch{1}.spm.stats.fmri_spec.sess.multi_reg = {''};
@@ -279,6 +266,7 @@ for iSub = start_sub:nSub
         switch tmfc.defaults.parallel    
             % -------------------- Sequential Computing -----------------------
             case 0
+                trials = zeros(1,nTrial);
                 for kTrial = 1:nTrial
                     % Specify LSS GLM
                     spm('defaults','fmri');
@@ -317,7 +305,8 @@ for iSub = start_sub:nSub
                     % Remove temporary LSS directory
                     rmdir(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,['LSS_Sess_' num2str(sess_num(jSess)) '_Trial_' num2str(kTrial)]),'s');
                     
-                    pause(0.01)
+                    pause(0.01);
+                    
                     condition(trial.cond(kTrial)).trials(trial.number(kTrial)) = 1;
                 end
             % --------------------- Parallel Computing ------------------------        
@@ -326,7 +315,7 @@ for iSub = start_sub:nSub
                     parpool;
                     figure(findobj('Tag','TMFC_GUI'));
                 end
-
+                trials = zeros(1,nTrial);
                 parfor kTrial = 1:nTrial
                     % Specify LSS GLM
                     spm('defaults','fmri');
@@ -375,7 +364,7 @@ for iSub = start_sub:nSub
         end
 
         sub_check(iSub).session(sess_num(jSess)).condition = condition;
-        pause(0.0001)
+        pause(0.01);
 
         clear E ons* dur* cond_of_int cond_of_no_int trial all_trials_number condition 
     end

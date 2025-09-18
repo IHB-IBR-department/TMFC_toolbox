@@ -1,9 +1,9 @@
 function SPM = tmfc_spm_rwls_spm(SPM)
 
-% This is a copy of the original function from rWLS toolbox v4.1
+% This is a copy of the original function from the rWLS toolbox v4.1
 % (Diedrichsen & Shadmehr, 2006). The function name has been prefixed with 
-% 'tmfc' to avoid conflicts with the original rWLS toolbox 
-% (in case it is already added to the MATLAB path).
+% 'tmfc' to avoid conflicts if the original rWLS toolbox is already
+% on the MATLAB path. 
 %
 % [Re]ML Estimation of a General Linear Model
 % FORMAT [SPM] = tmfc_spm_rwls_spm(SPM)

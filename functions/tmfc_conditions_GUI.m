@@ -2,32 +2,19 @@ function [conditions] = tmfc_conditions_GUI(SPM_path,input_case)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Opens a GUI window for gPPI analysis. Allows to choose conditions of
-% interest for gPPI analysis.
+% Opens a GUI window to select conditions of interest.
 % 
 % FORMAT [conditions] = tmfc_conditions_GUI(SPM_path, input_case)
 %   SPM_path          - Path to individual subject SPM.mat file
-%   input_case        - Select conditions of interest, three cases:
-%                       [1 = Specify ROI set, 2 = gPPI, 3 = LSS]
+%   input_case        - Selection mode (three options):
+%                       1 = Specify ROI set
+%                       2 = gPPI and gPPI-FIR
+%                       3 = LSS and LSS after FIR
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 % Get all conditions from the SPM.mat file
 all_cond = generate_conditions(SPM_path);
@@ -47,8 +34,8 @@ function [conditions] = conditions_GUI(all_cond, input_case)
 
     cond_L1 = {};       % Variable to store all conditions in GUI 
     cond_L2 = {};       % Variable to store selected conditions in GUI 
-    conditions_MW_SE1 = {};   % Variable to store the selected list of conditions in BOX 1(as INDEX)
-    conditions_MW_SE2 = {};   % Variable to store the selected list of conditions in BOX 2(as INDEX)
+    conditions_MW_SE1 = {};   % Variable to store the selected list of conditions in BOX 1 (as INDEX)
+    conditions_MW_SE2 = {};   % Variable to store the selected list of conditions in BOX 2 (as INDEX)
 
     switch(input_case)
         case 1
@@ -156,7 +143,7 @@ function [conditions] = conditions_GUI(all_cond, input_case)
 
             % Check if newly selected conditions have been added
             if new_cond_count == 0
-                fprintf(2,'Newly selected conditions are already present in the list, no new conditions added.n\');
+                fprintf(2,'Newly selected conditions are already present in the list, no new conditions added.\n');
             else
                 fprintf('New conditions selected: %d. \n', new_cond_count(1)); 
                 cond_L2 = sort_selected_conditions(cond_L2,all_cond);
@@ -240,32 +227,32 @@ function [conditions] = conditions_GUI(all_cond, input_case)
 
             fontscale = 1;
 
-            string_info = {'Suppose you have two separate sessions.','Both sessions contains task regressors for "Cond A", "Cond B" and "Errors"','',...
+            string_info = {'Suppose you have two separate sessions.','Both sessions contain task regressors for "Cond A", "Cond B" and "Errors"','',...
             'If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:','','Cond A (Sess1)',...
             'Cond B (Sess1)','Cond A (Sess2)','Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will calculate the omnibus F-contrast.',...
-            '','The center of the moving sphere will be moved to the local maximum inside a fixed sphere of larger radius.','',...
+            '','The moving sphere’s center will be shifted to the local maximum within a larger fixed-radius sphere.','',...
             'Local maxima are determined using the omnibus F-contrast for the selected conditions of interest.'};
             
         elseif strcmp(HW_string, 'gPPI: Help')
 
             fontscale = 1;
 
-            string_info = {'Suppose you have two separate sessions.','','Both sessions contains task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
-            '','1)  Cond A (Sess1)','2)  Cond B (Sess1)','3)  Cond A (Sess2)','4)  Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will create psycho-physiological (PPI) regressors. Thus, for each condition of interest, the generalized PPI (gPPI) model will contain two regressors: (1) psychological regressor and (2) PPI regressor.'...
+            string_info = {'Suppose you have two separate sessions.','','Both sessions contain task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
+            '','1)  Cond A (Sess1)','2)  Cond B (Sess1)','3)  Cond A (Sess2)','4)  Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will create psychophysiological (PPI) regressors. Thus, for each condition of interest, the generalized PPI (gPPI) model will contain two regressors: (1) psychological regressor and (2) PPI regressor.'...
             '','For trials of no interest (here, "Errors"), the gPPI model will contain only the psychological regressor.'}; 
         
         else
 
             if isunix; fontscale = 0.9; else; fontscale = 1; end
 
-            string_info = {'Suppose you have two separate sessions.','','Both sessions contains task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
+            string_info = {'Suppose you have two separate sessions.','','Both sessions contain task regressors for', '"Cond A", "Cond B" and "Errors"', '','If you are only interested in "Cond A" and "Cond B" comparison, the following conditions should be selected:',...
             '','1)  Cond A (Sess1)','2)  Cond B (Sess1)','3)  Cond A (Sess2)','4)  Cond B (Sess2)','','For all selected conditions of interest, the TMFC toolbox will calculate individual trial beta-images using Least-Squares Separate (LSS) approach.',...
             '','For each individual trial (event), the LSS approach estimates a separate general linear model (GLM) with two regressors. The first regressor models the expected BOLD response to the current trial of interest, and the second (nuisance) regressor models the BOLD response to all other trials (of interest and no interest).',...
             '','For trials of no interest (here, "Errors"), separate GLMs will not be estimated. Trials of no interest will be used only for the second (nuisance) regressor.'};
         end
     
         % Create if-else chain, compare if HW_string == ROI, gPPI, LSS and
-        % then assign the repsective help string, change window size if
+        % then assign the respective help string, change window size if
         % required. 
 
         cond_HW_S1 = uicontrol(cond_HW,'Style','text','String',string_info ,'Units', 'normalized', 'Position', [0.05 0.12 0.89 0.85], 'HorizontalAlignment', 'left','backgroundcolor','w','fontunits','normalized', 'fontSize', 0.0301*fontscale);
@@ -303,7 +290,7 @@ function [cond_list] = generate_conditions(SPM_path)
             end 
         end
     catch 
-        disp('Selected SPM.mat file does not exist or invalid.');
+        disp('Selected SPM.mat file does not exist or is invalid.');
         cond_list = {};
     end
 end

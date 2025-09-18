@@ -16,10 +16,10 @@ coact(1:dummy,:) = [];
 dur = size(oscill,1);
 
 % Normalize oscillations
-oscill = zscore(oscill) + 100.*ones(size(oscill));
+oscill = tmfc_zscore(oscill) + 100.*ones(size(oscill));
 
 % Scale coactivations
-coact = zscore(coact)./SF;
+coact = tmfc_zscore(coact)./SF;
 coact(isinf(coact)) = 0;
 coact = repmat(coact,1,1,N);
 
@@ -43,4 +43,4 @@ for i = 1:N
 end
 
 time = toc;
-fprintf(['Generate images :: ' exp_folder ' :: Done in ' num2str(time)  '\n']);
+fprintf(['Generating images :: ' exp_folder ' :: Done in ' num2str(time)  '\n']);

@@ -4,7 +4,7 @@ function [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI
 %
 % Calculates linear contrasts of seed-to-voxel FC images.
 %
-% FORMAT [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,con)
+% FORMAT [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number)
 %
 %   type                   - TMFC analysis type
 %                            1: gPPI
@@ -12,7 +12,7 @@ function [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI
 %                            3: BSC-LSS
 %                            4: BSC-LSS after FIR
 %
-%   contrast_number        - Numbers of contrasts to compute in tmfc struct
+%   contrast_number        - Indices of contrasts to compute in tmfc struct
 %    
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
 %   tmfc.subjects.name            - Subject names within the TMFC project
@@ -32,7 +32,7 @@ function [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI
 %                                                interest for gPPI and
 %                                                gPPI-FIR analyses
 %                                                (see tmfc_PPI)
-% For BSC analysis:
+% For BSC analyses:
 % tmfc.LSS.conditions           - List of conditions of interest
 %                                 for BSC-LSS analysis
 %                                 (see tmfc_LSS)
@@ -41,7 +41,7 @@ function [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI
 %                                 (see tmfc_LSS_after_FIR)
 % -------------------------------------------------------------------------
 %
-% Example of the ROI set (see tmfc_select_ROIs_GUI):
+% Example of an ROI set (see tmfc_select_ROIs_GUI):
 %
 %   tmfc.ROI_set(1).set_name = 'two_ROIs';
 %   tmfc.ROI_set(1).type = 'binary_images';
@@ -50,31 +50,16 @@ function [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI
 %   tmfc.ROI_set(1).ROIs(1).path_masked = 'C:\ROI_set\two_ROIs\ROI_1.nii';
 %   tmfc.ROI_set(1).ROIs(2).path_masked = 'C:\ROI_set\two_ROIs\ROI_2.nii';                             
 %
-% FORMAT [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,con,ROI_set)
+% FORMAT [sub_check] = tmfc_seed_to_voxel_contrast(tmfc,type,contrast_number,ROI_set_number)
 % Run the function for the selected ROI set
 %
 %   tmfc                   - As above
 %   ROI_set_number         - Number of the ROI set in the tmfc structure
 %   
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
-
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin < 4
    ROI_set_number = 1;

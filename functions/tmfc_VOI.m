@@ -2,9 +2,9 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Extracts time-series from volumes of interest (VOIs). Calculates 
-% F-contrast for all conditions of interest. Regresses out conditions of no
-% interest and confounds. Applies whitening and high-pass filtering.
+% Extracts time series from volumes of interest (VOIs). Computes an
+% F-contrast for all conditions of interest, regresses out conditions of no
+% interest and confounds, and applies whitening and high-pass filtering.
 %
 % FORMAT [sub_check] = tmfc_VOI(tmfc)
 % Run a function starting from the first subject in the list.
@@ -33,7 +33,7 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
+% contain three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
 % structure must be specified (see tmfc_conditions_GUI, nested function:
 % [cond_list] = generate_conditions(SPM_path)):
@@ -66,7 +66,7 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).pmod   = 2;
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).name = 'Cond_BxModulator1^1';
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator1^1]'; 
-% e.g. second modulator for second condition:
+% e.g. second modulator for fourth condition:
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).sess   = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).number = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).pmod = 3; 
@@ -86,28 +86,14 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 % Run the function starting from a specific subject in the path list for
 % the selected ROI set.
 %
-%   tmfc                   - As above
-%   ROI_set_number         - Number of the ROI set in the tmfc structure
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   ROI_set_number - Number of the ROI set in the tmfc structure
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 1
    ROI_set_number = 1;
@@ -182,6 +168,7 @@ for iSub = start_sub:nSub
 
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name),'s');
+        pause(0.1);
     end
 
     if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))

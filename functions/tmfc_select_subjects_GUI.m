@@ -3,7 +3,7 @@
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
 % Opens a GUI window for selecting individual subject SPM.mat files
-% created by SPM12 after 1-st level GLM estimation. Optionally checks
+% created by SPM12 after first level GLM estimation. Optionally checks
 % SPM.mat files: 
 % (1) checks if all SPM.mat files are present in the specified paths
 % (2) checks if the same conditions are specified in all SPM.mat files
@@ -21,23 +21,9 @@
 %   SPM_subfolder     - Subfolder for SPM.mat files
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 0
 	SPM_check = 1;
@@ -49,17 +35,27 @@ SS_MW_S1 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundCo
 SS_MW_S2 = uicontrol(SS_MW,'Style','text','String', 'Not Selected','ForegroundColor','red','Units', 'normalized', 'Position',[0.500 0.720 0.450 0.095],'backgroundcolor','w','FontUnits','normalized','FontSize',0.25);
 SS_MW_LB1 = uicontrol(SS_MW, 'Style', 'listbox', 'String', '','Max', 100000,'Units', 'normalized', 'Position',[0.033 0.250 0.920 0.490],'FontUnits','points','FontSize',10,'Value', [],'callback', @SS_LB_select);
 SS_MW_sel_sub = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select subject folders','Units', 'normalized', 'Position',[0.033 0.850 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_sub);
-SS_MW_sel_mat = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select SPM.mat file for Subject #1','Units', 'normalized', 'Position',[0.033 0.750 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_SPM_mat);
+SS_MW_sel_mat = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Select SPM.mat file (first subject)','Units', 'normalized', 'Position',[0.033 0.750 0.455 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @select_SPM_mat);
 SS_MW_add_new = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Add new subject','Units', 'normalized', 'Position',[0.033 0.14 0.300 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @add_new);
 SS_MW_rem = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Remove selected subject','Units', 'normalized', 'Position',[0.346 0.14 0.300 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @remove_sub);
 SS_MW_rem_all = uicontrol(SS_MW,'Style','pushbutton', 'String', 'Clear all subjects','Units', 'normalized', 'Position',[0.660 0.14 0.300 0.095],'FontUnits','normalized','FontSize',0.25,'callback', @remove_all);
-SS_MW_conf = uicontrol(SS_MW,'Style','pushbutton', 'String', 'OK','Units', 'normalized', 'Position',[0.390 0.04 0.200 0.080],'FontUnits','normalized','FontSize',0.28,'callback', @confirm_paths);
+
+% Button: Help
+SS_MW_HELP = uicontrol(SS_MW,'Style','pushbutton','String','Help', ...
+    'Units','normalized','Position',[0.55 0.04 0.200 0.080], ...
+    'FontUnits','normalized','FontSize',0.28,'Callback',@open_help);
+
+% Button: OK
+SS_MW_conf = uicontrol(SS_MW,'Style','pushbutton', 'String', 'OK', ...
+    'Units', 'normalized', 'Position',[0.24 0.04 0.200 0.080], ...
+    'FontUnits','normalized','FontSize',0.28,'callback', @confirm_paths);
+
 movegui(SS_MW,'center');
 
 % Temporary variables
 subject_paths_tmp = {};       % Variable to store subject paths
 subject_full_path = {};       % Variable to store full paths
-SPM_mat_path = {};            % Varaible to store subfolder for SPM.mat file
+SPM_mat_path = {};            % Variable to store subfolder for SPM.mat file
 selected_sub = {};            % Variable to store the selected list of paths (as INDEX)
 add_new_subs = {};            % Variable used to add new subjects
 
@@ -84,8 +80,8 @@ function select_sub(~,~)
         SPM_mat_path = {};
         subject_full_path = {};
     else
-        fprintf('TMFC Subjects: Subjects selected are: %d \n', size(subject_paths_tmp,1));
-        disp('TMFC Subjects: Select SPM.mat file for the first subject.');
+        fprintf('TMFC Subjects: Subjects selected: %d \n', size(subject_paths_tmp,1));
+        disp('TMFC Subjects: Select the SPM.mat file for the first subject.');
         set(SS_MW_S1,'String', strcat(num2str(size(subject_paths_tmp,1)),' selected'),'ForegroundColor',[0.219, 0.341, 0.137]);    
         set(SS_MW_S2,'String','Not selected','ForegroundColor','red');
         SPM_mat_path = {};
@@ -150,7 +146,7 @@ function add_new(~,~)
                add_subs_full_path =  vertcat(add_subs_full_path,strcat(char(add_new_subs(iSub,:)),char(SPM_mat_path)));
             end
                         
-            subject_full_path = vertcat(subject_full_path, add_subs_full_path);   % Joining exisiting list of subjects with new subjects
+            subject_full_path = vertcat(subject_full_path, add_subs_full_path);   % Joining existing list of subjects with new subjects
             new_subs_count = size(unique(subject_full_path)) - subs_exist;        % Removing duplicates
             subject_full_path = unique(subject_full_path);
             
@@ -210,6 +206,147 @@ function remove_all(~,~)
 end
 
 %--------------------------------------------------------------------------
+% Help window
+function open_help(~,~)
+   page1 = {
+        ''
+        '   ========================== EXAMPLE #1 (SPM-like folder structure) =========================='
+        ''
+        '   (1) Select the subject folders (each containing a STAT subfolder with an SPM.mat file).'  
+        '   (2) Select the SPM.mat file for the first subject.'
+        ''
+        '   project/'
+        '   ├─ rawdata/ #DICOM' 
+        '   └─ derivatives/'
+        '      ├─ sub-01/    <------------------------------------------ [Select subject folder #1]  (1)' 
+        '      │  ├─ anat/'
+        '      │  │  ├─ *T1*.nii'
+        '      │  │  └─ *T1*.nii derivatives'
+        '      │  ├─ func/'
+        '      │  │  ├─ sess-01/'
+        '      │  │  │  ├─ Unprocessed functional files (*.nii)'
+        '      │  │  │  └─ Preprocessed functional files:'
+        '      │  │  │       ◦ smoothed + norm. + real. (e.g., swar*.nii)'
+        '      │  │  │       ◦ unsmoothed + norm. + real. (e.g., war*.nii)' 
+        '      │  │  └─ sess-02/ ...'
+        '      │  └─ stat/              # first-level models (one folder per GLM)'
+        '      │     ├─ GLM-01/'
+        '      │     │  ├─ SPM.mat  <-------------- [Select the SPM.mat file for the first subject]  (2)'
+        '      │     │  └─ TMFC_denoise/ <----------------------------------------- [Output folder]'
+        '      │     └─ GLM-02/ ...'
+        '      └─ sub-02/ ...  <---------------------------------------- [Select subject folder #2]  (1)'
+    };
+
+    page2 = {
+        ''
+        '   ========================== EXAMPLE #2 (BIDS-like folder structure) ========================='
+        ''
+        '   (1) Select the subject folders (each containing a STAT subfolder with an SPM.mat file).'  
+        '   (2) Select the SPM.mat file for the first subject.'
+        ''
+        '   project/'
+        '   ├── sub-01/'
+        '   │   ├── ses-01/'
+        '   │   │   ├── anat/'
+        '   │   │   │   └── *T1*.nii'
+        '   │   │   └── func/     # Unprocessed functional files'
+        '   │   └── ses-02/ ...'
+        '   ├── sub-02/ ...'
+        '   └── derivatives'
+        '       ├── fmriprep/'
+        '       │   ├── sub-01/'
+        '       │   │   ├── ses-01/'
+        '       │   │   │   └── func/'
+        '       │   │   │       └── Preprocessed functional files:'
+        '       │   │   │           ◦ smoothed + normalized + realigned'
+        '       │   │   │           ◦ unsmoothed + normalized + realigned'
+        '       │   │   └── ses-02/ ...'
+        '       │   └── sub-02/ ...'
+        '       └── firstlevel-spm/'
+        '           ├── sub-01/     <----------------------------------- [Select subject folder #1]  (1)'
+        '           │   ├── GLM-01/'
+        '           │   │   ├── SPM.mat  <--------- [Select the SPM.mat file for the first subject]  (2)'
+        '           │   │   └── TMFC_denoise/  <----------------------------------- [Output folder]'
+        '           │   └── GLM-02/ ...'
+        '           └── sub-02/ ...  <---------------------------------- [Select subject folder #2]  (1)'
+    };
+
+    page3 = {
+        ''
+        '   ========================== EXAMPLE #3 (Other non-BIDS folder structure) ====================='
+        ''
+        '   (1) Select the subject folders (each containing a STAT subfolder with an SPM.mat file).'  
+        '   (2) Select the SPM.mat file for the first subject.'
+        ''
+        '   project/'
+        '   ├─ rawdata/ # DICOM'
+        '   ├─ nifti/'
+        '   │  ├─ sub-01/'
+        '   │  │  ├─ anat/'
+        '   │  │  │  ├─ *T1*.nii  '
+        '   │  │  │  └─ *T1*.nii derivatives'
+        '   │  │  └─ func/'
+        '   │  │     ├─ sess-01/'
+        '   │  │     │  ├─ Unprocessed functional files (*.nii)'
+        '   │  │     │  └─ Preprocessed functional files (*.nii):'
+        '   │  │     │     ◦ smoothed + normalized + realigned'
+        '   │  │     │     ◦ unsmoothed + normalized + realigned'
+        '   │  │     └─ sess-02/ ...'
+        '   │  └─ sub-02/ ...'
+        '   └─ firstlevel-spm/'
+        '      ├─ sub-01/   <------------------------------------------- [Select subject folder #1]  (1)'
+        '      │  ├─ GLM-01/'
+        '      │  │  ├─ SPM.mat   <---------------- [Select the SPM.mat file for the first subject]  (2)'
+        '      │  │  └─ TMFC_denoise/   <------------------------------------------ [Output folder]'
+        '      │  └─ GLM-02/ ...'
+        '      └─ sub-02/ ...   <--------------------------------------- [Select subject folder #2]  (1)'
+    };
+
+    pages = {page1,page2,page3};
+    cur=1; total=numel(pages);
+
+    ST_HELP = figure('Name','Help','NumberTitle','off','Units','normalized', ...
+        'Position',[0.22 0.10 0.60 0.75], 'MenuBar','none','ToolBar','none', ...
+        'Color','w','WindowStyle','Modal');
+
+    txtArea = uicontrol(ST_HELP,'Style','edit', ...
+        'Units','normalized','Position',[0.05 0.14 0.90 0.78], ...
+        'BackgroundColor','w','Enable','inactive', ...
+        'Max', 2, 'Min', 0, 'HorizontalAlignment','left', ...
+        'FontName','Courier New','FontUnits','normalized','FontSize',0.025);
+
+    btnPrev = uicontrol(ST_HELP,'Style','pushbutton','String','Previous', ...
+        'Units','normalized','Position',[0.05 0.05 0.14 0.06], ...
+        'FontUnits','normalized','FontSize',0.35, 'Callback',@go_prev);
+
+    pageLbl = uicontrol(ST_HELP,'Style','text','String','', ...
+        'Units','normalized','Position',[0.205 0.035 0.19 0.06], ...
+        'BackgroundColor','w','HorizontalAlignment','center', ...
+        'FontUnits','normalized','FontSize',0.40);
+
+    btnNext = uicontrol(ST_HELP,'Style','pushbutton','String','Next', ...
+        'Units','normalized','Position',[0.405 0.05 0.14 0.06], ...
+        'FontUnits','normalized','FontSize',0.35, 'Callback',@go_next);
+
+    btnOK = uicontrol(ST_HELP,'Style','pushbutton','String','OK', ...
+        'Units','normalized','Position',[0.81 0.05 0.14 0.06], ...
+        'FontUnits','normalized','FontSize',0.35, ...
+        'Callback',@(s,e) close(ST_HELP));
+
+    render_page(); movegui(ST_HELP,'center'); uiwait(ST_HELP);
+
+    function render_page()
+        set(txtArea,'String', pages{cur});
+        set(pageLbl,'String', sprintf('Page %d of %d', cur, total));
+        set(btnPrev,'Enable', tern(cur>1,'on','off'));
+        set(btnNext,'Enable', tern(cur<total,'on','off'));
+    end
+    function go_prev(~,~), if cur>1, cur=cur-1; render_page(); end, end
+    function go_next(~,~), if cur<total, cur=cur+1; render_page(); end, end
+    function out = tern(cond,a,b), if cond, out=a; else, out=b; end, end
+end
+
+%--------------------------------------------------------------------------
 % Check SPM.mat files and export paths
 function confirm_paths(~,~)
 	file_correct = {};
@@ -221,7 +358,7 @@ function confirm_paths(~,~)
     if isempty(subject_paths_tmp)
         fprintf(2,'TMFC Subjects: There are no selected subjects. Please select subjects and SPM.mat files.\n');
     elseif (isempty(subject_full_path) && isempty(SPM_mat_path)) || (~isempty(subject_paths_tmp) && isempty(SPM_mat_path))
-        fprintf(2,'TMFC Subjects: Please select SPM.mat file for the first subject.\n');
+        fprintf(2,'TMFC Subjects: Please select the SPM.mat file for the first subject.\n');
     elseif (isempty(subject_full_path) && ~isempty(SPM_mat_path))
         fprintf(2,'TMFC Subjects: Please re-select subjects and SPM.mat file if required.\n');
     else
@@ -308,7 +445,7 @@ end
 %% Select SPM.mat file
 function [subject_full_path, SPM_mat_path] = add_mat_file(subject_dir)
     subject_full_path = {};  SPM_mat_path = {};
-    [mat_file_path] = spm_select( 1,'any','Select SPM.mat file for the first subject',{}, strtrim(subject_dir(1,:)), 'SPM.*');
+    [mat_file_path] = spm_select( 1,'any','Select the SPM.mat file for the first subject',{}, strtrim(subject_dir(1,:)), 'SPM.*');
     if ~isempty(mat_file_path)
         [SPM_mat_path] = strrep(mat_file_path, strtrim(subject_dir(1,:)),'');   
     end

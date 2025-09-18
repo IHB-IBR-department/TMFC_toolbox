@@ -1,20 +1,30 @@
 function GM_res = tmfc_extract_GM_residuals(SPM,GM_path,c)
 
 % This is a modification of the original 'spm_write_residuals' function.
+% Computes residuals within the selected gray-matter (GM) mask.
 %
-% Extract residuals from GM mask.
-% FORMAT y = spm_write_residuals(SPM,GM_path,Ic)
-% SPM    - structure containing generic analysis details
-% c      - contrast weights to adjust data (0:   no adjustment)
-%                                          (1:   adjust for covariates)
-%                                          (NaN: adjust for everything) 
+% Extract residuals within the GM mask.
+% FORMAT: GM_res = tmfc_extract_GM_residuals(SPM,GM_path,c)
 %
-% y      - matrix with GM residuals (time x voxel)  
+% SPM     - structure containing generic analysis details
+% GM_path - path to GM mask
+% c       - contrast weights to adjust data (0:   no adjustment)
+%                                           (1:   adjust for covariates)
+%                                           (NaN: adjust for everything) 
+%
+% GM_res - matrix of GM residuals (time x voxel)  
 %__________________________________________________________________________
+% spm_write_residuals:
 % Copyright (C) 2012-2013 Wellcome Trust Centre for Neuroimaging
-
 % Guillaume Flandin
 % $Id: spm_write_residuals.m 6656 2015-12-24 16:49:52Z guillaume $
+%
+% tmfc_extract_GM_residuals:
+% Copyright (C) 2025 Ruslan Masharipov
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
+
+
 
 cwd = pwd; 
 cd(SPM.swd);
@@ -31,6 +41,7 @@ nbchunks  = ceil(prod(DIM) / chunksize);
 chunks    = min(cumsum([1 repmat(chunksize,1,nbchunks)]),prod(DIM)+1);
 
 GM_res = [];
+GM_mask = spm_data_hdr_read(GM_path);
 
 for i=1:nbchunks
     chunk = chunks(i):chunks(i+1)-1;
@@ -39,7 +50,6 @@ for i=1:nbchunks
     
     %-Get GM mask
     %----------------------------------------------------------------------
-    GM_mask = spm_data_hdr_read(GM_path);
     m = spm_data_read(GM_mask,chunk) > 0;
     m = m(:)';
     

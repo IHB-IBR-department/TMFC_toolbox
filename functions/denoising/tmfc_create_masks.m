@@ -1,36 +1,17 @@
-function [masks] = tmfc_create_masks(SPM_paths,struct_paths,funct_paths,options)
+function [masks] = tmfc_create_masks(SPM_paths,anat_paths,func_paths,options)
 
 % =======[ Task-Modulated Functional Connectivity Denoise Toolbox ]========
 % 
-% Creates binary masks to extract BOLD signals from GM (for DVARS calculation),
-% WM and CSF (for aCompCor and Phys regressors), and the whole brain (for GSR).
+% Creates binary masks for GM (DVARS), WM/CSF (aCompCor & Phys regressors),
+% and the whole brain (GSR).
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
-% Number of workers in a parallel pool
-%--------------------------------------------------------------------------
-if options.parallel == 0
-    M = 0;
-else
-    M = maxNumCompThreads('automatic');
-end
+% Detect PCT availability
+hasPCT = (exist('parfor','builtin')==5) && license('test','Distrib_Computing_Toolbox');
 
 % Create mask subfolders
 %--------------------------------------------------------------------------
@@ -39,9 +20,9 @@ for iSub = 1:length(SPM_paths)
     GLM_subfolder = fileparts(SPM_paths{iSub});
     segment_paths{iSub,1} = fullfile(GLM_subfolder,'TMFC_denoise','Segment');
     glm_paths{iSub,1} = fullfile(GLM_subfolder,'TMFC_denoise', ...
-        ['[WM_' num2str(options.WMmask.prob) 'Prob_' num2str(options.WMmask.erode) ...
-        'xErode]_[CSF_' num2str(options.CSFmask.prob) 'Prob_' num2str(options.CSFmask.erode) ...
-        'xErode]_[GM_' num2str(options.GMmask.prob) 'Prob_' num2str(options.GMmask.dilate) 'xDilate]']);
+        ['[WM' num2str(round(options.WMmask.prob*100)) 'e' num2str(options.WMmask.erode) ...
+        ']_[CSF' num2str(round(options.CSFmask.prob*100)) 'e' num2str(options.CSFmask.erode) ...
+        ']_[GM' num2str(round(options.GMmask.prob*100)) 'd' num2str(options.GMmask.dilate) ']']);
     mask_paths{iSub,1} = fullfile(glm_paths{iSub,1},'Masks');
     if ~exist(segment_paths{iSub},'dir'); mkdir(segment_paths{iSub}); end
     if ~exist(mask_paths{iSub},'dir'); mkdir(mask_paths{iSub}); end
@@ -53,13 +34,23 @@ masks.mask_paths = mask_paths;
 % Copy structural T1 files
 %--------------------------------------------------------------------------
 for iSub = 1:length(SPM_paths)
-    [~,struct_name,struct_ext] = fileparts(struct_paths{iSub});
-    struct_file{iSub,1} = [struct_name,struct_ext];
-    struct_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[struct_name,struct_ext]);
-    if ~exist(struct_copy_paths{iSub},'file')
-        copyfile(struct_paths{iSub},struct_copy_paths{iSub});
+    [~,anat_name,anat_ext] = fileparts(anat_paths{iSub});
+    if strcmpi(anat_ext,'.gz')
+        anat_paths(iSub) = gunzip(anat_paths{iSub});
+        [~,anat_name,anat_ext] = fileparts(anat_paths{iSub});
+        anat_file{iSub,1} = [anat_name,anat_ext];
+        anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
+        if ~exist(anat_copy_paths{iSub},'file')
+            movefile(anat_paths{iSub},anat_copy_paths{iSub});
+        end
+    else
+        anat_file{iSub,1} = [anat_name,anat_ext];
+        anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
+        if ~exist(anat_copy_paths{iSub},'file')
+            copyfile(anat_paths{iSub},anat_copy_paths{iSub});
+        end
     end
-    clear struct_name struct_ext
+    clear anat_name anat_ext
 end
 
 % Segment T1 image
@@ -68,13 +59,13 @@ spm_jobman('initcfg');
 
 jSub = 0;
 for iSub = 1:length(SPM_paths)
-    forward_field{iSub,1} = fullfile(segment_paths{iSub},['y_',struct_file{iSub}]);
-    bias_corrected{iSub,1} = fullfile(segment_paths{iSub},['m',struct_file{iSub}]);
-    GM{iSub,1} = fullfile(segment_paths{iSub},['c1',struct_file{iSub}]);
-    WM{iSub,1} = fullfile(segment_paths{iSub},['c2',struct_file{iSub}]);
-    CSF{iSub,1} = fullfile(segment_paths{iSub},['c3',struct_file{iSub}]);
+    forward_field{iSub,1} = fullfile(segment_paths{iSub},['y_',anat_file{iSub}]);
+    bias_corrected{iSub,1} = fullfile(segment_paths{iSub},['m',anat_file{iSub}]);
+    GM{iSub,1} = fullfile(segment_paths{iSub},['c1',anat_file{iSub}]);
+    WM{iSub,1} = fullfile(segment_paths{iSub},['c2',anat_file{iSub}]);
+    CSF{iSub,1} = fullfile(segment_paths{iSub},['c3',anat_file{iSub}]);
     if ~exist(bias_corrected{iSub},'file') || ~exist(GM{iSub},'file') || ~exist(WM{iSub},'file') || ~exist(CSF{iSub},'file')
-        matlabbatch{1}.spm.spatial.preproc.channel.vols = struct_copy_paths(iSub);
+        matlabbatch{1}.spm.spatial.preproc.channel.vols = anat_copy_paths(iSub);
         matlabbatch{1}.spm.spatial.preproc.channel.biasreg = 0.001;
         matlabbatch{1}.spm.spatial.preproc.channel.biasfwhm = 60;
         matlabbatch{1}.spm.spatial.preproc.channel.write = [0 1];
@@ -123,19 +114,31 @@ if jSub == 1
     spm_get_defaults('cmdline',true);
     spm_jobman('run',batch{1});
 elseif jSub > 1
-    try % Waitbar for MATLAB R2017a and higher
-        D = parallel.pool.DataQueue;           
-        w = waitbar(0,'Please wait...','Name','Segmentation','Tag','tmfc_waitbar');
-        afterEach(D, @tmfc_parfor_waitbar);    
-        tmfc_parfor_waitbar(w,jSub,1);
+    % Waitbar
+    tmfc_progress('init', jSub, 'Segmentation');
+    % Parallel mode, PCT only 
+    if options.parallel == 1 && hasPCT
+        % DataQueue requires R2017a+ 
+        D = [];
+        try
+            D = parallel.pool.DataQueue;
+            afterEach(D, @(~) tmfc_progress('tick'));                     
+        end
+        parfor iSub = 1:jSub % ---- Parallel mode ----
+            spm('defaults','fmri');
+            spm_get_defaults('cmdline',true);
+            spm_jobman('run',batch{iSub});
+            try send(D,[]); end % Update waitbar
+        end
+    else
+        for iSub = 1:jSub    % ---- Serial mode ----
+            spm('defaults','fmri');
+            spm_get_defaults('cmdline',true);
+            spm_jobman('run',batch{iSub});
+            tmfc_progress('tick'); % Update waitbar
+        end
     end
-    parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
-        spm('defaults','fmri');
-        spm_get_defaults('cmdline',true);
-        spm_jobman('run',batch{iSub});
-        try send(D,[]); end % Update waitbar
-    end
-    try delete(w); end % Close waitbar
+    try tmfc_progress('done'); end % Close waitbar
 end
 clear batch
 
@@ -181,17 +184,19 @@ for iSub = 1:length(SPM_paths)
     end
     try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
 end
-try; close(w); end % Close waitbar
+try, if exist('w','var') && ishghandle(w), close(w); end, end
 
 %==========================================================================
 % Creating WM and CSF masks
 %--------------------------------------------------------------------------
-if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
+if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
 
     % Erode WM masks
     %----------------------------------------------------------------------
     if options.WMmask.erode == 0
-        WM_eroded{iSub,1} = WM_mask{iSub};
+        for iSub = 1:length(SPM_paths)
+            WM_eroded{iSub,1} = WM_mask{iSub};
+        end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of WM masks');
         for iSub = 1:length(SPM_paths)
@@ -210,13 +215,15 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
             end
             try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
-        try; close(w); end % Close waitbar
+        try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
     
     % Dilate liberal GM mask
     %----------------------------------------------------------------------
     if options.GMmask.dilate == 0
-        GM_dilated{iSub,1} = GM_mask{iSub};
+        for iSub = 1:length(SPM_paths)
+            GM_dilated{iSub,1} = GM_mask{iSub};
+        end
     else
         w = waitbar(0,'Please wait...','Name','Dilation of GM masks');
         for iSub = 1:length(SPM_paths)
@@ -235,7 +242,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
             end
             try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
-        try; close(w); end % Close waitbar
+        try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
     
     % Subtract dilated GM mask from CSF mask
@@ -251,12 +258,14 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
         end
         try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
     end
-    try; close(w); end % Close waitbar
+    try, if exist('w','var') && ishghandle(w), close(w); end, end
     
     % Erode CSF masks
     %----------------------------------------------------------------------
     if options.CSFmask.erode == 0
-        CSF_eroded{iSub,1} = CSF_mask{iSub};
+        for iSub = 1:length(SPM_paths)
+            CSF_eroded{iSub,1} = CSF_mask{iSub};
+        end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of CSF masks');
         for iSub = 1:length(SPM_paths)
@@ -275,14 +284,14 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
             end
             try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
-        try; close(w); end % Close waitbar
+        try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
     
     % Normalization and resampling to fMRI resolution
     %----------------------------------------------------------------------
     jSub = 0;
     for iSub = 1:length(SPM_paths)
-        V = spm_vol(funct_paths(iSub).fname{1});
+        V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
         coreg = 0;
@@ -301,7 +310,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
             matlabbatch{1}.spm.spatial.normalise.write.woptions.vox = vx;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.interp = 4;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.prefix = 'w_';
-            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = funct_paths(iSub).fname{1};
+            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = func_paths(iSub).fname{1};
             matlabbatch{2}.spm.spatial.coreg.write.source{1,1} = wWM_eroded{iSub,1};
             matlabbatch{2}.spm.spatial.coreg.write.source{2,1} = wCSF_eroded{iSub,1};
             if coreg == 1
@@ -326,23 +335,35 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
         spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
-        try % Waitbar for MATLAB R2017a and higher
-            D = parallel.pool.DataQueue;           
-            w = waitbar(0,'Please wait...','Name','Normalization: WM and CSF masks','Tag','tmfc_waitbar');
-            afterEach(D, @tmfc_parfor_waitbar);    
-            tmfc_parfor_waitbar(w,jSub,1);
+        % Waitbar
+        tmfc_progress('init', jSub, 'Normalization: WM and CSF masks');
+        % Parallel mode, PCT only 
+        if options.parallel == 1 && hasPCT
+            % DataQueue requires R2017a+ 
+            D = [];
+            try
+                D = parallel.pool.DataQueue;
+                afterEach(D, @(~) tmfc_progress('tick'));                     
+            end
+            parfor iSub = 1:jSub % ---- Parallel mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                try; send(D,[]); end % Update waitbar
+            end
+        else
+            for iSub = 1:jSub    % ---- Serial mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                tmfc_progress('tick'); % Update waitbar
+            end
         end
-        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
-            spm('defaults','fmri');
-            spm_get_defaults('cmdline',true);
-            spm_jobman('run',batch{iSub});
-            try; send(D,[]); end % Update waitbar
-        end
-        try; delete(w); end % Close waitbar
+        try tmfc_progress('done'); end % Close waitbar
     end
     clear batch
     
-    % Remove brainstem voxels from WM mask and applying implicit SPM mask
+    % Remove brainstem voxels from WM mask and apply implicit SPM mask
     %----------------------------------------------------------------------
     w = waitbar(0,'Please wait...','Name','Removing brainstem from WM masks');
     for iSub = 1:length(SPM_paths)
@@ -357,11 +378,11 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
         end
         try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
     end
-    try; close(w); end % Close waitbar
+    try, if exist('w','var') && ishghandle(w), close(w); end, end
     
-    % Remove nonventricle voxels from CSF mask and applying implicit SPM mask
+    % Remove non-ventricle voxels from CSF masks and apply the implicit SPM mask
     %----------------------------------------------------------------------
-    w = waitbar(0,'Please wait...','Name','Removing nonventricle voxels from CSF masks');
+    w = waitbar(0,'Please wait...','Name','Removing non-ventricle voxels from CSF masks');
     for iSub = 1:length(SPM_paths)
         wCSF_eroded_final{iSub,1} = fullfile(mask_paths{iSub},'rw_CSF_mask_eroded_only_ventricles.nii');
         if ~exist(wCSF_eroded_final{iSub},'file')
@@ -379,7 +400,7 @@ if sum(options.aCompCor)~=0 || ~strcmp(options.WM_CSF,'none')
     %----------------------------------------------------------------------
     masks.WM = wWM_eroded_final;
     masks.CSF = wCSF_eroded_final;
-    try; close(w); end % Close waitbar
+    try, if exist('w','var') && ishghandle(w), close(w); end, end
 end
 
 %==========================================================================
@@ -391,7 +412,7 @@ if options.DVARS == 1
     %----------------------------------------------------------------------
     jSub = 0;
     for iSub = 1:length(SPM_paths)
-        V = spm_vol(funct_paths(iSub).fname{1});
+        V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
         coreg = 0;
@@ -409,7 +430,7 @@ if options.DVARS == 1
             matlabbatch{1}.spm.spatial.normalise.write.woptions.vox = vx;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.interp = 4;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.prefix = 'w_';
-            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = funct_paths(iSub).fname{1};
+            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = func_paths(iSub).fname{1};
             matlabbatch{2}.spm.spatial.coreg.write.source{1,1} = wGM_mask{iSub,1};
             if coreg == 1
                 matlabbatch{2}.spm.spatial.coreg.write.source{2,1} = wskull_stripped{iSub};
@@ -443,19 +464,31 @@ if options.DVARS == 1
         spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
-        try % Waitbar for MATLAB R2017a and higher
-            D = parallel.pool.DataQueue;           
-            w = waitbar(0,'Please wait...','Name','Creating GM masks','Tag','tmfc_waitbar');
-            afterEach(D, @tmfc_parfor_waitbar);    
-            tmfc_parfor_waitbar(w,jSub,1);
+        % Waitbar
+        tmfc_progress('init', jSub, 'Creating GM masks');
+        % Parallel mode, PCT only 
+        if options.parallel == 1 && hasPCT
+            % DataQueue requires R2017a+ 
+            D = [];
+            try
+                D = parallel.pool.DataQueue;
+                afterEach(D, @(~) tmfc_progress('tick'));                     
+            end
+            parfor iSub = 1:jSub % ---- Parallel mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                try; send(D,[]); end % Update waitbar
+            end
+        else
+            for iSub = 1:jSub    % ---- Serial mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                tmfc_progress('tick'); % Update waitbar
+            end
         end
-        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
-            spm('defaults','fmri');
-            spm_get_defaults('cmdline',true);
-            spm_jobman('run',batch{iSub});
-            try; send(D,[]); end % Update waitbar
-        end
-        try; delete(w); end % Close waitbar
+        try tmfc_progress('done'); end % Close waitbar
     end
     clear batch
 
@@ -467,13 +500,13 @@ end
 %==========================================================================
 % Creating whole-brain masks
 %--------------------------------------------------------------------------
-if ~strcmp(options.GSR,'none')
+if ~strcmpi(options.GSR,'none')
 
     % Normalization and resampling to fMRI resolution
     %----------------------------------------------------------------------
     jSub = 0;
     for iSub = 1:length(SPM_paths)
-        V = spm_vol(funct_paths(iSub).fname{1});
+        V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
         coreg = 0;
@@ -491,7 +524,7 @@ if ~strcmp(options.GSR,'none')
             matlabbatch{1}.spm.spatial.normalise.write.woptions.vox = vx;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.interp = 4;
             matlabbatch{1}.spm.spatial.normalise.write.woptions.prefix = 'w_';
-            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = funct_paths(iSub).fname{1};
+            matlabbatch{2}.spm.spatial.coreg.write.ref{1,1} = func_paths(iSub).fname{1};
             matlabbatch{2}.spm.spatial.coreg.write.source{1,1} = wWB_mask{iSub,1};
             if coreg == 1
                 matlabbatch{2}.spm.spatial.coreg.write.source{2,1} = wskull_stripped{iSub};
@@ -525,19 +558,31 @@ if ~strcmp(options.GSR,'none')
         spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
-        try % Waitbar for MATLAB R2017a and higher
-            D = parallel.pool.DataQueue;           
-            w = waitbar(0,'Please wait...','Name','Creating whole-brain masks','Tag','tmfc_waitbar');
-            afterEach(D, @tmfc_parfor_waitbar);    
-            tmfc_parfor_waitbar(w,jSub,1);
+        % Waitbar
+        tmfc_progress('init', jSub, 'Creating whole-brain masks');
+        % Parallel mode, PCT only 
+        if options.parallel == 1 && hasPCT
+            % DataQueue requires R2017a+ 
+            D = [];
+            try
+                D = parallel.pool.DataQueue;
+                afterEach(D, @(~) tmfc_progress('tick'));                     
+            end
+            parfor iSub = 1:jSub % ---- Parallel mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                try; send(D,[]); end % Update waitbar
+            end
+        else
+            for iSub = 1:jSub    % ---- Serial mode ----
+                spm('defaults','fmri');
+                spm_get_defaults('cmdline',true);
+                spm_jobman('run',batch{iSub});
+                tmfc_progress('tick'); % Update waitbar
+            end
         end
-        parfor (iSub = 1:jSub,M) % Run matlabbatches in parallel mode
-            spm('defaults','fmri');
-            spm_get_defaults('cmdline',true);
-            spm_jobman('run',batch{iSub});
-            try; send(D,[]); end % Update waitbar
-        end
-        try; delete(w); end % Close waitbar
+        try tmfc_progress('done'); end % Close waitbar
     end
     clear batch
 
@@ -545,29 +590,5 @@ if ~strcmp(options.GSR,'none')
     %----------------------------------------------------------------------
     masks.WB = wWB_mask;
 end
-end
-
-%==========================================================================
-% Waitbar for parallel mode
-%--------------------------------------------------------------------------
-function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
-    persistent w nSub start_sub start_time count_sub 
-    if nargin == 3
-        w = waitbarHandle;
-        nSub = iterations;
-        start_sub = firstsub - 1;
-        start_time = tic;
-        count_sub = 1;
-    else
-        if isvalid(w)         
-            elapsed_time = toc(start_time);
-            time_per_sub = elapsed_time/count_sub;
-            iSub = start_sub + count_sub;
-            time_remaining = (nSub-iSub)*time_per_sub;
-            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
-            waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
-            count_sub = count_sub + 1;
-        end
-    end
 end
 

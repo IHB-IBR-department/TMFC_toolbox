@@ -2,50 +2,40 @@ function paths = tmfc_save_nii(timeseries,outputdir,filename,options)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 % 
-% Creates NIfTI images for selected time-series.
+% Creates NIfTI images for selected time series.
 %
-% FORMAT paths = tmfc_save_nii(time_series,output_dir,filename)
-% FORMAT paths = tmfc_save_nii(time_series,output_dir,filename,options)
+% Each voxel represents one ROI, and each volume represents one time point:
+%   - In 3D mode: each time point is saved as a separate NIfTI image 
+%     (ROI values stored as voxels in a 1D image).
+%   - In 4D mode: all time points are stored as volumes in a single NIfTI file.
+%
+% FORMAT paths = tmfc_save_nii(timeseries,outputdir,filename)
+% FORMAT paths = tmfc_save_nii(timeseries,outputdir,filename,options)
 %
 % INPUTS:
-% time_series   - Time series matrix (time x ROIs) for single subject
-% output_dir    - Path to save *.nii files
+% timeseries    - Time series matrix (time x ROIs) for single subject
+% outputdir     - Path to save *.nii files
 % filename      - Name for *.nii files
 %
-% options.type  - '3D' (default): Save *.nii images as separate 3D files
-%               - '4D': Save all *.nii images into single 4D file  
-% option.format - 'float32' (default)
-%               - 'float64'
-%               - 'uint8'
-%               - 'int16'
-%               - 'int32'
+% options.type   - '3D' (default): Save *.nii images as separate 3D files
+%                - '4D': Save all *.nii images into single 4D file  
+% options.format - 'float32' (default)
+%                - 'float64'
+%                - 'uint8'
+%                - 'int16'
+%                - 'int32'
 %
 % OUTPUTS:
 % paths - Full paths to *.nii files.
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
-if nargin < 4
-    options.type = '3D';
-    options.format = 'float32';
-end
+if nargin < 4, options = struct; end
+if ~isfield(options,'type'),   options.type = '3D'; end
+if ~isfield(options,'format'), options.format = 'float32'; end
 
 if strcmp(options.format,'float32')
     datatype = 16;
@@ -57,6 +47,8 @@ elseif strcmp(options.format,'int16')
     datatype = 4;
 elseif strcmp(options.format,'int32')
     datatype = 8;
+else
+    error('Unsupported format: %s', options.format);    
 end
 
 if ~isdir(outputdir)
@@ -73,6 +65,7 @@ switch options.type
         end
     case '4D'
         for i = 1:size(timeseries,1)
+            timeseries_4D = zeros(size(timeseries,2),1,1,size(timeseries,1));
             for j = 1:size(timeseries,2)
                 timeseries_4D(j,1,1,i) = timeseries(i,j);
             end

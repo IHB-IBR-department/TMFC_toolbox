@@ -1,7 +1,7 @@
 function out = tmfc_create_spheres(job)
 
-% This is a modification of the original 'spm_run_voi' function. Only the
-% code for creating fixed and moving spheres is left.
+% This is a modification of the original 'spm_run_voi' function.
+% Only the code for creating fixed and moving spheres has been retained.
 %
 % SPM job execution function
 % takes a harvested job data structure and call SPM functions to perform
@@ -12,7 +12,6 @@ function out = tmfc_create_spheres(job)
 % out    - computation results, usually a struct variable.
 %__________________________________________________________________________
 % Copyright (C) 2008-2017 Wellcome Trust Centre for Neuroimaging
-
 % Guillaume Flandin
 % $Id: spm_run_voi.m 7210 2017-11-10 16:33:17Z guillaume $
 

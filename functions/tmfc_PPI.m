@@ -2,9 +2,9 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Calculates psycho-physiological interactions (PPIs).
+% Calculates psychophysiological interactions (PPIs).
 %
-% FORMAT [sub_check] = tmfc_PPI_after_FIR(tmfc)
+% FORMAT [sub_check] = tmfc_PPI(tmfc)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
@@ -20,8 +20,8 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %                                   or 'no_mean_centering'
 %                                   (Di, Reynolds & Biswal, 2017; Masharipov et al., 2024)
 %   tmfc.ROI_set.PPI_whitening    - Apply whitening inversion of the seed 
-%                                   time series prior to the deconvolution
-%                                   and PPI term calculation to avoid double
+%                                   time series prior to deconvolution
+%                                   and PPI term calculation, to avoid double
 %                                   prewhitening (He et al., 2025):
 %                                   'inverse' (default) or 'none'
 %
@@ -42,7 +42,7 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
+% contain three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
 % structure must be specified (see tmfc_conditions_GUI, nested function:
 % [cond_list] = generate_conditions(SPM_path)):
@@ -75,7 +75,7 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).pmod   = 2;
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).name = 'Cond_BxModulator1^1';
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(5).file_name = '[Sess_2]_[Cond_2]_[Cond_BxModulator1^1]'; 
-% e.g. second modulator for second condition:
+% e.g. second modulator for fourth condition:
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).sess   = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).number = 2; 
 %   tmfc.ROI_set(ROI_set_number).gPPI.conditions(6).pmod = 3; 
@@ -95,28 +95,14 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 % Run the function starting from a specific subject in the path list for
 % the selected ROI set.
 %
-%   tmfc                   - As above
-%   ROI_set_number         - Number of the ROI set in the tmfc structure
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   ROI_set_number - Number of the ROI set in the tmfc structure
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 1
    ROI_set_number = 1;
@@ -170,6 +156,7 @@ for iSub = start_sub:nSub
 
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name),'s');
+        pause(0.1);
     end
 
     if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
@@ -310,7 +297,7 @@ M  = size(X0,2);
 %--------------------------------------------------------------------------
 if strcmp(tmfc.ROI_set(ROI_set_number).PPI_whitening,'inverse') % Whitening inversion to avoid double whitening (see He et al., 2025)
     % Check if SPM.mat has concatenated sessions 
-    % (if spm_fmri_concatenate.m sript was used)
+    % (if spm_fmri_concatenate.m script was used)
     if size(SPM.nscan,2) == size(SPM.Sess,2) 
         W = SPM.xX.W(SPM.xX.K(xY.Sess).row,SPM.xX.K(xY.Sess).row);
         Y = inv(W)*xY.u;
@@ -321,7 +308,7 @@ else
     Y = xY.u;
 end
 
-% Remove confounds and save Y in ouput structure
+% Remove confounds and save Y in output structure
 %--------------------------------------------------------------------------
 Yc    = Y - X0*inv(X0'*X0)*X0'*Y;
 PPI.Y = Yc(:,1);

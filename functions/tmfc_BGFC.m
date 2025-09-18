@@ -4,13 +4,13 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 %
 % Calculates background functional connectivity (BGFC).
 % 
-% Extracts residual time-series from volumes of interest (VOIs). Regresses
-% out confounds and co-activations using FIR model. Applies whitening and
+% Extracts residual time series from volumes of interest (VOIs). Regresses
+% out confounds and co-activations using an FIR model. Applies whitening and
 % high-pass filtering. Calculates Pearson's correlation between residual
-% time-series. Converts Pearson's r to Fisher's Z.
+% time-series. Converts Pearson's r to Fisher's z.
 %
 % FORMAT [sub_check] = tmfc_BGFC(tmfc)
-% Run a function starting from the first subject in the list.
+% Run the function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
 %   tmfc.subjects.name            - Subject names within the TMFC project
@@ -22,7 +22,7 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
-%   tmfc.ROI_set.ROIs.path_masked - Paths to the ROI images masked by group
+%   tmfc.ROI_set.ROIs.path_masked - Paths to ROI images masked by group
 %                                   mean binary mask 
 %
 % Example of the ROI set (see tmfc_select_ROIs_GUI):
@@ -38,28 +38,14 @@ function [sub_check] = tmfc_BGFC(tmfc,ROI_set_number,start_sub)
 % Run the function starting from a specific subject in the path list for
 % the selected ROI set.
 %
-%   tmfc                   - As above
-%   ROI_set_number         - Number of the ROI set in the tmfc structure
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   ROI_set_number - Number of the ROI set in the tmfc structure
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
 
 if nargin == 1
    ROI_set_number = 1;
@@ -100,6 +86,7 @@ end
 for iSub = start_sub:nSub
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name),'s');
+        pause(0.1);
     end
 
     if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs',tmfc.subjects(iSub).name))
@@ -184,7 +171,7 @@ for iSub = start_sub:nSub
             Y(:,kROI) = load(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','FIR_VOIs', ... 
                 tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat'])).Y;
         end
-        z_matrix = atanh(corr(Y));
+        z_matrix = atanh(tmfc_corr(Y));
         z_matrix(1:size(z_matrix,1)+1:end) = nan;
         save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','ROI_to_ROI', ... 
                 [tmfc.subjects(iSub).name '_Session_' num2str(jSess) '.mat']),'z_matrix');

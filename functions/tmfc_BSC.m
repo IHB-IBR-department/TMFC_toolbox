@@ -5,7 +5,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 % Extracts average (mean or first eigenvariate) beta series from selected
 % ROIs. Correlates beta series for conditions of interest. Saves individual
 % correlational matrices (ROI-to-ROI analysis) and correlational images
-% (seed-to-voxel analysis)for each condition of interest. These refer to
+% (seed-to-voxel analysis) for each condition of interest. These refer to
 % default contrasts, which can then be multiplied by linear contrast weights.
 %
 % FORMAT [sub_check,contrasts] = tmfc_BSC(tmfc)
@@ -19,7 +19,8 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %                          - 3 (Seed-to-voxel analysis only)
 %
 %   tmfc.ROI_set                  - List of selected ROIs
-%   tmfc.ROI_set.BSC              - 'mean' or 'first_eigenvariate'(default)
+%   tmfc.ROI_set.BSC              - 'mean' or 
+%                                   'first_eigenvariate' (default)
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
 %   tmfc.ROI_set.ROIs.name        - Name of the selected ROI
@@ -39,7 +40,7 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 %
 % Session number and condition number must match the original SPM.mat file.
 % Consider, for example, a task design with two sessions. Both sessions 
-% contains three task regressors for "Cond A", "Cond B" and "Errors". If
+% contain three task regressors for "Cond A", "Cond B" and "Errors". If
 % you are only interested in comparing "Cond A" and "Cond B", the following
 % structure must be specified (see tmfc_conditions_GUI, nested function:
 % [cond_list] = generate_conditions(SPM_path)):
@@ -83,28 +84,14 @@ function [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 % FORMAT [sub_check,contrasts] = tmfc_BSC(tmfc,ROI_set_number,clear_BSC)
 % Run the function for the selected ROI set.
 %
-%   clear_BSC              - Clear previosly created BSC folders
+%   clear_BSC              - Clear previously created BSC folders
 %                            (0 - do not clear, 1 - clear)
 %                            (by default, clear_BSC = 1)
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
     
 if nargin == 1
     ROI_set_number = 1;
@@ -131,10 +118,11 @@ nSub = length(tmfc.subjects);
 cond_list = tmfc.LSS.conditions;
 nCond = length(cond_list);
 
-% Clear previosly created BSC folders
+% Clear previously created BSC folders
 if clear_BSC == 1
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS'))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BSC_LSS'),'s');
+        pause(0.1);
     end
 end
 
@@ -331,7 +319,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
 
         % ROI-to-ROI correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
-            z_matrix = atanh(corr(beta_series(jCond).ROI_average));
+            z_matrix = atanh(tmfc_corr(beta_series(jCond).ROI_average));
             z_matrix(1:size(z_matrix,1)+1:end) = nan;     
 
             % Save BSC matrices
@@ -344,7 +332,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
         % Seed-to-voxel correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 3
             for kROI = 1:nROI
-                BSC_image(kROI).z_value = atanh(corr(beta_series(jCond).ROI_average(:,kROI),betas));
+                BSC_image(kROI).z_value = atanh(tmfc_corr(beta_series(jCond).ROI_average(:,kROI),betas));
             end
 
             % Save BSC images

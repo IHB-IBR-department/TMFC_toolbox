@@ -1,9 +1,10 @@
 function [C,h,Ph,F,Fa,Fc,k] = tmfc_spm_rwls_reml(YY,X,Q,N,hE,hC,A,K)
 
-% This is a copy of the original function from rWLS toolbox v4.1
+% This is a copy of the original function from the rWLS toolbox v4.1
 % (Diedrichsen & Shadmehr, 2006). The function name has been prefixed with 
-% 'tmfc' to avoid conflicts with the original rWLS toolbox 
-% (in case it is already added to the MATLAB path).
+% 'tmfc' to avoid conflicts if the original rWLS toolbox is already
+% on the MATLAB path. 
+% Hyperpriors: hP changed from 1/256 tp 1/32 to improve rWLS estimation.
 %
 % ReML estimation of covariance components from y*y' 
 % Exploits special structure of first and second derivative for the

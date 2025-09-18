@@ -5,28 +5,28 @@ function [sub_check] = tmfc_FIR(tmfc,start_sub)
 % Estimates FIR GLM and saves residual time-series images in Float32 format
 % instead of Float64 to save disk space and reduce computation time.
 %
-% FIR task regression task regression are used to remove co-activations 
-% from BOLD time-series. Co-activations are simultaneous (de)activations 
-% without communication between brain regions. 
+% FIR task regression is used to remove co-activations from BOLD time series.
+% Co-activations are simultaneous (de)activations without communication
+% between brain regions. 
 %
 % This function uses SPM.mat file (which contains the specification of the
 % 1st-level GLM) to specify and estimate 1st-level GLM with FIR basis
 % functions.
 % 
-% FIR model regress out: (1) co-activations with any possible hemodynamic
-% response shape and (2) confounds specified in the original SPM.mat file
+% FIR model regresses out: (1) co-activations with arbitrary hemodynamic
+% response shapes and (2) confounds specified in the original SPM.mat file
 % (e.g., motion, physiological noise, etc).
 %
-% Residual time-series (Res_*.nii images stored in FIR_regression folder)
+% Residual time series (Res_*.nii images stored in FIR_regression folder)
 % can be further used for FC analysis to control for spurious inflation of
 % FC estimates due to co-activations. TMFC toolbox uses residual images in
 % two cases: (1) to calculate background connectivity (BGFC), (2) to
 % calculate LSS GLMs after FIR regression and use them for BSC after FIR.
 %
-% Note: If the original GLMs contain parametric or time modulators, they
-% will be removed from the FIR GLMs.
+% Note: Parametric or time modulators present in the original GLMs will be
+% removed from the FIR GLMs.
 %
-% FORMAT [sub_check] = FIR_regress(tmfc)
+% FORMAT [sub_check] = tmfc_FIR(tmfc)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path     - Paths to individual SPM.mat files
@@ -36,35 +36,21 @@ function [sub_check] = tmfc_FIR(tmfc,start_sub)
 %   tmfc.defaults.parallel - 0 or 1 (sequential or parallel computing)
 %   tmfc.defaults.maxmem   - e.g. 2^31 = 2GB (how much RAM can be used at
 %                            the same time during GLM estimation)
-%   tmfc.defaults.resmem   - true or false (store temporaty files during
+%   tmfc.defaults.resmem   - true or false (store temporary files during
 %                            GLM estimation in RAM or on disk)
 %   tmfc.FIR.window        - FIR window length (in seconds)
 %   tmfc.FIR.bins          - Number of FIR time bins
 %
-% FORMAT [sub_check] = FIR_regress(tmfc,start_sub)
+% FORMAT [sub_check] = tmfc_FIR(tmfc,start_sub)
 % Run the function starting from a specific subject in the path list.
 %
-%   tmfc                   - As above
-%   start_sub              - Subject number on the path list to start with
+%   tmfc           - As above
+%   start_sub      - Subject number in the list to start computations from
 %
 % =========================================================================
-%
 % Copyright (C) 2025 Ruslan Masharipov
-% 
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program. If not, see <https://www.gnu.org/licenses/>.
-%
-% Contact email: masharipov@ihb.spb.ru
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
     
 
 if nargin == 1
@@ -98,7 +84,7 @@ for iSub = start_sub:nSub
     SPM = load(tmfc.subjects(iSub).path).SPM;
 
     % Check if SPM.mat has concatenated sessions 
-    % (if spm_fmri_concatenate.m sript was used)
+    % (if spm_fmri_concatenate.m script was used)
     if size(SPM.nscan,2) == size(SPM.Sess,2)
         SPM_concat(iSub) = 0;
     else
@@ -108,6 +94,7 @@ for iSub = start_sub:nSub
 
     if isdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name),'s');
+        pause(0.1);
     end
     
     mkdir(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name));
