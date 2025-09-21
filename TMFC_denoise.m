@@ -172,7 +172,7 @@ output_paths = [];
 if nargin < 1 || isempty(SPM_paths)
     [SPM_paths,subject_paths] = tmfc_select_subjects_GUI(0);
 end
-if isempty(SPM_paths); error('Select SPM.mat files.'); end
+if isempty(SPM_paths); warning('Select SPM.mat files.'); return, end
 
 % Check SPM.mat files
 for iSub = 1:length(SPM_paths)
@@ -213,7 +213,7 @@ if nargin<4 || isempty(func_paths)
 end
 
 % Display individual FD plots
-if nargin<5 || isempty(display_FD),    display_FD    = 1; end
+if nargin<5 || isempty(display_FD), display_FD = 1; end
 
 % Estimate GLMs with noise regressors 
 if nargin<6 || isempty(estimate_GLMs), estimate_GLMs = 1; end

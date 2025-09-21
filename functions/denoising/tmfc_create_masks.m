@@ -195,7 +195,8 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     %----------------------------------------------------------------------
     if options.WMmask.erode == 0
         for iSub = 1:length(SPM_paths)
-            WM_eroded{iSub,1} = WM_mask{iSub};
+            WM_eroded{iSub,1} = fullfile(mask_paths{iSub},'WM_mask_eroded.nii');
+            copyfile(WM_mask{iSub},WM_eroded{iSub,1}); % Erode = 0: WM_mask_eroded is just a copy of WM_mask (no erosion)
         end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of WM masks');
@@ -264,7 +265,8 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     %----------------------------------------------------------------------
     if options.CSFmask.erode == 0
         for iSub = 1:length(SPM_paths)
-            CSF_eroded{iSub,1} = CSF_mask{iSub};
+            CSF_eroded{iSub,1} = fullfile(mask_paths{iSub},'CSF_mask_eroded.nii');
+            copyfile(CSF_mask_GM_removed{iSub},CSF_eroded{iSub,1}); % Erode = 0: CSF_mask_eroded is just a copy of CSF_mask_GM_removed (no erosion)
         end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of CSF masks');
@@ -272,7 +274,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
             CSF_eroded{iSub,1} = fullfile(mask_paths{iSub},'CSF_mask_eroded.nii');
             if options.CSFmask.erode > 0
                 if ~exist(CSF_eroded{iSub},'file')
-                    V = spm_vol(CSF_mask{iSub});
+                    V = spm_vol(CSF_mask_GM_removed{iSub});
                     ima = spm_read_vols(V);
                     for iCycle = 1:options.CSFmask.erode
                         ima = spm_erode(ima);

@@ -389,7 +389,7 @@ Click **"VOIs"** button to extract time series for the selected ROI set. Select 
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\VOIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **VOI .mat files**.
 
-### psychophysiological interaction (PPI) terms
+### Psychophysiological interaction (PPI) terms
 
 Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM Parametric Empirical Bayes (PEB) function to calculate PPI terms.
 Select two options:

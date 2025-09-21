@@ -724,7 +724,7 @@ function [ROI_type] = ROI_type_GUI(~,~)
     sel_ROI_B1 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Select ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.875 0.90 0.074],'FontUnits','normalized','FontSize',0.33, 'callback', @binary_images);
     sel_ROI_B2 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.648 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @fixed_spheres);
     sel_ROI_B3 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside fixed spheres', 'Units', 'normalized', 'Position', [0.05 0.428 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_inside_fixed_spheres);
-    sel_ROI_B4 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.195 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_indise_binary_images);
+    sel_ROI_B4 = uicontrol(select_ROI_type_GUI,'Style', 'pushbutton', 'String', 'Moving spheres inside ROI binary images', 'Units', 'normalized', 'Position', [0.05 0.195 0.90 .074],'FontUnits','normalized','FontSize',0.33, 'callback', @moving_inside_binary_images);
     
     if isunix; fontscale = 0.9; else; fontscale = 1; end
 
@@ -749,7 +749,7 @@ function [ROI_type] = ROI_type_GUI(~,~)
         uiresume(select_ROI_type_GUI);
     end
 
-    function moving_indise_binary_images(~,~)
+    function moving_inside_binary_images(~,~)
         ROI_type = 'moving_spheres_inside_binary_images';
         uiresume(select_ROI_type_GUI);
     end

@@ -26,47 +26,47 @@ stats_GUI = figure('Name', 'TMFC statistics', 'NumberTitle', 'off', 'Units', 'no
     'CloseRequestFcn', @on_close);
 
 movegui(stats_GUI, 'center');
-RES_T1  = uicontrol(stats_GUI,'Style','text','String','TMFC statistics','Units', 'normalized', 'Position',[0.270 0.93 0.460 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w', 'FontWeight', 'bold');
+RES_T1  = uicontrol(stats_GUI,'Style','text','String','TMFC statistics','Units', 'normalized', 'Position',[0.270 0.93 0.460 0.05],'FontUnits','normalized', 'FontSize', 0.50,'backgroundcolor','w', 'FontWeight', 'bold');
 
 % Pop-up menu to select type of test
-ST_test_type  = uicontrol(stats_GUI,'Style','popupmenu','String', {'One-sample t-test', 'Paired t-test', 'Two-sample t-test'},'Units', 'normalized', 'Position',[0.045 0.87 0.91 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
+ST_test_type  = uicontrol(stats_GUI,'Style','popupmenu','String', {'One-sample t-test', 'Paired t-test', 'Two-sample t-test'},'Units', 'normalized', 'Position',[0.045 0.87 0.91 0.05],'FontUnits','normalized', 'FontSize', 0.50,'backgroundcolor','w');
  
 % Listboxes to display *.mat file selection
-ST_lst_0 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.91 0.300],'fontunits','points', 'fontSize',11);
-ST_lst_1 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.440 0.300],'fontunits','points', 'fontSize', 11,'visible','off');
-ST_lst_2 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.52 0.56 0.440 0.300],'fontunits','points', 'fontSize',11,'visible','off');
+ST_lst_0 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.91 0.300],'FontUnits','points', 'FontSize',11);
+ST_lst_1 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.045 0.56 0.440 0.300],'FontUnits','points', 'FontSize', 11,'visible','off');
+ST_lst_2 = uicontrol(stats_GUI , 'Style', 'listbox', 'String', '','Max', 100,'value',[],'Units', 'normalized', 'Position',[0.52 0.56 0.440 0.300],'FontUnits','points', 'FontSize',11,'visible','off');
 
 % Counter of ROIs × subjects for selected files
-ST_L0_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.295 0.51 0.44 0.04],'fontunits','normalized', 'fontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067]);
-ST_L1_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.045 0.51 0.44 0.04],'fontunits','normalized', 'fontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067],'visible', 'off');
-ST_L2_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.52 0.51 0.44 0.04],'fontunits','normalized', 'fontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067],'visible', 'off');
+ST_L0_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.295 0.51 0.44 0.04],'FontUnits','normalized', 'FontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067]);
+ST_L1_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.045 0.51 0.44 0.04],'FontUnits','normalized', 'FontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067],'visible', 'off');
+ST_L2_CTR = uicontrol(stats_GUI, 'Style', 'text','String', '0 ROIs x 0 subjects','Units', 'normalized', 'Position',[0.52 0.51 0.44 0.04],'FontUnits','normalized', 'FontSize', 0.57, 'HorizontalAlignment','center','backgroundcolor','w','ForegroundColor',[0.773, 0.353, 0.067],'visible', 'off');
 
 % "Select & Remove" file buttons for each case
-ST_L0_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.045 0.45 0.445 0.054],'fontunits','normalized', 'fontSize', 0.36, 'UserData', struct('select','one_samp_sel'));
-ST_L0_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.52 0.45 0.445 0.054],'fontunits','normalized', 'fontSize', 0.36, 'UserData', struct('remove','one_samp_rem'));
-ST_L1_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.045 0.45 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36, 'visible', 'off','UserData',struct('select', 'left_samp_sel'));
-ST_L1_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.275 0.45 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36, 'visible', 'off', 'UserData', struct('remove','left_samp_rem'));
-ST_L2_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.52 0.45 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36, 'visible', 'off','UserData', struct('select','right_samp_sel'));
-ST_L2_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.75 0.45 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36, 'visible', 'off', 'UserData', struct('remove','right_samp_rem'));
+ST_L0_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.045 0.45 0.445 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'UserData', struct('select','one_samp_sel'));
+ST_L0_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.52 0.45 0.445 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'UserData', struct('remove','one_samp_rem'));
+ST_L1_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.045 0.45 0.210 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'visible', 'off','UserData',struct('select', 'left_samp_sel'));
+ST_L1_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.275 0.45 0.210 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'visible', 'off', 'UserData', struct('remove','left_samp_rem'));
+ST_L2_SEL = uicontrol(stats_GUI,'Style','pushbutton','String', 'Select','Units', 'normalized','Position',[0.52 0.45 0.210 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'visible', 'off','UserData', struct('select','right_samp_sel'));
+ST_L2_REM = uicontrol(stats_GUI,'Style','pushbutton','String', 'Remove','Units', 'normalized','Position',[0.75 0.45 0.210 0.054],'FontUnits','normalized', 'FontSize', 0.36, 'visible', 'off', 'UserData', struct('remove','right_samp_rem'));
 
 % Boxes & layout for alpha & threshold values
 ST_CONT = uipanel(stats_GUI,'Units', 'normalized','Position',[0.046 0.37 0.44 0.07],'HighLightColor',[0.78 0.78 0.78],'BorderType', 'line','BackgroundColor','w');
-ST_CONT_txt  = uicontrol(stats_GUI,'Style','text','String', 'Contrast:','Units', 'normalized', 'Position',[0.095 0.38 0.38 0.04],'fontunits','normalized', 'fontSize', 0.55, 'HorizontalAlignment','Left','backgroundcolor','w');
-ST_CONT_val  = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.278 0.382 0.18 0.045],'fontunits','normalized', 'fontSize', 0.50);
+ST_CONT_txt  = uicontrol(stats_GUI,'Style','text','String', 'Contrast:','Units', 'normalized', 'Position',[0.095 0.38 0.38 0.04],'FontUnits','normalized', 'FontSize', 0.55, 'HorizontalAlignment','Left','backgroundcolor','w');
+ST_CONT_val  = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.278 0.382 0.18 0.045],'FontUnits','normalized', 'FontSize', 0.50);
 ST_ALP = uipanel(stats_GUI,'Units', 'normalized','Position',[0.52 0.37 0.44 0.07],'HighLightColor',[0.78 0.78 0.78],'BorderType', 'line','BackgroundColor','w');
-ST_ALP_txt  = uicontrol(stats_GUI,'Style','text','String', 'Alpha:','Units', 'normalized', 'Position',[0.583 0.38 0.35 0.04],'fontunits','normalized', 'fontSize', 0.55, 'HorizontalAlignment','Left','backgroundcolor','w');
-ST_ALP_val  = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.755 0.382 0.18 0.045],'fontunits','normalized', 'fontSize', 0.50);
+ST_ALP_txt  = uicontrol(stats_GUI,'Style','text','String', 'Alpha:','Units', 'normalized', 'Position',[0.583 0.38 0.35 0.04],'FontUnits','normalized', 'FontSize', 0.55, 'HorizontalAlignment','Left','backgroundcolor','w');
+ST_ALP_val  = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.755 0.382 0.18 0.045],'FontUnits','normalized', 'FontSize', 0.50);
 
 % Type of threshold selection pop-up menu and conditional value
-ST_THRES_TXT = uicontrol(stats_GUI,'Style','text','String', 'Threshold type: ','Units', 'normalized', 'Position',[0.098 0.298 0.38 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w');
-ST_THRES_POP = uicontrol(stats_GUI,'Style','popupmenu','String', {'Uncorrected (Parametric)', 'FDR (Parametric)', 'Bonferroni (Parametric)', 'Uncorrected (Non-parametric)','FDR (Non-parametric)','NBS FWE (Non-parametric)','NBS TFCE (Non-parametric)'},'Units', 'normalized', 'Position',[0.358 0.295 0.6 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
-ST_THRES_VAL_TXT = uicontrol(stats_GUI,'Style','text','String', 'Primary threshold (p-value): ','Units', 'normalized', 'Position',[0.098 0.23 0.5 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
-ST_THRES_VAL_UNI = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.234 0.2 0.04],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w', 'enable', 'off');
-ST_PERM_TXT = uicontrol(stats_GUI,'Style','text','String', 'Number of permutations: ','Units', 'normalized', 'Position',[0.098 0.165 0.38 0.04],'fontunits','normalized', 'fontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
-ST_PERM_VAL = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.169 0.2 0.04],'fontunits','normalized', 'fontSize', 0.58,'backgroundcolor','w','enable', 'off');
+ST_THRES_TXT = uicontrol(stats_GUI,'Style','text','String', 'Threshold type: ','Units', 'normalized', 'Position',[0.098 0.298 0.38 0.04],'FontUnits','normalized', 'FontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w');
+ST_THRES_POP = uicontrol(stats_GUI,'Style','popupmenu','String', {'Uncorrected (Parametric)', 'FDR (Parametric)', 'Bonferroni (Parametric)', 'Uncorrected (Non-parametric)','FDR (Non-parametric)','NBS FWE (Non-parametric)','NBS TFCE (Non-parametric)'},'Units', 'normalized', 'Position',[0.358 0.295 0.6 0.05],'FontUnits','normalized', 'FontSize', 0.50,'backgroundcolor','w');
+ST_THRES_VAL_TXT = uicontrol(stats_GUI,'Style','text','String', 'Primary threshold (p-value): ','Units', 'normalized', 'Position',[0.098 0.23 0.5 0.04],'FontUnits','normalized', 'FontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
+ST_THRES_VAL_UNI = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.234 0.2 0.04],'FontUnits','normalized', 'FontSize', 0.58,'backgroundcolor','w', 'enable', 'off');
+ST_PERM_TXT = uicontrol(stats_GUI,'Style','text','String', 'Number of permutations: ','Units', 'normalized', 'Position',[0.098 0.165 0.38 0.04],'FontUnits','normalized', 'FontSize', 0.58, 'HorizontalAlignment','Left','backgroundcolor','w', 'enable', 'off');
+ST_PERM_VAL = uicontrol(stats_GUI,'Style','edit','String', '','Units', 'normalized', 'Position',[0.76 0.169 0.2 0.04],'FontUnits','normalized', 'FontSize', 0.58,'backgroundcolor','w','enable', 'off');
 
 % Run button
-RES_RUN = uicontrol(stats_GUI, 'Style', 'pushbutton', 'String', 'Run','Units', 'normalized','Position',[0.4 0.05 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36);
+RES_RUN = uicontrol(stats_GUI, 'Style', 'pushbutton', 'String', 'Run','Units', 'normalized','Position',[0.4 0.05 0.210 0.054],'FontUnits','normalized', 'FontSize', 0.36);
 
 % Callback actions
 set(ST_test_type, 'callback', @test_type);
@@ -81,7 +81,6 @@ set(ST_L0_REM, 'callback', @(src, event) remove_caller(get(src, 'UserData')));
 set(ST_L1_REM, 'callback', @(src, event) remove_caller(get(src, 'UserData')));
 set(ST_L2_REM, 'callback', @(src, event) remove_caller(get(src, 'UserData')));
 set(RES_RUN, 'callback', @run);
-% warning('off','backtrace')
 
 M0 = {}; % variable to store the matrices for One-sample t-test
 M1 = {}; % variable to store the matrices set 1 Paired & Two-sample t-test
@@ -113,13 +112,11 @@ end
 function remove_caller(data)
     switch (data.remove)
         case 'one_samp_rem'
-            file_remove(selection_0, M0, ST_lst_0, ST_L0_CTR,'one_samp_sel');
-            
+            file_remove(ST_lst_0, M0, ST_lst_0, ST_L0_CTR, 'one_samp_sel');            
         case 'left_samp_rem'
-            file_remove(selection_1, M1, ST_lst_1, ST_L1_CTR,'left_samp_sel');
-            
+            file_remove(ST_lst_1, M1, ST_lst_1, ST_L1_CTR, 'left_samp_sel');
         case 'right_samp_rem'
-            file_remove(selection_2, M2, ST_lst_2, ST_L2_CTR,'right_samp_sel');
+            file_remove(ST_lst_2, M2, ST_lst_2, ST_L2_CTR, 'right_samp_sel');
     end
 end
 
@@ -149,32 +146,32 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                 try
                     matrix = cat(3,M(:).m);
                     if size(matrix,1) ~= size(matrix,2)
-                        warning('Matrices are not square.');
+                        shortwarn('Matrices are not square.');
                         clear M matrix   
                         M_VAR = {};
                     end
                 catch
-                    warning('Matrices have different dimensions.');
+                    shortwarn('Matrices have different dimensions.');
                     clear M  
                     M_VAR = {};
                 end
                 
             elseif mv_flag == 1
                 M_VAR = {};
-                warning('Each selected *.mat file must contain exactly one variable.');
+                shortwarn('Each selected *.mat file must contain only one variable.');
             end 
         end
                
         % Updating the GUI 
         if ~exist('M_VAR', 'var') || isempty(M_VAR)
             % If all files selection was rejected during checks, reset GUI
-            disp('No *.mat file(s) selected');
+            shortwarn('No *.mat file(s) selected');
             set(disp_str, 'String', '0 ROIs x 0 subjects');
             set(disp_str, 'ForegroundColor',[0.773, 0.353, 0.067]);     
             M_VAR = {};
         elseif isempty(M_VAR{1}) 
             % If all files selection was rejected during checks, reset GUI
-            disp('No *.mat file(s) selected');
+            shortwarn('No *.mat file(s) selected');
             set(disp_str, 'String', '0 ROIs x 0 subjects');
             set(disp_str, 'ForegroundColor',[0.773, 0.353, 0.067]);     
             M_VAR = {};
@@ -209,12 +206,12 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                 try
                     new_matrices = cat(3,M(:).m);
                     if size(new_matrices,1) ~= size(new_matrices,2)
-                        warning('Matrices are not square.');
+                        shortwarn('Matrices are not square.');
                         clear M 
                         new_M_VAR = {};
                     end
                 catch
-                    warning('Matrices have different dimensions.');
+                    shortwarn('Matrices have different dimensions.');
                     clear M  
                     new_M_VAR = {};
                 end
@@ -233,11 +230,11 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                     set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); 
                     clear M new_M_VAR
                 catch
-                    warning('Matrices have different numbers of ROIs.');
+                    shortwarn('Matrices have different numbers of ROIs.');
                     clear new_matrices new_M_VAR M
                 end
             else
-                warning('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable.');
+                shortwarn('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable.');
             end
         else          
             disp('No files added.');          
@@ -258,55 +255,61 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
 end
 
 % Function to perform removal of files from listboxes
-function file_remove(sel_var, M_VAR, disp_box,disp_str,case_maker)
-    if isempty(sel_var) && isempty(M_VAR)
-        warning('There are no files present to remove, please select *.mat files to perform statistical analysis.');
-    elseif isempty(sel_var) && ~isempty(M_VAR)
-        warning('There are no selected matrices to remove from the list, please select matrices once again.');
-    else
-        M_VAR(sel_var,:) = [];
-        holder = size(sel_var);
-        fprintf('Number of .mat files removed: %d\n', holder(2));
-    
-        % Rebuild matrix from remaining files
-        matrix = [];
-        if ~isempty(M_VAR)
-           try
-               for i = 1:size(M_VAR,1)
-                   tmp = load(M_VAR{i,:}); fn = fieldnames(tmp); M(i).m = tmp.(fn{1});
-               end
-               matrix = cat(3, M(:).m);
-               if size(matrix,1) ~= size(matrix,2)
-                   warning('Matrices are not square.');
-                   matrix = [];
-               end
-               clear M
-           catch
-               warning('Matrices have different dimensions.');
-               matrix = [];
-               clear M
-           end
-        end
-        % --------------------------------------------------
-              
-        set(disp_box,'Value', []);
-        set(disp_box,'String', M_VAR);
-        sel_var = {};
-        
-        if ~isempty(M_VAR)
-            S  = whos('-file', M_VAR{1,:});  dims = S(1).size;
-            subs = 0;
-            for i = 1:length(M_VAR)
-                temp = whos('-file', M_VAR{i,:}); temp_dim = temp(1).size;
-                if numel(temp_dim) == 2, subs = subs + 1;
-                elseif numel(temp_dim) == 3, subs = subs + temp_dim(3);
-                else, warning('Files must be ROI×ROI or ROI×ROI×Subjects.');
-                end
-            end
-            set(disp_str, 'String', sprintf('%d ROIs x %d subjects', dims(1), subs));
-            set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]);
-        end
+function file_remove(sel_box,M_VAR,disp_box,disp_str,case_maker)
+    sel_var = get(sel_box,'Value');
+
+    if isempty(sel_var)
+        shortwarn('No files selected to remove.');
+        return;
     end
+
+    if isempty(M_VAR)
+        shortwarn('There are no files to remove.');
+        return;
+    end
+
+    M_VAR(sel_var,:) = [];
+    fprintf('Number of .mat files removed: %d\n', numel(sel_var));
+
+    % Rebuild matrix from remaining files
+    matrix = [];
+    if ~isempty(M_VAR)
+       try
+           for i = 1:size(M_VAR,1)
+               tmp = load(M_VAR{i,:}); fn = fieldnames(tmp); M(i).m = tmp.(fn{1});
+           end
+           matrix = cat(3, M(:).m);
+           if size(matrix,1) ~= size(matrix,2)
+               shortwarn('Matrices are not square.');
+               matrix = [];
+           end
+           clear M
+       catch
+           shortwarn('Matrices have different dimensions.');
+           matrix = [];
+           clear M
+       end
+    end
+    % --------------------------------------------------
+          
+    set(disp_box,'Value', []);
+    set(disp_box,'String', M_VAR);
+    sel_var = {};
+    
+    if ~isempty(M_VAR)
+        S  = whos('-file', M_VAR{1,:});  dims = S(1).size;
+        subs = 0;
+        for i = 1:length(M_VAR)
+            temp = whos('-file', M_VAR{i,:}); temp_dim = temp(1).size;
+            if numel(temp_dim) == 2, subs = subs + 1;
+            elseif numel(temp_dim) == 3, subs = subs + temp_dim(3);
+            else, shortwarn('Files must be ROI×ROI or ROI×ROI×Subjects.');
+            end
+        end
+        set(disp_str, 'String', sprintf('%d ROIs x %d subjects', dims(1), subs));
+        set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]);
+    end
+    
 
     if isempty(M_VAR)
         set(disp_str, 'String', '0 ROIs x 0 subjects');
@@ -441,34 +444,30 @@ end
 % Type of threshold
 function threshold_type(~,~)
     
-    approach = (ST_THRES_POP.String{ST_THRES_POP.Value});
+    thr_type = (ST_THRES_POP.String{ST_THRES_POP.Value});
     
-    if strcmpi(approach, 'Uncorrected (Parametric)') || strcmpi(approach, 'FDR (Parametric)') || strcmpi(approach, 'Bonferroni (Parametric)') || strcmpi(approach, 'NBS FWE (Non-parametric)') || strcmpi(approach, 'NBS TFCE (Non-parametric)') 
+    if strcmpi(thr_type, 'Uncorrected (Parametric)') || strcmpi(thr_type, 'FDR (Parametric)') || strcmpi(thr_type, 'Bonferroni (Parametric)') || strcmpi(thr_type, 'NBS FWE (Non-parametric)') || strcmpi(thr_type, 'NBS TFCE (Non-parametric)') 
         set(ST_PERM_TXT, 'enable', 'off');
         set(ST_PERM_VAL, 'enable', 'off', 'String', []);
-        
-    elseif strcmpi(approach, 'Uncorrected (Non-parametric)') || strcmpi(approach, 'FDR (Non-parametric)') 
+    elseif strcmpi(thr_type, 'Uncorrected (Non-parametric)') || strcmpi(thr_type, 'FDR (Non-parametric)') 
         set(ST_PERM_TXT, 'enable', 'on');
         set(ST_PERM_VAL, 'enable', 'on', 'String', []);
-
     end
     
-    if strcmpi(approach, 'Uncorrected (Parametric)') || strcmpi(approach, 'FDR (Parametric)') || strcmpi(approach, 'Bonferroni (Parametric)') || strcmpi(approach, 'Uncorrected (Non-parametric)') || strcmpi(approach, 'FDR (Non-parametric)')
+    if strcmpi(thr_type, 'Uncorrected (Parametric)') || strcmpi(thr_type, 'FDR (Parametric)') || strcmpi(thr_type, 'Bonferroni (Parametric)') || strcmpi(thr_type, 'Uncorrected (Non-parametric)') || strcmpi(thr_type, 'FDR (Non-parametric)')
         set(ST_THRES_VAL_TXT, 'enable', 'off');
         set(ST_THRES_VAL_UNI, 'enable', 'off', 'String', []);
-
-    elseif strcmpi(approach, 'NBS FWE (Non-parametric)') 
+    elseif strcmpi(thr_type, 'NBS FWE (Non-parametric)') 
         set([ST_THRES_VAL_TXT,ST_PERM_TXT], 'enable', 'on');
         set([ST_THRES_VAL_UNI,ST_PERM_VAL], 'enable', 'on', 'String', []);
-
-    elseif strcmpi(approach, 'NBS TFCE (Non-parametric)') 
+    elseif strcmpi(thr_type, 'NBS TFCE (Non-parametric)') 
         set([ST_THRES_VAL_TXT,ST_PERM_TXT], 'enable', 'off');
         set([ST_THRES_VAL_UNI,ST_PERM_VAL], 'enable', 'off', 'String', []);
     end
     
-    if strcmpi(approach, 'Uncorrected (Non-parametric)') || strcmpi(approach, 'FDR (Non-parametric)') || strcmpi(approach, 'NBS FWE (Non-parametric)') || strcmpi(approach, 'NBS TFCE (Non-parametric)')
+    if strcmpi(thr_type, 'Uncorrected (Non-parametric)') || strcmpi(thr_type, 'FDR (Non-parametric)') || strcmpi(thr_type, 'NBS FWE (Non-parametric)') || strcmpi(thr_type, 'NBS TFCE (Non-parametric)')
         set(RES_RUN,'enable', 'off');
-        warning('Non-parametric analysis is under development. Please wait for a future update.');
+        shortwarn('Non-parametric analysis is under development. Please wait for a future update.');
     else
         set(RES_RUN,'enable', 'on');
     end
@@ -477,24 +476,32 @@ end
 
 % Run Test
 function run(~,~)
-    test_type = (ST_test_type.String{ST_test_type.Value}); % Type of test - paired, one , two 
+    test_type = (ST_test_type.String{ST_test_type.Value}); 
+    alpha = safe_str2num_scalar(ST_ALP_val.String);
+    thr_type = (ST_THRES_POP.String{ST_THRES_POP.Value});
+    thr_key = threshold_key(thr_type);
+    if isempty(thr_key)
+        shortwarn('Selected threshold type is not supported for this analysis.');
+        return;
+    end
     
     %----------------------------------------------------------------------
     % PAIRED T-TEST
     %----------------------------------------------------------------------
     if strcmpi(test_type, 'Paired t-test')          
         if ~isempty(M1) && ~isempty(M2)
-            flag_parameters = parameter_check(); % alpha & contrast
+            flag_parameters = parameter_check();
             if flag_parameters == 1
-                flag_thres_parameters = perm_thres_check(); % permutations / primary threshold
+                flag_thres_parameters = perm_thres_check(); 
                 if flag_thres_parameters == 1
+
                     % Validate ROI dimensions
                     if isempty(matrices_1) || isempty(matrices_2)
-                        warning('Matrices are empty.'); 
+                        shortwarn('Matrices are empty.'); 
                         return;
                     end
                     if size(matrices_1,1) ~= size(matrices_2,1) || size(matrices_1,2) ~= size(matrices_2,2)
-                        warning('The ROI×ROI dimensions differ between the two lists. Please select matrices with the same number of ROIs.');
+                        shortwarn('The ROI×ROI dimensions differ between the two lists. Please select matrices with the same number of ROIs.');
                         set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.773, 0.353, 0.067]);
                         return;
                     end
@@ -503,35 +510,27 @@ function run(~,~)
                     n1 = size(matrices_1,3);
                     n2 = size(matrices_2,3);
                     if n1 ~= n2
-                        warning('Paired t-test requires the same number of subjects. Left: %d, Right: %d.', n1, n2);
+                        shortwarn('Paired t-test requires the same number of subjects. Left: %d, Right: %d.', n1, n2);
                         set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.773, 0.353, 0.067]);
-                        return;
-                    end
-            
-                    % Map UI label -> threshold key 
-                    thr_key = threshold_key(ST_THRES_POP.String{ST_THRES_POP.Value});
-                    if isempty(thr_key)
-                        warning('Selected threshold type is not supported for this analysis.');
                         return;
                     end
             
                     % Run
                     set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.219, 0.341, 0.137]); 
                     groups = {matrices_1, matrices_2};
-                    alpha = safe_str2num_scalar(ST_ALP_val.String);
-                    [thresholded,pval,tval,conval] = tmfc_ttest(groups, ...
+                    [sig,pval,tval,conval] = tmfc_ttest(groups, ...
                         str2num(ST_CONT_val.String), alpha, thr_key);
                     fprintf('Generating results...\n');
-                    tmfc_results_GUI(thresholded,pval,tval,conval,alpha,thr_key);
-                    clear thresholded pval tval conval groups alpha thr_key
+                    tmfc_results_GUI(sig,pval,tval,conval,alpha,thr_type);
+                    clear sig pval tval conval groups alpha thr_key thr_type
                 end
             end
         elseif ~isempty(M1) && isempty(M2)
-            warning('Please select the second set of matrix files to run a paired t-test.');
+            shortwarn('Please select the second set of matrix files to run a paired t-test.');
         elseif isempty(M1) && ~isempty(M2)
-            warning('Please select the first set of matrix files to run a paired t-test.');
+            shortwarn('Please select the first set of matrix files to run a paired t-test.');
         else
-            warning('Please select matrix files to run a paired t-test.');
+            shortwarn('Please select matrix files to run a paired t-test.');
         end
 
     %----------------------------------------------------------------------
@@ -539,31 +538,21 @@ function run(~,~)
     %----------------------------------------------------------------------
     elseif strcmpi(test_type, 'One-sample t-test')
         
-        % Check for matrix
         if ~isempty(M0)
-            flag_parameters = parameter_check(); % Alpha, contrast check
-
+            flag_parameters = parameter_check(); 
             if flag_parameters == 1
-                flag_thres_parameters = perm_thres_check(); % permutations, threshold check
-
+                flag_thres_parameters = perm_thres_check(); 
                 if flag_thres_parameters == 1
                     set(ST_L0_CTR, 'ForegroundColor',[0.219, 0.341, 0.137]); 
-                    thr_key = threshold_key(ST_THRES_POP.String{ST_THRES_POP.Value});
-                    if isempty(thr_key)
-                        warning('Selected threshold type is not supported for this analysis.');
-                        return;
-                    else
-                        alpha = safe_str2num_scalar(ST_ALP_val.String);
-                        [thresholded,pval,tval,conval] = tmfc_ttest(matrices_0,str2num(ST_CONT_val.String),alpha,thr_key);
-                        fprintf('Generating results...\n');
-                        tmfc_results_GUI(thresholded,pval,tval,conval,alpha,thr_key);
-                    end
-                    clear thresholded pval tval conval alpha thr_key
+                    [sig,pval,tval,conval] = tmfc_ttest(matrices_0,str2num(ST_CONT_val.String),alpha,thr_key);
+                    fprintf('Generating results...\n');
+                    tmfc_results_GUI(sig,pval,tval,conval,alpha,thr_type);
+                    clear sig pval tval conval alpha thr_key thr_type
                 end
             end
             
         else
-            warning('Please select matrix files to run a one-sample t-test.');
+            shortwarn('Please select matrix files to run a one-sample t-test.');
         end
 
     %----------------------------------------------------------------------
@@ -577,42 +566,35 @@ function run(~,~)
             if flag_parameters == 1
                 flag_thres_parameters = perm_thres_check();
                 if flag_thres_parameters == 1
-            
+                    % Validate ROI dimensions
                     if isempty(matrices_1) || isempty(matrices_2)
-                        warning('Matrices are empty.');
+                        shortwarn('Matrices are empty.');
                         return;
                     end
                     if size(matrices_1,1) ~= size(matrices_2,1) || size(matrices_1,2) ~= size(matrices_2,2)
-                        warning('The ROI×ROI dimensions differ between the two lists. Please select matrices with the same number of ROIs.');
+                        shortwarn('The ROI×ROI dimensions differ between the two lists. Please select matrices with the same number of ROIs.');
                         set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.773, 0.353, 0.067]);
                         return;
                     end
-            
+                    % Run
                     set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.219, 0.341, 0.137]);
                     groups = {matrices_1, matrices_2};
-            
-                    thr_key = threshold_key(ST_THRES_POP.String{ST_THRES_POP.Value});
-                    if isempty(thr_key)
-                        warning('Selected threshold type is not supported for this analysis.');
-                        return;
-                    end
-                    alpha = safe_str2num_scalar(ST_ALP_val.String);
-                    [thresholded,pval,tval,conval] = tmfc_ttest2(groups, ...
+                    [sig,pval,tval,conval] = tmfc_ttest2(groups, ...
                         str2num(ST_CONT_val.String),alpha,thr_key);
                     fprintf('Generating results...\n');
-                    tmfc_results_GUI(thresholded,pval,tval,conval,alpha,thr_key);
-                    clear thresholded pval tval conval groups alpha thr_key
+                    tmfc_results_GUI(sig,pval,tval,conval,alpha,thr_type);
+                    clear sig pval tval conval groups alpha thr_key thr_type
                 end
             end          
         elseif ~isempty(M1) && isempty(M2)
-            warning('Please select the second set of matrix files to run a two-sample t-test.');
+            shortwarn('Please select the second set of matrix files to run a two-sample t-test.');
         elseif isempty(M1) && ~isempty(M2)
-            warning('Please select the first set of matrix files to run a two-sample t-test.'); 
+            shortwarn('Please select the first set of matrix files to run a two-sample t-test.'); 
         else
-            warning('Please select matrix files to run a two-sample t-test.');
+            shortwarn('Please select matrix files to run a two-sample t-test.');
         end 
     else
-        warning('Files must be ROI×ROI or ROI×ROI×Subjects.');
+        shortwarn('Files must be ROI×ROI or ROI×ROI×Subjects.');
     end 
 end
 
@@ -624,21 +606,21 @@ function flag = parameter_check(~,~)
     val_alpha = safe_str2num_scalar(ST_ALP_val.String);
 
     if isempty(val_contrast)
-        warning('Please enter numeric values for the contrast.');
+        shortwarn('Please enter numeric values for the contrast.');
         return;
     end
     if isempty(val_alpha) || ~isscalar(val_alpha) || ~isfinite(val_alpha) || val_alpha < 0 || val_alpha > 1
-        warning('Please enter an alpha value between 0 and 1.');
+        shortwarn('Please enter an alpha value between 0 and 1.');
         return;
     end
     if any(strcmpi(test_type, {'Paired t-test','Two-sample t-test'}))
         if numel(val_contrast) ~= 2
-            warning('Please enter two contrast values.');
+            shortwarn('Please enter two contrast values.');
             return;
         end
     elseif strcmpi(test_type, 'One-sample t-test')
         if numel(val_contrast) > 1
-            warning('One-sample t-test accepts only a single contrast value.');
+            shortwarn('One-sample t-test accepts only a single contrast value.');
             return;
         end
     end
@@ -663,17 +645,17 @@ end
 % Validate permutation / primary threshold inputs 
 function flag = perm_thres_check(~,~)
     flag = 0;
-    thresh_type = (ST_THRES_POP.String{ST_THRES_POP.Value});
+    thr_type = (ST_THRES_POP.String{ST_THRES_POP.Value});
 
-    switch thresh_type
+    switch thr_type
         case {'Uncorrected (Non-parametric)', 'FDR (Non-parametric)'}
             permutation_value = str2double(ST_PERM_VAL.String);
             is_posint = ~isnan(permutation_value) && permutation_value > 0 && mod(permutation_value,1)==0;
             if is_posint
-                warning('Non-parametric analysis is under development. Please wait for a future update.');
+                shortwarn('Non-parametric analysis is under development. Please wait for a future update.');
                 flag = 0;
             else
-                warning('Please enter a positive integer for the number of permutations.');
+                shortwarn('Please enter a positive integer for the number of permutations.');
             end
 
         case 'NBS FWE (Non-parametric)'
@@ -684,23 +666,23 @@ function flag = perm_thres_check(~,~)
             is_valid_thresh = ~isnan(threshold_value) && threshold_value > 0 && threshold_value <= 1.0;
 
             if ~is_posint
-                warning('Please enter a positive integer for the number of permutations.');
+                shortwarn('Please enter a positive integer for the number of permutations.');
             elseif ~is_valid_thresh
-                warning('Please enter a primary threshold (p-value) between 0 and 1.');
+                shortwarn('Please enter a primary threshold (p-value) between 0 and 1.');
             else
-                warning('Non-parametric analysis is under development. Please wait for a future update.');
+                shortwarn('Non-parametric analysis is under development. Please wait for a future update.');
                 flag = 0;
             end
 
         case 'NBS TFCE (Non-parametric)'
-            warning('Non-parametric analysis is under development. Please wait for a future update.');
+            shortwarn('Non-parametric analysis is under development. Please wait for a future update.');
             flag = 0;
 
         case {'Uncorrected (Parametric)', 'FDR (Parametric)', 'Bonferroni (Parametric)'}
             flag = 1;
 
         otherwise
-            warning('Unsupported threshold type.');
+            shortwarn('Unsupported threshold type.');
     end
 end
 
@@ -734,9 +716,9 @@ function flag = multi_var_check(input_file)
         varlist = who('-file', input_file{i,:});
         if numel(varlist) ~= 1
             if isempty(varlist)
-                fprintf('No variables found in file: %s\n', input_file{i,:});
+                shortwarn('No variables found in file: %s\n', input_file{i,:});
             else
-                fprintf('Multiple variables found in file: %s\n', input_file{i,:});
+                shortwarn('Multiple variables found in file: %s\n', input_file{i,:});
             end
             flag = 1;
             break;
@@ -744,17 +726,23 @@ function flag = multi_var_check(input_file)
     end
 end
 
-%% Convert internal labeling format to tmfc_ttest() labeling format
-function small_string = threshold_key(input_string)
-    small_string = '';    
-    switch input_string 
+%% Threshold type: Long title -> Short title (for plots and tmfc_ttest/tmfc_ttest2 functions)
+function thr_key = threshold_key(thr_type)
+    thr_key = '';    
+    switch thr_type 
         case 'Uncorrected (Parametric)'
-            small_string = 'uncorr';
-        
+            thr_key = 'uncorr';
         case 'FDR (Parametric)'
-            small_string = 'FDR';
-        
+            thr_key = 'FDR';
         case 'Bonferroni (Parametric)'
-            small_string = 'Bonf';            
+            thr_key = 'Bonf';            
     end
+end
+
+%% Short warning
+function shortwarn(msg)
+    s = warning('query','backtrace');
+    warning('off','backtrace');
+    warning(msg);
+    warning(s.state,'backtrace');
 end

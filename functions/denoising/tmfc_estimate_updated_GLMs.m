@@ -22,7 +22,7 @@ function output_paths = tmfc_estimate_updated_GLMs(SPM_paths,masks,options)
 %--------------------------------------------------------------------------
 if strcmpi(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmpi(options.WM_CSF,'none') && strcmpi(options.GSR,'none') && options.rWLS == 0 
     output_paths = [];
-    warning('Only 6 motion regressors are selected as noise regressors. No new models will be created.'); return;
+    shortwarn('Only 6 motion regressors are selected as noise regressors. No new models will be created.'); return;
 elseif strcmpi(options.motion,'6HMP') && options.spikereg == 0 && sum(options.aCompCor)==0 && strcmpi(options.WM_CSF,'none') && strcmpi(options.GSR,'none') && options.rWLS == 1
     new_GLM_subfolder = ['GLM_[6HMP]_[rWLS]'];
 elseif (~strcmpi(options.motion,'6HMP') || options.spikereg == 1 || options.rWLS == 1) && (sum(options.aCompCor)==0 && strcmpi(options.WM_CSF,'none') && strcmpi(options.GSR,'none')) 
@@ -396,4 +396,13 @@ function tmfc_rwls(output_paths,iSub)
     cd(output_paths{iSub});
     tmfc_spm_rwls_spm(SPM);
     cd(original_dir);
+end
+
+% Short warning
+%--------------------------------------------------------------------------
+function shortwarn(msg)
+    s = warning('query','backtrace');
+    warning('off','backtrace');
+    warning(msg);
+    warning(s.state,'backtrace');
 end

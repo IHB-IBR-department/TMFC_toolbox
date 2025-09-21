@@ -548,7 +548,6 @@ end
 function open_help(~,~)
    page1 = {
         ''
-        ''
         '   First, select the parent folder that contains all subject folders' 
         '   with FUNC subfolders (if necessary).'
         ''
@@ -584,7 +583,6 @@ function open_help(~,~)
 
     page2 = {
         ''
-        ''
         '   ================ EXAMPLE #2 (BIDS-like folder structure) ================='
         ''
         '   "project/derivatives/firstlevel-spm" parent folder with STAT subfolders needs to be'
@@ -618,7 +616,6 @@ function open_help(~,~)
     };
 
     page3 = {
-        ''
         ''
         '   ================ EXAMPLE #3 (Other non-BIDS folder structure) ================'
         ''

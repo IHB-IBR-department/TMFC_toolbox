@@ -23,9 +23,9 @@ function tmfc_physioreg(SPM_paths,subject_paths,func_paths,masks,options)
 
 % Extract signals from unsmoothed functional images
 %--------------------------------------------------------------------------
-if (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 0
+if (options.aCompCor(1) >= 1 || options.aCompCor(2) >= 1) && options.aCompCor_ort == 0
     aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF]'];
-elseif (options.aCompCor(1) > 1 || options.aCompCor(2) > 1) && options.aCompCor_ort == 1
+elseif (options.aCompCor(1) >= 1 || options.aCompCor(2) >= 1) && options.aCompCor_ort == 1
     aCompCor_fname = ['[aCompCor_' num2str(options.aCompCor(1)) 'WM_' num2str(options.aCompCor(2)) 'CSF_Ort]'];
 elseif options.aCompCor(1) == 0.5 && options.aCompCor_ort == 0
     aCompCor_fname = '[aCompCor50]';
@@ -42,7 +42,7 @@ for iSub = 1:length(SPM_paths)
     do50aCompCor = options.aCompCor(1) == 0.5 && ~exist(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']),'file');
 
     if ~(doGSR || doPhys || doFixedaCompCor || do50aCompCor)
-        try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+        try, waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         continue;
     end
 
@@ -52,27 +52,21 @@ for iSub = 1:length(SPM_paths)
     % Load whole-brain mask
     %----------------------------------------------------------------------
     if doGSR
-        WB_mask = spm_read_vols(spm_vol(masks.WB{iSub})); WB_mask = WB_mask(:); WB_mask(WB_mask == 0) = NaN;
+        WB_mask = spm_read_vols(spm_vol(masks.WB{iSub})); WB_mask = WB_mask(:); WB_mask(WB_mask == 0) = NaN; idxWB = ~isnan(WB_mask); 
     end
 
     % Load WM and CSF masks
     %----------------------------------------------------------------------
-    WM_CSF = 0; aCompCorFixed = 0; aCompCorVar50 = 0;
-    if doFixedaCompCor
-        WM_CSF = 1; aCompCorFixed = 1;
-    elseif do50aCompCor
-        WM_CSF = 1; aCompCorVar50 = 1;
-    elseif doPhys
-        WM_CSF = 1;
-    end
+    WM_CSF = doPhys || doFixedaCompCor || do50aCompCor;
+
     if WM_CSF == 1
-        WM_mask = spm_read_vols(spm_vol(masks.WM{iSub})); WM_mask = WM_mask(:); WM_mask(WM_mask == 0) = NaN;
-        CSF_mask = spm_read_vols(spm_vol(masks.CSF{iSub})); CSF_mask = CSF_mask(:); CSF_mask(CSF_mask == 0) = NaN; 
+        WM_mask = spm_read_vols(spm_vol(masks.WM{iSub})); WM_mask = WM_mask(:); WM_mask(WM_mask == 0) = NaN; idxWM  = ~isnan(WM_mask);
+        CSF_mask = spm_read_vols(spm_vol(masks.CSF{iSub})); CSF_mask = CSF_mask(:); CSF_mask(CSF_mask == 0) = NaN; idxCSF = ~isnan(CSF_mask);
     end
 
     % Load HMP
     %----------------------------------------------------------------------
-    if (options.aCompCor_ort == 1 && sum(options.aCompCor)~=0)
+    if options.aCompCor_ort && (doFixedaCompCor || do50aCompCor)
         if strcmpi(options.motion,'12HMP')
             load(fullfile(GLM_subfolder,'TMFC_denoise','12HMP.mat'),'HMP12');
         elseif strcmpi(options.motion,'24HMP')
@@ -84,30 +78,37 @@ for iSub = 1:length(SPM_paths)
     %----------------------------------------------------------------------
     SPM = load(SPM_paths{iSub}).SPM;
     for jSess = 1:length(SPM.Sess)
-        clear WB_data WM_data CSF_data
         nScan = numel(SPM.Sess(jSess).row);
+        % Preallocation
+        if doGSR, WB_data = zeros(nnz(idxWB),nScan); end
+        if WM_CSF == 1, WM_data = zeros(nnz(idxWM), nScan); CSF_data = zeros(nnz(idxCSF),nScan); end
+        % Load vols
         for kScan = 1:nScan
             data = spm_read_vols(spm_vol(func_paths(iSub).fname{SPM.Sess(jSess).row(kScan)})); data = data(:);
-            try; WB_data(:,kScan) = data(~isnan(data.*WB_mask)); end  
-            try; WM_data(:,kScan) = data(~isnan(data.*WM_mask)); CSF_data(:,kScan) = data(~isnan(data.*CSF_mask)); end
+            if doGSR, WB_data(:,kScan) = data(idxWB); end  
+            if WM_CSF == 1, WM_data(:,kScan) = data(idxWM); CSF_data(:,kScan) = data(idxCSF); end
         end
         clear nScan
 
         % Remove voxels with zero variance 
         %------------------------------------------------------------------
-        if exist('WB_mask','var'); WB_data(std(WB_data,0,2) == 0,:) = []; end
+        if doGSR
+            keep = all(isfinite(WB_data),2) & std(WB_data,0,2) > 0;
+            WB_data = WB_data(keep,:);
+            if isempty(WB_data); error(['The whole-brain mask is empty. Check Subject No. ' num2str(iSub) ': ' sub]); end
+        end
         if WM_CSF == 1
-            if isempty(WM_data); error(['The eroded WM mask is empty. Create a more liberal WM mask. Check Subject No. ' num2str(iSub) ': ' sub]); end
-            if isempty(CSF_data); error(['The eroded CSF mask is empty. Create a more liberal CSF mask. Check Subject No. ' num2str(iSub) ': ' sub]); end
-            WM_data(std(WM_data,0,2) == 0,:) = []; 
-            CSF_data(std(CSF_data,0,2) == 0,:) = []; 
+            keep = all(isfinite(WM_data),2) & std(WM_data,0,2) > 0;
+            WM_data = WM_data(keep,:);
+            keep = all(isfinite(CSF_data),2) & std(CSF_data,0,2) > 0;
+            CSF_data = CSF_data(keep,:);
             if isempty(WM_data); error(['The eroded WM mask is empty. Create a more liberal WM mask. Check Subject No. ' num2str(iSub) ': ' sub]); end
             if isempty(CSF_data); error(['The eroded CSF mask is empty. Create a more liberal CSF mask. Check Subject No. ' num2str(iSub) ': ' sub]); end
         end
 
         % GSR
         %------------------------------------------------------------------
-        if exist('WB_data','var')
+        if doGSR
             WB_mean = spm_detrend(mean(WB_data))';
             WB_mean_diff = [0; diff(WB_mean)];
             GSR(jSess).Sess = WB_mean;
@@ -127,7 +128,7 @@ for iSub = 1:length(SPM_paths)
 
         % Prepare WM/CSF data for SVD
         %------------------------------------------------------------------
-        if aCompCorFixed == 1 || aCompCorVar50 == 1
+        if doFixedaCompCor == 1 || do50aCompCor == 1
             % First dimension - time
             WM_data = WM_data'; CSF_data = CSF_data';
             % Pre-orthogonalize data w.r.t. head motion and high-pass filter 
@@ -172,7 +173,7 @@ for iSub = 1:length(SPM_paths)
 
         % aCompCor (fixed number of PCs)
         %------------------------------------------------------------------
-        if aCompCorFixed == 1
+        if doFixedaCompCor == 1
             nVox_WM = size(WM_data,2); nVox_CSF = size(CSF_data,2); nTime = size(WM_data,1);
             % Check WM mask
             if options.aCompCor(1) > nVox_WM
@@ -202,8 +203,8 @@ for iSub = 1:length(SPM_paths)
 
         % aCompCor (50% variance explained)
         %------------------------------------------------------------------
-        if aCompCorVar50 == 1
-            nVox_WM = size(WM_data,2); nVox_CSF = size(CSF_data,2); nTime = size(WM_data,1);
+        if do50aCompCor == 1
+            nTime = size(WM_data,1);
             % Calculate WM PCs
             [U,S] = svd(WM_data,'econ');
             latent = diag(S).^2/(nTime-1);
@@ -223,14 +224,14 @@ for iSub = 1:length(SPM_paths)
             aCompCor50.Sess(jSess).CSF_variance_explained = var_expl(end);
             clear U S latent var_expl idx50
         end
-        clear nVox_WM nVox_CSF
+        clear nTime nVox_WM nVox_CSF
         clear WB_data WM_data CSF_data 
         clear WB_mean WB_mean_diff Phys Phys_diff
     end %-----------------------------------------------end of session loop
 
     % aCompCor summary info
     %----------------------------------------------------------------------
-    if aCompCorFixed == 1
+    if doFixedaCompCor == 1
         WM_var_expl = []; CSF_var_expl = [];
         for jSess = 1:length(SPM.Sess)
             WM_var_expl = [WM_var_expl aCompCor.Sess(jSess).WM_variance_explained];
@@ -239,7 +240,7 @@ for iSub = 1:length(SPM_paths)
         aCompCor.WM_mean_variance_explained = mean(WM_var_expl);
         aCompCor.CSF_mean_variance_explained = mean(CSF_var_expl);
     end
-    if aCompCorVar50 == 1
+    if do50aCompCor == 1
         WM_nPCs = 0; CSF_nPCs = 0; WM_nPCs_per_sess = []; CSF_nPCs_per_sess = [];
         for jSess = 1:length(SPM.Sess)
             WM_nPCs = WM_nPCs + size(aCompCor50.Sess(jSess).WM_PCs,2);
@@ -253,21 +254,21 @@ for iSub = 1:length(SPM_paths)
         aCompCor50.Mean_CSF_nPCs_per_sess = mean(CSF_nPCs_per_sess);
     end
 
-    clear GLM_subfolder sub SPM WB_mask WM_mask CSF_mask
+    clear GLM_subfolder sub SPM WB_mask WM_mask CSF_mask idxWB idxWM idxCSF keep
     
     % Save *.mat files
     %----------------------------------------------------------------------
     % Save GSR 
     if doGSR
-        if strcmpi(options.GSR,'GSR'); save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR');
-        elseif strcmpi(options.GSR,'2GSR'); save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR2');
-        elseif strcmpi(options.GSR,'4GSR');save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR4'); end
+        if strcmpi(options.GSR,'GSR'), save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR');
+        elseif strcmpi(options.GSR,'2GSR'), save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR2');
+        elseif strcmpi(options.GSR,'4GSR'), save(fullfile(masks.glm_paths{iSub},[options.GSR '.mat']),'GSR4'); end
     end
     % Save Phys
     if doPhys
-        if strcmpi(options.WM_CSF,'2Phys'); save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys2');
-        elseif strcmpi(options.WM_CSF,'4Phys'); save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys4'); 
-        elseif strcmpi(options.WM_CSF,'8Phys'); save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys8'); end    
+        if strcmpi(options.WM_CSF,'2Phys'), save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys2');
+        elseif strcmpi(options.WM_CSF,'4Phys'), save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys4'); 
+        elseif strcmpi(options.WM_CSF,'8Phys'), save(fullfile(masks.glm_paths{iSub},[options.WM_CSF '.mat']),'Phys8'); end    
     end
     % Save aCompCor
     if doFixedaCompCor
@@ -276,7 +277,7 @@ for iSub = 1:length(SPM_paths)
         save(fullfile(masks.glm_paths{iSub},[aCompCor_fname '.mat']),'aCompCor50');
     end
     clear HMP12 HMP24 GSR GSR2 GSR4 Phys2 Phys4 Phys8 aCompCor aCompCor50 
-    try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+    try, waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
 end
 try, if exist('w','var') && ishghandle(w), close(w); end, end
 

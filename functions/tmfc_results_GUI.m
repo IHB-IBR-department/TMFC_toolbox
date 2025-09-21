@@ -1,175 +1,189 @@
-function tmfc_results_GUI(thresholded,pval,tval,conval,alpha,correction)
+function tmfc_results_GUI(sig,pval,tval,conval,alpha,correction)
 
-if nargin == 0 % Variant 1 CLI & Variant 2 GUI 
-   file = spm_select(1,'.mat','Select TMFC results *.mat file created by TMFC statistics',{},pwd,'.');
-   
-   if ~isempty(file)
-       loaded_path = load(file);
-       variable_name_L = fieldnames(loaded_path);
-       tmfc_res = loaded_path.(variable_name_L{1});      
-       try 
-        if all(isfield(tmfc_res,{'threshold','pval', 'tval','conval','alpha','correction'}) == 1)
-            disp('File Loaded');
-            thresholded = tmfc_res.threshold;
-            pval = tmfc_res.pval;
-            tval = tmfc_res.tval;
-            conval = tmfc_res.conval;
-            alpha = tmfc_res.alpha;
-            correction = tmfc_res.correction;
-            generator();
-        else
-           warning('Selected .mat file is not in TMFC Results format. Please select valied TMFC results .mat file.');
-           clear file tmfc_res
+% ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
+%
+% Opens a GUI displaying results from statistical tests
+% on functional connectivity matrices.
+%
+% =========================================================================
+% Copyright (C) 2025 Ruslan Masharipov
+% License: GPL-3.0-or-later
+% Contact: masharipov@ihb.spb.ru
+
+if nargin == 0
+
+    file = spm_select(1,'.mat','Select TMFC results *.mat file created by TMFC statistics',{},pwd,'.');
+
+    if ~isempty(file)
+        loaded_path = load(file);
+        variable_name_L = fieldnames(loaded_path);
+        tmfc_results = loaded_path.(variable_name_L{1});
+        try
+            if all(isfield(tmfc_results,{'sig','pval','tval','conval','alpha','correction'}) == 1)
+                disp('File Loaded');
+                sig = tmfc_results.sig;
+                pval = tmfc_results.pval;
+                tval = tmfc_results.tval;
+                conval = tmfc_results.conval;
+                alpha = tmfc_results.alpha;
+                correction = tmfc_results.correction;
+                create_plot();
+            else
+                warning('Selected .mat file is not in TMFC results format. Please select valid TMFC results .mat file.');
+                clear file tmfc_results
+            end
+        catch
+            warning('Selected .mat file is not in TMFC results format. Please select valid TMFC results .mat file.');
+            clear file
         end
-       catch
-           warning('Selected .mat file is not in TMFC Results format. Please select valied TMFC results .mat file.');
-           clear file 
-       end
-   else
-       warning('Selected .mat file is empty or not in TMFC results format. Please select valied TMFC results .mat file.');
-       clear file 
-   end
-    
-elseif nargin == 6 && isempty(findobj('Tag', 'TMFC_GUI')) == 1  % Variant 2 CLI
-    generator();
-    
-elseif nargin == 6 && ~isempty(findobj('Tag', 'TMFC_GUI')) == 1 % Variant 1 GUI
-    generator();
+    else
+        warning('Selected .mat file is empty or not in TMFC results format. Please select valid TMFC results .mat file.');
+        clear file
+    end
+
+elseif nargin == 6 
+    create_plot();
 end
 
-function generator(~,~)
-    if ~isempty(thresholded)
-        res_win = figure('Name','TMFC results','NumberTitle', 'off','Units', 'normalized', 'Position', [0.225 0.28 0.55 0.42], 'Tag', 'TMFC results','WindowStyle', 'modal');
+function create_plot(~,~)
+    if isempty(sig)
+        warning('TMFC results are empty or invalid; nothing to display.');
+        return
+    else
+        res_win = figure('Name','TMFC_results','NumberTitle','off', ...
+            'Units','normalized','Position',[0.225 0.28 0.55 0.42], ...
+            'Tag','TMFC_results','WindowStyle','modal');
+        
         movegui(res_win,'center');
-        ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(ax1,tmfc_axis(conval,1));  
-        ax2 = subplot(1,2,2); imagesc(thresholded);   subtitle(['p' correction '<' num2str(alpha)]); axis square; colorbar;  
-        colormap(subplot(1,2,1),'turbo')  
-        set(findall(gcf,'-property','FontSize'),'FontSize',16)
-        res_win_title  = uicontrol(res_win,'Style','text','String', 'Results','Units', 'normalized', 'Position',[0.461 0.92 0.09 0.05],'fontunits','normalized', 'fontSize', 0.75);
+        
+        thr_key = threshold_key(correction);
 
-        save_data_btn = uicontrol('Style','pushbutton','String', 'Save Data','Units', 'normalized','Position',[0.18 0.05 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36);
-        save_plot_btn = uicontrol('Style','pushbutton','String', 'Save Plots','Units', 'normalized','Position',[0.62 0.05 0.210 0.054],'fontunits','normalized', 'fontSize', 0.36);
+        ax1 = subplot(1,2,1,'Parent',res_win);
+        imagesc(ax1,conval);
+        try, subtitle(ax1,'Group mean'); catch, title(ax1,'Group mean'); end
+        axis(ax1,'square'); colorbar(ax1); caxis(ax1,tmfc_axis(conval,1));
+
+        ax2 = subplot(1,2,2,'Parent',res_win);
+        imagesc(ax2, sig);
+        try, subtitle(ax2, ['p-' thr_key '<' num2str(alpha)]);
+        catch, title(ax2, ['p-' thr_key '<' num2str(alpha)]); end
+        axis(ax2,'square'); colorbar(ax2);
+        
+        colormap(ax1,'turbo');  
+        set(findall(res_win,'-property','FontSize'),'FontSize',16);
+
+        uicontrol(res_win,'Style','text','String','Results','Units','normalized', ...
+            'Position',[0.461 0.92 0.09 0.05],'FontUnits','normalized','FontSize',0.75);
+
+        save_data_btn = uicontrol('Parent',res_win,'Style','pushbutton','String','Save data', ...
+            'Units','normalized','Position',[0.18 0.05 0.210 0.054], ...
+            'FontUnits','normalized','FontSize',0.36);
+        
+        save_plot_btn = uicontrol('Parent',res_win,'Style','pushbutton','String','Save plot', ...
+            'Units','normalized','Position',[0.62 0.05 0.210 0.054], ...
+            'FontUnits','normalized','FontSize',0.36);
+
         set(save_data_btn,'callback', @int_data_saver)
         set(save_plot_btn ,'callback', @int_plot_saver)
 
-        tmfc_res.sig = thresholded;
-        tmfc_res.pval = pval;
-        tmfc_res.tval = tval;
-        tmfc_res.conval = conval;
-        tmfc_res.alpha = alpha; 
-        tmfc_res.correction = thresh_ttest_adapter(correction);
+        tmfc_results.sig = sig;
+        tmfc_results.pval = pval;
+        tmfc_results.tval = tval;
+        tmfc_results.conval = conval;
+        tmfc_results.alpha = alpha;
+        tmfc_results.correction = correction;
     end
 end
 
 function save_stat = int_data_saver(~,~)
-       
-    % Ask user for Filename & location name:
-    [filename_SO, pathname_SO] = uiputfile('*.mat', 'Save TMFC variable as'); %pwd
-    
-    % Set Flag save status to Zero, this flag is used in the future as
-    % a reference to check if the Save was successful or not
+
+    [filename_SO, pathname_SO] = uiputfile('*.mat', 'Save TMFC variable as');
     save_stat = 0;
     
-    % Check if FileName or Path is missing or not available 
     if isequal(filename_SO, 0) || isequal(pathname_SO, 0)
-        error('Results not saved. File name or Save Directory not selected.');    
+        warning('Results were not saved. File name or save directory not selected.');    
+        return
     else
-        % If all data is available
-        % Construct full path: PATH + FileName
-        % e.g (D:\user\matlab\ + Test.m)
-        
         fullpath = fullfile(pathname_SO, filename_SO);
-        
-        % D receives the save status of the variable in the desingated
-        % location
         save_stat = saver(fullpath);
-        
-        % If the variable was successfully saved then display info
         if save_stat == 1
-            fprintf('Results saved successfully in path: %s\n', fullpath);
+            fprintf('Results were saved in: %s\n', fullpath);
         else
-            disp('Results not saved.');
+            disp('Results were not saved.');
         end
-    end
-          
+    end       
 end
 
-function save_stat = int_plot_saver(~,~)
+function save_plot = int_plot_saver(~,~)
        
-    % Ask user for Filename & location name:
-    [filename_SO, pathname_SO] = uiputfile('*.png', 'Save TMFC plots as'); %pwd
-    
-    % Set Flag save status to Zero, this flag is used in the future as
-    % a reference to check if the Save was successful or not
-    save_stat = 0;
-    
-    % Check if FileName or Path is missing or not available 
+    [filename_SO, pathname_SO] = uiputfile('*.png', 'Save TMFC plot as');    
+    save_plot = 0;
+   
     if isequal(filename_SO, 0) || isequal(pathname_SO, 0)
-        error('Result plots not saved. File name or Save Directory not selected.');   
+        warning('Plot was not saved. File name or save directory not selected.');
+        return
     else
-        % If all data is available
-        % Construct full path: PATH + FileName
-        % e.g (D:\user\matlab\ + Test.m)
-        
         fullpath = fullfile(pathname_SO, filename_SO);
-        
-        % D receives the save status of the variable in the desingated
-        % location
-        save_stat = saver_plot(fullpath);
-        
-        % If the variable was successfully saved then display info
-        if save_stat == 1
-            fprintf('Plots saved successfully in path: %s\n', fullpath);
+        save_plot = saver_plot(fullpath);
+        if save_plot == 1
+            fprintf('Plot was saved in: %s\n', fullpath);
         else
-            disp('Plots not saved.');
+            disp('Plot was not saved.');
         end
     end   
 end 
 
-function SAVER_STAT =  saver(save_path)
-% 0 - Successfull save, 1 - Failed save
+function savestat_flag =  saver(save_path)
     try 
-        save(save_path, 'tmfc_res');
-        SAVER_STAT = 1;
-        % Save Success
+        save(save_path,'tmfc_results');
+        savestat_flag = 1;
     catch 
-        SAVER_STAT = 0;
-        % Save Fail 
+        savestat_flag = 0;
     end
 end
 
-function SAVER_STAT =  saver_plot(save_path)
-% 0 - Successfull save, 1 - Failed save  
+function saveplot_flag =  saver_plot(save_path)
     try
-        temp_res_win = figure('NumberTitle', 'off','Units', 'normalized', 'Position', [0.4 0.25 0.55 0.42], 'Tag', 'TMFC results: Output','visible', 'off');
-        temp_ax1 = subplot(1,2,1); imagesc(conval);        subtitle('Group mean'); axis square; colorbar; caxis(temp_ax1,tmfc_axis(conval,1));  
-        temp_ax2 = subplot(1,2,2); imagesc(thresholded);   subtitle(['p' correction '<' num2str(alpha)]); axis square; colorbar;  
-        colormap(subplot(1,2,1),'turbo')  
-        set(findall(gcf,'-property','FontSize'),'FontSize',16)
+        thr_key = threshold_key(correction);
+        temp_res_win = figure('NumberTitle','off','Units','normalized', ...
+            'Position',[0.4 0.25 0.55 0.42],'Tag','TMFC_results','Visible','off');
+
+        ax1 = subplot(1,2,1,'Parent',temp_res_win);
+        imagesc(ax1, conval);
+        try, subtitle(ax1,'Group mean'); catch, title(ax1,'Group mean'); end
+        axis(ax1,'square'); colorbar(ax1); caxis(ax1, tmfc_axis(conval,1));
+
+        ax2 = subplot(1,2,2,'Parent',temp_res_win);
+        imagesc(ax2, sig);
+        try, subtitle(ax2, ['p-' thr_key '<' num2str(alpha)]);
+        catch, title(ax2, ['p-' thr_key '<' num2str(alpha)]); end
+        axis(ax2,'square'); colorbar(ax2);
+
+        colormap(ax1,'turbo');
+        set(findall(temp_res_win,'-property','FontSize'),'FontSize',16);
+
         saveas(temp_res_win,save_path);
         delete(temp_res_win);
-        SAVER_STAT = 1;
+        saveplot_flag = 1;
     catch
-        SAVER_STAT = 0;
+        saveplot_flag = 0;
         warning('File not saved.');
     end    
 end
-
 end
 
-function big_string = thresh_ttest_adapter(small_string)
-
-    big_string = '';
-    
-    switch small_string 
-        case 'uncorr'
-            big_string = 'Uncorrected (Parametric)';
-        
-        case 'FDR'
-            big_string = 'FDR (Parametric)';
-        
-        case 'Bonf'
-            big_string = 'Bonferroni (Parametric)';
-            
+%% Threshold type: Long title -> Short title (for plots and tmfc_ttest/tmfc_ttest2 functions)
+function thr_key = threshold_key(thr_type)
+    thr_key = '';    
+    switch thr_type 
+        % Long -> short
+        case 'Uncorrected (Parametric)';  thr_key = 'uncorr';
+        case 'FDR (Parametric)';          thr_key = 'FDR';
+        case 'Bonferroni (Parametric)';   thr_key = 'Bonf';
+        % Already short -> return as-is
+        case {'uncorr','FDR','Bonf'}
+            thr_key = thr_type;
+        otherwise
+            thr_key = '';      
     end
 end

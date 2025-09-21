@@ -1492,7 +1492,7 @@ function LSS_FIR_GUI(~,~,~)
         error('Select TMFC project folder.');
     elseif ~isfield(tmfc.subjects,'FIR')
         warning('Calculate FIR task regression.'); return;
-    elseif any([tmfc.subjects(:).FIR] == 0)
+    elseif ~all([tmfc.subjects(:).FIR])
         error('Calculate FIR task regression for all subjects.');
     end
 

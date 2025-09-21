@@ -85,6 +85,7 @@ tmfc.project_path = data.stat_path;
 % Go to GLMs subfolder and select 20 subjects 
 SPM_check = 1;                      % Check SPM.mat files
 [SPM_paths, subject_paths] = tmfc_select_subjects_GUI(SPM_check);
+data.N = length(SPM_paths);
 
 sub_name_format = 'standard'; % Select this option to use TMFC naming format (i.e., 'Subject_XXXX')
 

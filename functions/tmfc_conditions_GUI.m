@@ -57,7 +57,9 @@ function [conditions] = conditions_GUI(all_cond, input_case)
     
     conditions_MW = figure('Name', MW_string, 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.45 0.25 0.22 0.56],'MenuBar', 'none','ToolBar', 'none','color','w','Resize','on','WindowStyle','modal','CloseRequestFcn', @MW_exit);
 
-    cond_MW_S1  = uicontrol(conditions_MW,'Style','text','String', 'Select conditions of interest','Units', 'normalized', 'Position',[0.270 0.93 0.490 0.05],'fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
+    if isunix; fontscale0 = 0.9; else; fontscale0 = 1; end
+
+    cond_MW_S1  = uicontrol(conditions_MW,'Style','text','String', 'Select conditions of interest','Units', 'normalized', 'Position',[0.270 0.93 0.490 0.05],'fontunits','normalized', 'fontSize', 0.50*fontscale0,'backgroundcolor','w');
     cond_MW_S2  = uicontrol(conditions_MW,'Style','text','String', 'All conditions:','Units', 'normalized', 'Position',[0.045 0.88 0.450 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
     cond_MW_S3  = uicontrol(conditions_MW,'Style','text','String', 'Conditions of interest:','Units', 'normalized', 'Position',[0.045 0.425 0.450 0.05],'HorizontalAlignment', 'left','fontunits','normalized', 'fontSize', 0.50,'backgroundcolor','w');
     cond_MW_LB1 = uicontrol(conditions_MW , 'Style', 'listbox', 'String', cond_L1,'Max', 1000,'Units', 'normalized', 'Position',[0.045 0.59 0.900 0.300],'fontunits','points', 'fontSize', 11,'Value', [],'callback', @MW_LB1_select);
