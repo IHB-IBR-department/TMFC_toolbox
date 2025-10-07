@@ -116,7 +116,7 @@ switch type
                         end
                     case 1  % Parallel
                         try
-                            parpool;
+                            if isempty(gcp('nocreate')), parpool; end
                             figure(findobj('Tag','TMFC_GUI'));
                         end
                         parfor kROI = 1:nROI
@@ -178,7 +178,7 @@ switch type
                         end
                     case 1  % Parallel
                         try
-                            parpool;
+                            if isempty(gcp('nocreate')), parpool; end
                             figure(findobj('Tag','TMFC_GUI'));
                         end
                         parfor kROI = 1:nROI
@@ -240,7 +240,7 @@ switch type
                         end
                     case 1  % Parallel
                         try
-                            parpool;
+                            if isempty(gcp('nocreate')), parpool; end
                             figure(findobj('Tag','TMFC_GUI'));
                         end
                         for kROI = 1:nROI
@@ -302,7 +302,7 @@ switch type
                         end
                     case 1  % Parallel
                         try
-                            parpool;
+                            if isempty(gcp('nocreate')), parpool; end
                             figure(findobj('Tag','TMFC_GUI'));
                         end
                         parfor kROI = 1:nROI

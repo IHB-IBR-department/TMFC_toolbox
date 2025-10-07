@@ -61,6 +61,8 @@ end
 %--------------------------------------------------------------------------
 spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
+
 jSub = 0;
 for iSub = 1:length(SPM_paths)
     % Delete GLM folder, if model has not been estimated:
@@ -71,11 +73,6 @@ for iSub = 1:length(SPM_paths)
         end
         clear SPMnew
     end
-    
-%     % Delete previously created GLM folder:
-%     if exist(output_paths{iSub},'dir')
-%         rmdir(output_paths{iSub},'s');
-%     end
  
     if ~exist(output_paths{iSub},'dir')
         mkdir(output_paths{iSub});
@@ -299,8 +296,6 @@ if exist('batch','var')
     concat(SPM_concat == 0) = [];
     SPM_concat = nonzeros(SPM_concat);
     if jSub == 1
-        spm('defaults','fmri');
-        spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
         % Concatenated sessions
         if SPM_concat(1) == 1
@@ -331,16 +326,19 @@ if exist('batch','var')
 
         % Parallel mode, PCT only 
         if options.parallel == 1 && hasPCT
+            % Init parpool
+            if isempty(gcp('nocreate')), parpool; end
             % DataQueue requires R2017a+ 
             D = [];
             try
                 D = parallel.pool.DataQueue;
                 afterEach(D, @(~) tmfc_progress('tick'));                     
             end
+            % Init SPM
+            spmSetup = parallel.pool.Constant(@() init_spm());
             % Run matlabbatches in parallel mode
             parfor iSub = 1:jSub 
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
+                spmSetup.Value;
                 spm_jobman('run',batch{iSub});
                 % Concatenated sessions
                 if SPM_concat(iSub) == 1
@@ -358,8 +356,6 @@ if exist('batch','var')
         else 
             % Serial mode
             for iSub = 1:jSub
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
                 spm_jobman('run', batch{iSub});
                 % Concatenated sessions
                 if SPM_concat(iSub) == 1
@@ -405,4 +401,13 @@ function shortwarn(msg)
     warning('off','backtrace');
     warning(msg);
     warning(s.state,'backtrace');
+end
+
+% SPM initialization
+%--------------------------------------------------------------------------
+function c = init_spm()
+    spm('defaults','fmri');
+    spm_jobman('initcfg');
+    spm_get_defaults('cmdline', true);
+    c = onCleanup(@() []); 
 end

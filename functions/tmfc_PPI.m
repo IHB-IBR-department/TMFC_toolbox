@@ -172,7 +172,7 @@ for iSub = start_sub:nSub
                 end
             case 1  % Parallel
                 try
-                    parpool;
+                    if isempty(gcp('nocreate')), parpool; end
                     figure(findobj('Tag','TMFC_GUI'));
                 end
                 parfor kROI = 1:nROI

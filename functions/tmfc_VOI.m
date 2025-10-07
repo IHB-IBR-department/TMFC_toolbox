@@ -137,34 +137,47 @@ cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
 spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
+
+if tmfc.defaults.parallel==1
+    if isempty(gcp('nocreate')), parpool; end
+end
 
 for iSub = start_sub:nSub
     % Calculate F-contrast for all conditions of interest
     SPM = load(tmfc.subjects(iSub).path).SPM;
-    matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
-    matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_conditions_of_interest';
     cond_col = [];
     for iCond = 1:length(cond_list)
-        FCi = [];
         FCi = SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).i; 
-        try
-            FCp = []; 
+        if isfield(SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number),'p')
             FCp = SPM.Sess(cond_list(iCond).sess).Fc(cond_list(iCond).number).p; 
             FCi = FCi(FCp==cond_list(iCond).pmod);
         end
-        cond_col = [cond_col SPM.Sess(cond_list(iCond).sess).col(FCi)];
+        cond_col = [cond_col, SPM.Sess(cond_list(iCond).sess).col(FCi)];
     end 
     weights = zeros(length(cond_col),size(SPM.xX.X,2));
     for iCond = 1:length(cond_col)
         weights(iCond,cond_col(iCond)) = 1;
     end
-    matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
-    matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
-    matlabbatch{1}.spm.stats.con.delete = 0;
-    spm_get_defaults('cmdline',true);
-    spm_jobman('run',matlabbatch);
-    clear matlabbatch
-    SPM = load(tmfc.subjects(iSub).path).SPM;
+    % Check if contrast already exists
+    idx = [];
+    if isfield(SPM,'xCon') && ~isempty(SPM.xCon)
+        idx = find(arrayfun(@(c) isequal(c.c, weights'), SPM.xCon), 1, 'first');
+        nCon = numel(SPM.xCon);
+    else
+        nCon = 0;
+    end
+    % Estimate contrasts only if missing
+    if isempty(idx)
+        matlabbatch = [];
+        matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
+        matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_conditions_of_interest';
+        matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
+        matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
+        matlabbatch{1}.spm.stats.con.delete = 0;
+        spm_jobman('run',matlabbatch);
+        idx = nCon + 1;
+    end
 
     if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name),'s');
@@ -177,8 +190,9 @@ for iSub = start_sub:nSub
     
     for jSess = 1:nSess
         for kROI = 1:nROI
+            matlabbatch = [];
             matlabbatch{1}.spm.util.voi.spmmat = {tmfc.subjects(iSub).path};
-            matlabbatch{1}.spm.util.voi.adjust = length(SPM.xCon);
+            matlabbatch{1}.spm.util.voi.adjust = idx;
             matlabbatch{1}.spm.util.voi.session = sess_num(jSess);
             matlabbatch{1}.spm.util.voi.name = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
             switch tmfc.ROI_set(ROI_set_number).type
@@ -196,41 +210,50 @@ for iSub = start_sub:nSub
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for kROI = 1:nROI
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
-                             fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
-                    if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
-                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
-                    else
-                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
+                    
+                    src = fullfile(SPM.swd, sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                    dst = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name, ...
+                                   sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                    try, movefile(src, dst); end
+
+                    try
+                        e1 = fullfile(SPM.swd, sprintf('VOI_%s_%d_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                        e0 = fullfile(SPM.swd, sprintf('VOI_%s_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
+                        if exist(e1,'file'), delete(e1); elseif exist(e0,'file'), delete(e0); end
                     end
-                    delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
+                    try
+                        msk = fullfile(SPM.swd, sprintf('VOI_%s_mask.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
+                        if exist(msk,'file'), delete(msk); end
+                    end
                 end
                 
             case 1  % Parallel
                 try
-                    parpool;
                     figure(findobj('Tag','TMFC_GUI'));
                 end
-
+                
+                swd = SPM.swd;
                 parfor kROI = 1:nROI
                     spm('defaults','fmri');
                     spm_jobman('initcfg');
                     spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
-                    movefile(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']), ...
-                             fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-                                      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '.mat']));
-                    if exist(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']),'file')
-                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(sess_num(jSess)) '_eigen.nii']));
-                    else
-                        delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_eigen.nii']));
+
+                    src = fullfile(swd, sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                    dst = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name, ...
+                                   sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                    try, movefile(src, dst); end
+
+                    try
+                        e1 = fullfile(swd, sprintf('VOI_%s_%d_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
+                        e0 = fullfile(swd, sprintf('VOI_%s_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
+                        if exist(e1,'file'), delete(e1); elseif exist(e0,'file'), delete(e0); end
                     end
-                    delete(fullfile(SPM.swd,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_mask.nii']));
+                    try
+                        msk = fullfile(swd, sprintf('VOI_%s_mask.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
+                        if exist(msk,'file'), delete(msk); end
+                    end
                 end
         end
 

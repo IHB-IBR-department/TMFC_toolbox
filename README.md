@@ -62,7 +62,7 @@ Select **denoising parameters**:
 <img src = "illustrations/TMFC_denoise_options.PNG" width = 470>
 </p>
 
-Inspect FD/DVARS correlation after denoising:
+Inspect FD-DVARS correlation after denoising:
 
 <p align="center">
 <img src = "illustrations/TMFC_denoise_results.PNG" width = 700>

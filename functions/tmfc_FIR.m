@@ -72,6 +72,10 @@ end
 
 spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
+spm_get_defaults('stats.resmem',tmfc.defaults.resmem);
+spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
+spm_get_defaults('stats.fmri.ufp',1);
 
 nSub = length(tmfc.subjects);
 sub_check = zeros(1,nSub);
@@ -190,12 +194,6 @@ switch tmfc.defaults.parallel
         
         % Sequential computing
         for iSub = start_sub:nSub              
-            spm('defaults','fmri');
-            spm_jobman('initcfg');
-            spm_get_defaults('cmdline',true);
-            spm_get_defaults('stats.resmem',tmfc.defaults.resmem);
-            spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
-            spm_get_defaults('stats.fmri.ufp',1);
             spm_jobman('run', batch{iSub});
             % Concatenated sessions
             if SPM_concat(iSub) == 1
@@ -205,7 +203,7 @@ switch tmfc.defaults.parallel
             if rWLS(iSub) == 0
                 spm_jobman('run', batch_2{iSub});
             else
-                tmfc_rwls_FIR(tmfc,ROI_set_number,iSub,jROI);
+                tmfc_rwls_FIR(tmfc,iSub);
             end
             tmfc_write_residuals(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat'),NaN);
             tmfc_parsave(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'GLM_batch.mat'),batch{iSub});
@@ -254,7 +252,7 @@ switch tmfc.defaults.parallel
 
         % Parallel Loop
         try
-            parpool;
+            if isempty(gcp('nocreate')), parpool; end
             figure(findobj('Tag','TMFC_GUI'));
         end
 
@@ -328,7 +326,7 @@ function tmfc_parsave(fname,matlabbatch)
 end
 
 % Estimate rWLS FIR model
-function tmfc_rwls_FIR(tmfc,ROI_set_number,iSub,jROI)
+function tmfc_rwls_FIR(tmfc,iSub)
     SPM = load(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name,'SPM.mat')).SPM;
     SPM.xVi.form = 'wls';
     nScan = sum(SPM.nscan);

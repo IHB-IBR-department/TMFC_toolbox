@@ -78,6 +78,11 @@ cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
 spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
+
+if tmfc.defaults.parallel==1
+    if isempty(gcp('nocreate')), parpool; end
+end
 
 if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','ROI_to_ROI'))
     mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'BGFC','ROI_to_ROI'));
@@ -114,9 +119,6 @@ for iSub = start_sub:nSub
         switch tmfc.defaults.parallel
             case 0  % Sequential
                 for kROI = 1:nROI
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
                     spm_jobman('run',batch{kROI});
                     movefile(fullfile(tmfc.project_path,'FIR_regression',tmfc.subjects(iSub).name, ...
                                       ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(jSess) '.mat']), ...
@@ -136,7 +138,6 @@ for iSub = start_sub:nSub
                 
             case 1  % Parallel
                 try
-                    parpool;
                     figure(findobj('Tag','TMFC_GUI'));
                 end
                 

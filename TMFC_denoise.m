@@ -1,6 +1,6 @@
-function output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
+function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
 
-% =[ Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4 ]=
+% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.1]=
 % 
 % The TMFC denoise toolbox updates the selected general linear model with
 % the addition of noise regressors. It can be used prior to TMFC analysis 
@@ -25,7 +25,7 @@ function output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,dis
 % Functionality of the TMFC denoise toolbox:
 %
 % (1) Calculates head motion parameters (temporal derivatives and quadratic
-%     terms). Temporal derivatives are calculated as backward differences
+%     terms). Temporal derivatives are computed as backward differences
 %     (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion
 %     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013).
 %
@@ -58,10 +58,10 @@ function output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,dis
 %     DVARS is computed both before and after noise regression 
 %     (for the original and updated GLM, respectively).
 %
-% (8) Adds noise regressors to the original model and estimates it. The noise
-%     regressors and the updated model will be stored in the TMFC_denoise subfolder.
+% (8) Adds noise regressors to the original model and estimates the updated model.
+%     The noise regressors and the updated model will be stored in the TMFC_denoise subfolder.
 %
-% (9) Can use robust weighted least squares (rWLS) for model estimation
+% (9) Optionally applies robust weighted least squares (rWLS) for model estimation
 %     (Diedrichsen & Shadmehr, 2005).
 %     It assumes that each image has its own variance parameter; some scans
 %     may be disrupted by noise (high variance). In the first pass, SPM 
@@ -73,12 +73,17 @@ function output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,dis
 % Will call GUIs to select SPM.mat files, define denoising options, select
 % structural and functional files, define FD threshold for spike regression.
 %
-% FORMAT: output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
+% FORMAT: output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths)
+% FORMAT: output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
 % Performs noise regression without calling the GUI.
 % 
 % INPUTS: 
 % SPM_paths             - Cell array containing paths to SPM.mat files that
 %                         need to be re-estimated with noise regressors
+%                         (e.g., C:\fMRI_project\sub-01\stat\GLM-01\SPM.mat)
+%
+% subject_paths         - Cell array of subject folders corresponding to SPM_paths
+%                         (e.g., C:\fMRI_project\sub-01)
 %         
 % options.motion        - '6HMP' : do not add additional motion regressors
 %                       - '12HMP': add 6 temporal derivatives
@@ -161,7 +166,32 @@ function output_paths = TMFC_denoise(SPM_paths,options,anat_paths,func_paths,dis
 %
 % Contact email: masharipov@ihb.spb.ru
 
-disp('==============[TMFC denoise v1.4]==============');
+%-Check SPM version
+%--------------------------------------------------------------------------
+if exist('spm','file')
+    spm_version = spm('Ver');
+    if ~isequal(spm_version,'SPM12') && ~isequal(spm_version,'SPM25')
+        warning('Your SPM version: %s. TMFC_denoise toolbox was tested only with SPM12 and SPM25.', spm_version)
+    end
+else
+    error('SPM not found on MATLAB path.');
+end
+
+%-Check TMFC_denoise version
+%--------------------------------------------------------------------------
+localVer  = 'v1.4.1';
+try
+    r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
+                        'IHB-IBR-department','TMFC_denoise'), ...
+                         weboptions('Timeout',5));
+    latestVer = r.tag_name;
+catch
+    latestVer = '';
+end
+disp(['==============[TMFC denoise ' localVer ']==============']);
+if ~isequal(localVer,latestVer) 
+    disp(['Update available: ' latestVer '. Please visit: https://github.com/IHB-IBR-department/TMFC_denoise']);
+end
 
 output_paths = [];
 
@@ -169,7 +199,7 @@ output_paths = [];
 %--------------------------------------------------------------------------
 
 % Select SPM.mat files
-if nargin < 1 || isempty(SPM_paths)
+if nargin<1 || isempty(SPM_paths)
     [SPM_paths,subject_paths] = tmfc_select_subjects_GUI(0);
 end
 if isempty(SPM_paths); warning('Select SPM.mat files.'); return, end
@@ -182,18 +212,21 @@ for iSub = 1:length(SPM_paths)
 end
 
 % Subject paths
-if ~exist('subject_paths','var')
+if nargin<2 || isempty(subject_paths)
     subject_paths = tmfc_SPM_subject_paths(SPM_paths);
+end
+if numel(subject_paths) ~= numel(SPM_paths)
+    error('subject_paths must have the same length as SPM_paths.');
 end
 
 % Define denoising options
-if nargin<2 || isempty(options)
+if nargin<3 || isempty(options)
     options = tmfc_denoise_options_GUI;
 end
 if isempty(options); error('Denoising options not selected.'); end
 
 % Select structural T1 images in native space
-if nargin<3 || isempty(anat_paths)
+if nargin<4 || isempty(anat_paths)
     if (sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none') || ~strcmpi(options.GSR,'none') || options.DVARS == 1)
         anat_paths = tmfc_select_anat_GUI(subject_paths);
         if isempty(anat_paths); error('Select structural T1 files.'); end
@@ -203,7 +236,7 @@ if nargin<3 || isempty(anat_paths)
 end
 
 % Select realigned and unsmoothed functional images in MNI space
-if nargin<4 || isempty(func_paths)
+if nargin<5 || isempty(func_paths)
     if (sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none') || ~strcmpi(options.GSR,'none') || options.DVARS == 1)
         func_paths = tmfc_select_func_GUI(SPM_paths,subject_paths);
         if isempty(func_paths); error('Select unsmoothed functional files.'); end
@@ -213,13 +246,13 @@ if nargin<4 || isempty(func_paths)
 end
 
 % Display individual FD plots
-if nargin<5 || isempty(display_FD), display_FD = 1; end
+if nargin<6 || isempty(display_FD), display_FD = 1; end
 
 % Estimate GLMs with noise regressors 
-if nargin<6 || isempty(estimate_GLMs), estimate_GLMs = 1; end
+if nargin<7 || isempty(estimate_GLMs), estimate_GLMs = 1; end
 
 % Clear "TMFC_denoise" subfolders
-if nargin<7 || isempty(clear_all)
+if nargin<8 || isempty(clear_all)
     answer = questdlg('Delete previously created TMFC_denoise files?', ...
     'TMFC denoise', ...
     'Do not delete','Delete','Do not delete');

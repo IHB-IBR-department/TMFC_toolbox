@@ -220,7 +220,7 @@ switch tmfc.defaults.parallel
         cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
         
         try
-            parpool;
+            if isempty(gcp('nocreate')), parpool; end
             figure(findobj('Tag','TMFC_GUI'));
         end
 

@@ -3,7 +3,7 @@
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
 % Opens a GUI window for selecting individual subject SPM.mat files
-% created by SPM12 after first level GLM estimation. Optionally checks
+% created by SPM after first level GLM estimation. Optionally checks
 % SPM.mat files: 
 % (1) checks if all SPM.mat files are present in the specified paths
 % (2) checks if the same conditions are specified in all SPM.mat files
@@ -445,7 +445,7 @@ end
 %% Select SPM.mat file
 function [subject_full_path, SPM_mat_path] = add_mat_file(subject_dir)
     subject_full_path = {};  SPM_mat_path = {};
-    [mat_file_path] = spm_select( 1,'any','Select the SPM.mat file for the first subject',{}, strtrim(subject_dir(1,:)), 'SPM.*');
+    [mat_file_path] = spm_select( 1,'^SPM\.mat$','Select the SPM.mat file for the first subject',{}, strtrim(subject_dir(1,:)), 'SPM.*');
     if ~isempty(mat_file_path)
         [SPM_mat_path] = strrep(mat_file_path, strtrim(subject_dir(1,:)),'');   
     end

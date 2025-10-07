@@ -16,7 +16,13 @@ hasPCT = (exist('parfor','builtin')==5) && license('test','Distrib_Computing_Too
 % Create mask subfolders
 %--------------------------------------------------------------------------
 tmfc_dir = fileparts(which('TMFC_denoise.m'));
-for iSub = 1:length(SPM_paths)
+
+nSub = numel(SPM_paths);
+segment_paths = cell(nSub,1);
+glm_paths     = cell(nSub,1);
+mask_paths    = cell(nSub,1);
+
+for iSub = 1:nSub
     GLM_subfolder = fileparts(SPM_paths{iSub});
     segment_paths{iSub,1} = fullfile(GLM_subfolder,'TMFC_denoise','Segment');
     glm_paths{iSub,1} = fullfile(GLM_subfolder,'TMFC_denoise', ...
@@ -33,32 +39,85 @@ masks.mask_paths = mask_paths;
 
 % Copy structural T1 files
 %--------------------------------------------------------------------------
-for iSub = 1:length(SPM_paths)
-    [~,anat_name,anat_ext] = fileparts(anat_paths{iSub});
-    if strcmpi(anat_ext,'.gz')
-        anat_paths(iSub) = gunzip(anat_paths{iSub});
-        [~,anat_name,anat_ext] = fileparts(anat_paths{iSub});
-        anat_file{iSub,1} = [anat_name,anat_ext];
-        anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
-        if ~exist(anat_copy_paths{iSub},'file')
-            movefile(anat_paths{iSub},anat_copy_paths{iSub});
-        end
-    else
-        anat_file{iSub,1} = [anat_name,anat_ext];
-        anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
-        if ~exist(anat_copy_paths{iSub},'file')
-            copyfile(anat_paths{iSub},anat_copy_paths{iSub});
-        end
+for iSub = 1:nSub
+    anat_paths{iSub} = regexprep(anat_paths{iSub}, ',\d+$', '');
+
+    [anat_dir, anat_name, anat_ext] = fileparts(anat_paths{iSub});
+
+    switch lower(anat_ext)
+        case '.nii'
+            anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
+            if ~exist(anat_copy_paths{iSub},'file')
+                copyfile(anat_paths{iSub},anat_copy_paths{iSub});
+            end
+            anat_file{iSub,1} = [anat_name,'.nii'];
+
+        case '.img'
+            anat_file_hdr{iSub,1} = [anat_name,'.hdr'];
+            anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[anat_name,anat_ext]);
+            anat_copy_paths_hdr{iSub,1} = fullfile(segment_paths{iSub},anat_file_hdr{iSub,1} );
+            if ~exist(anat_copy_paths{iSub},'file')
+                copyfile(anat_paths{iSub},anat_copy_paths{iSub});
+            end
+            if ~exist(anat_copy_paths_hdr{iSub},'file')
+                try
+                    copyfile(fullfile(anat_dir,anat_file_hdr{iSub}),anat_copy_paths_hdr{iSub});
+                catch
+                    error('Missing header file (.hdr) for %s', anat_paths{iSub});
+                end
+            end
+            anat_file{iSub,1} = [anat_name,'.nii'];
+
+        case '.gz'
+            % Extract inner extension from anat_name
+            [~, inner_name, inner_ext] = fileparts(anat_name);
+            anat_file{iSub,1} = [inner_name,'.nii'];
+
+            switch lower(inner_ext)
+                case '.nii'
+                    anat_copy_paths{iSub,1} = fullfile(segment_paths{iSub},[inner_name,inner_ext]);
+                    if ~exist(anat_copy_paths{iSub},'file')
+                        gunzip(anat_paths{iSub},segment_paths{iSub}); 
+                    end
+
+                case '.img'
+                    anat_copy_paths{iSub,1}     = fullfile(segment_paths{iSub},[inner_name,'.img']);
+                    anat_copy_paths_hdr{iSub,1} = fullfile(segment_paths{iSub},[inner_name,'.hdr']);
+
+                    if ~exist(anat_copy_paths{iSub},'file') 
+                        gunzip(anat_paths{iSub},segment_paths{iSub});
+                    end
+
+                    if ~exist(anat_copy_paths_hdr{iSub},'file')
+                        src_hdr_plain = fullfile(anat_dir,[inner_name,'.hdr']);
+                        src_hdr_gz = [src_hdr_plain,'.gz'];
+                        if exist(src_hdr_plain,'file')
+                            copyfile(src_hdr_plain,anat_copy_paths_hdr{iSub});
+                        elseif exist(src_hdr_gz,'file')
+                            gunzip(src_hdr_gz,segment_paths{iSub});
+                        else
+                            error('Missing header file (.hdr) for %s', anat_paths{iSub});
+                        end
+                    end
+
+                otherwise
+                    error('Unknown compressed structural format: %s', anat_paths{iSub});
+            end
+
+        otherwise
+            error('Unknown format of structural image: %s', anat_paths{iSub});
     end
-    clear anat_name anat_ext
+    clear anat_dir anat_name anat_ext inner_name inner_ext
 end
 
 % Segment T1 image
 %--------------------------------------------------------------------------
+spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
 
 jSub = 0;
-for iSub = 1:length(SPM_paths)
+for iSub = 1:nSub
     forward_field{iSub,1} = fullfile(segment_paths{iSub},['y_',anat_file{iSub}]);
     bias_corrected{iSub,1} = fullfile(segment_paths{iSub},['m',anat_file{iSub}]);
     GM{iSub,1} = fullfile(segment_paths{iSub},['c1',anat_file{iSub}]);
@@ -110,30 +169,29 @@ for iSub = 1:length(SPM_paths)
 end
 
 if jSub == 1
-    spm('defaults','fmri');
-    spm_get_defaults('cmdline',true);
     spm_jobman('run',batch{1});
 elseif jSub > 1
     % Waitbar
     tmfc_progress('init', jSub, 'Segmentation');
     % Parallel mode, PCT only 
     if options.parallel == 1 && hasPCT
+        % Init parpool
+        if isempty(gcp('nocreate')), parpool; end
         % DataQueue requires R2017a+ 
         D = [];
         try
             D = parallel.pool.DataQueue;
             afterEach(D, @(~) tmfc_progress('tick'));                     
         end
+        % Init SPM
+        spmSetup = parallel.pool.Constant(@() init_spm());
         parfor iSub = 1:jSub % ---- Parallel mode ----
-            spm('defaults','fmri');
-            spm_get_defaults('cmdline',true);
+            spmSetup.Value;
             spm_jobman('run',batch{iSub});
-            try send(D,[]); end % Update waitbar
+            try, send(D,[]); end % Update waitbar
         end
     else
         for iSub = 1:jSub    % ---- Serial mode ----
-            spm('defaults','fmri');
-            spm_get_defaults('cmdline',true);
             spm_jobman('run',batch{iSub});
             tmfc_progress('tick'); % Update waitbar
         end
@@ -145,7 +203,7 @@ clear batch
 % Apply thresholds to tissue probability maps
 %--------------------------------------------------------------------------
 w = waitbar(0,'Please wait...','Name','Applying tissue probability thresholds');
-for iSub = 1:length(SPM_paths)
+for iSub = 1:nSub
     skull_stripped{iSub,1} = fullfile(mask_paths{iSub},'Skull_stripped_T1.nii');
     WB_mask{iSub,1} = fullfile(mask_paths{iSub},'Whole_brain_mask.nii');
     GM_mask{iSub,1} = fullfile(mask_paths{iSub},'GM_mask.nii');
@@ -182,7 +240,7 @@ for iSub = 1:length(SPM_paths)
     if ~exist(CSF_mask{iSub},'file')             
         spm_imcalc(CSF{iSub},CSF_mask{iSub},['i1>' num2str(options.CSFmask.prob)],{0,0,0,2});
     end
-    try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+    try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
 end
 try, if exist('w','var') && ishghandle(w), close(w); end, end
 
@@ -194,13 +252,13 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     % Erode WM masks
     %----------------------------------------------------------------------
     if options.WMmask.erode == 0
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             WM_eroded{iSub,1} = fullfile(mask_paths{iSub},'WM_mask_eroded.nii');
             copyfile(WM_mask{iSub},WM_eroded{iSub,1}); % Erode = 0: WM_mask_eroded is just a copy of WM_mask (no erosion)
         end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of WM masks');
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             WM_eroded{iSub,1} = fullfile(mask_paths{iSub},'WM_mask_eroded.nii');
             if options.WMmask.erode > 0
                 if ~exist(WM_eroded{iSub},'file')
@@ -214,7 +272,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
                     clear V ima
                 end
             end
-            try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+            try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
         try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
@@ -222,12 +280,12 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     % Dilate liberal GM mask
     %----------------------------------------------------------------------
     if options.GMmask.dilate == 0
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             GM_dilated{iSub,1} = GM_mask{iSub};
         end
     else
         w = waitbar(0,'Please wait...','Name','Dilation of GM masks');
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             GM_dilated{iSub,1} = fullfile(mask_paths{iSub},'GM_mask_dilated.nii');
             if options.GMmask.dilate > 0
                 if ~exist(GM_dilated{iSub},'file')
@@ -241,15 +299,15 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
                     clear V ima
                 end
             end
-            try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+            try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
         try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
     
-    % Subtract dilated GM mask from CSF mask
+    % Subtract dilated GM masks from CSF mask
     %----------------------------------------------------------------------
     w = waitbar(0,'Please wait...','Name','Subtract dilated GM masks from CSF masks');
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         CSF_mask_GM_removed{iSub,1} = fullfile(mask_paths{iSub},'CSF_mask_GM_removed.nii');
         if ~exist(CSF_mask_GM_removed{iSub},'file')        
             input_images{1,1} = CSF_mask{iSub};
@@ -257,20 +315,20 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
             spm_imcalc(input_images,CSF_mask_GM_removed{iSub},'(i1-i2)>0',{0,0,0,2});
             clear input_images
         end
-        try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+        try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
     end
     try, if exist('w','var') && ishghandle(w), close(w); end, end
     
     % Erode CSF masks
     %----------------------------------------------------------------------
     if options.CSFmask.erode == 0
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             CSF_eroded{iSub,1} = fullfile(mask_paths{iSub},'CSF_mask_eroded.nii');
             copyfile(CSF_mask_GM_removed{iSub},CSF_eroded{iSub,1}); % Erode = 0: CSF_mask_eroded is just a copy of CSF_mask_GM_removed (no erosion)
         end
     else
         w = waitbar(0,'Please wait...','Name','Erosion of CSF masks');
-        for iSub = 1:length(SPM_paths)
+        for iSub = 1:nSub
             CSF_eroded{iSub,1} = fullfile(mask_paths{iSub},'CSF_mask_eroded.nii');
             if options.CSFmask.erode > 0
                 if ~exist(CSF_eroded{iSub},'file')
@@ -284,7 +342,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
                     clear V ima
                 end
             end
-            try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+            try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
         end
         try, if exist('w','var') && ishghandle(w), close(w); end, end
     end
@@ -292,7 +350,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     % Normalization and resampling to fMRI resolution
     %----------------------------------------------------------------------
     jSub = 0;
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
@@ -333,30 +391,29 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     end
     
     if jSub == 1
-        spm('defaults','fmri');
-        spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
         % Waitbar
         tmfc_progress('init', jSub, 'Normalization: WM and CSF masks');
         % Parallel mode, PCT only 
         if options.parallel == 1 && hasPCT
+            % Init parpool
+            if isempty(gcp('nocreate')), parpool; end
             % DataQueue requires R2017a+ 
             D = [];
             try
                 D = parallel.pool.DataQueue;
                 afterEach(D, @(~) tmfc_progress('tick'));                     
             end
+            % Init SPM
+            spmSetup = parallel.pool.Constant(@() init_spm());
             parfor iSub = 1:jSub % ---- Parallel mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
+                spmSetup.Value;
                 spm_jobman('run',batch{iSub});
                 try; send(D,[]); end % Update waitbar
             end
         else
             for iSub = 1:jSub    % ---- Serial mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
                 spm_jobman('run',batch{iSub});
                 tmfc_progress('tick'); % Update waitbar
             end
@@ -368,7 +425,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
     % Remove brainstem voxels from WM mask and apply implicit SPM mask
     %----------------------------------------------------------------------
     w = waitbar(0,'Please wait...','Name','Removing brainstem from WM masks');
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         wWM_eroded_final{iSub,1} = fullfile(mask_paths{iSub},'rw_WM_mask_eroded_no_brainstem.nii');
         if ~exist(wWM_eroded_final{iSub},'file')  
             SPM = load(SPM_paths{iSub}).SPM;
@@ -378,14 +435,14 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
             spm_imcalc(input_images,wWM_eroded_final{iSub},'(i1-i2).*i3>0.5',{0,0,0,2});
             clear input_images SPM
         end
-        try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+        try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
     end
     try, if exist('w','var') && ishghandle(w), close(w); end, end
     
     % Remove non-ventricle voxels from CSF masks and apply the implicit SPM mask
     %----------------------------------------------------------------------
     w = waitbar(0,'Please wait...','Name','Removing non-ventricle voxels from CSF masks');
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         wCSF_eroded_final{iSub,1} = fullfile(mask_paths{iSub},'rw_CSF_mask_eroded_only_ventricles.nii');
         if ~exist(wCSF_eroded_final{iSub},'file')
             SPM = load(SPM_paths{iSub}).SPM;
@@ -395,7 +452,7 @@ if sum(options.aCompCor)~=0 || ~strcmpi(options.WM_CSF,'none')
             spm_imcalc(input_images,wCSF_eroded_final{iSub},'(i1.*(i2>50).*i3)>0.5',{0,0,0,2});
             clear input_images SPM
         end
-        try; waitbar(iSub/length(SPM_paths),w,['Subject No. ' num2str(iSub)]); end % Update waitbar
+        try; waitbar(iSub/nSub,w,['Subject No. ' num2str(iSub)]); end % Update waitbar
     end
 
     % Save paths
@@ -413,7 +470,7 @@ if options.DVARS == 1
     % Normalization and resampling to fMRI resolution
     %----------------------------------------------------------------------
     jSub = 0;
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
@@ -462,30 +519,29 @@ if options.DVARS == 1
     end
 
     if jSub == 1
-        spm('defaults','fmri');
-        spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
         % Waitbar
         tmfc_progress('init', jSub, 'Creating GM masks');
         % Parallel mode, PCT only 
         if options.parallel == 1 && hasPCT
+            % Init parpool
+            if isempty(gcp('nocreate')), parpool; end
             % DataQueue requires R2017a+ 
             D = [];
             try
                 D = parallel.pool.DataQueue;
                 afterEach(D, @(~) tmfc_progress('tick'));                     
             end
+            % Init SPM
+            spmSetup = parallel.pool.Constant(@() init_spm());
             parfor iSub = 1:jSub % ---- Parallel mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
+                spmSetup.Value;
                 spm_jobman('run',batch{iSub});
                 try; send(D,[]); end % Update waitbar
             end
         else
             for iSub = 1:jSub    % ---- Serial mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
                 spm_jobman('run',batch{iSub});
                 tmfc_progress('tick'); % Update waitbar
             end
@@ -507,7 +563,7 @@ if ~strcmpi(options.GSR,'none')
     % Normalization and resampling to fMRI resolution
     %----------------------------------------------------------------------
     jSub = 0;
-    for iSub = 1:length(SPM_paths)
+    for iSub = 1:nSub
         V = spm_vol(func_paths(iSub).fname{1});
         [BB,vx] = spm_get_bbox(V);
         vx = abs(vx);
@@ -556,30 +612,29 @@ if ~strcmpi(options.GSR,'none')
     end
 
     if jSub == 1
-        spm('defaults','fmri');
-        spm_get_defaults('cmdline',true);
         spm_jobman('run',batch{1});
     elseif jSub > 1
         % Waitbar
         tmfc_progress('init', jSub, 'Creating whole-brain masks');
         % Parallel mode, PCT only 
         if options.parallel == 1 && hasPCT
+            % Init parpool
+            if isempty(gcp('nocreate')), parpool; end
             % DataQueue requires R2017a+ 
             D = [];
             try
                 D = parallel.pool.DataQueue;
                 afterEach(D, @(~) tmfc_progress('tick'));                     
             end
+            % Init SPM
+            spmSetup = parallel.pool.Constant(@() init_spm());
             parfor iSub = 1:jSub % ---- Parallel mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
+                spmSetup.Value;
                 spm_jobman('run',batch{iSub});
                 try; send(D,[]); end % Update waitbar
             end
         else
             for iSub = 1:jSub    % ---- Serial mode ----
-                spm('defaults','fmri');
-                spm_get_defaults('cmdline',true);
                 spm_jobman('run',batch{iSub});
                 tmfc_progress('tick'); % Update waitbar
             end
@@ -592,5 +647,14 @@ if ~strcmpi(options.GSR,'none')
     %----------------------------------------------------------------------
     masks.WB = wWB_mask;
 end
+end
+
+% SPM initialization
+%--------------------------------------------------------------------------
+function c = init_spm()
+    spm('defaults','fmri');
+    spm_jobman('initcfg');
+    spm_get_defaults('cmdline', true);
+    c = onCleanup(@() []); 
 end
 

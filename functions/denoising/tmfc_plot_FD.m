@@ -57,6 +57,8 @@ FD_MW_SAVE = uicontrol(FD_MW,'Style','pushbutton','String','Save','Units','norma
 
 flagged = []; N_25prc = 0; N_50prc = 0; N_75prc = 0; N_95prc = 0;
 mean_flagged = 0; sd_flagged = 0; max_flagged = 0; min_flagged = 0;
+mean_flagged_prc = 0; sd_flagged_prc = 0; max_flagged_prc = 0; min_flagged_prc = 0;
+mean_FD = 0; sd_FD = 0; max_FD = 0;
 
 % Default FD threshold
 %--------------------------------------------------------------------------
@@ -133,7 +135,7 @@ function plot_data(FD_threshold,iSub)
         text(ax_frame, sess(jSess)+10, y(2), {['Sess ' num2str(jSess)]}, 'VerticalAlignment','top');
     end
     % Plot FD threshold
-    S = plot(ax_frame, [x(1) x(2)],[FD_threshold FD_threshold],'--','Color',[0.9 0.2 0.2],'LineWidth',2); text(ax_frame, x(2)+5, FD_threshold, {'FDthr'}); 
+    S = plot(ax_frame, [x(1) x(2)],[FD_threshold FD_threshold],'--','Color',[0.9 0.2 0.2],'LineWidth',2); text(ax_frame, x(2)+2, FD_threshold, {'FDthr'}); 
     update_text();
 end
 
@@ -160,6 +162,9 @@ function update_text(~,~)
     sd_flagged = round(std([flagged.total]),1); sd_flagged_prc = round(std([flagged.total_prc]),1);
     max_flagged = max([flagged.total]); max_flagged_prc = max([flagged.total_prc]);
     min_flagged = min([flagged.total]); min_flagged_prc = min([flagged.total_prc]);
+    mean_FD = mean([FD.FD_mean]);
+    sd_FD = std([FD.FD_mean]);
+    max_FD = max([FD.FD_max]);
     
     lb1_str = {};
     for jSub = 1:length(FD)
@@ -190,7 +195,9 @@ function save_data(~,~)
         else
             fullpath = fullfile(pathname, filename);
             save(fullpath,'FD','FDthr','flagged','N_25prc','N_50prc','N_75prc','N_95prc', ...
-                'mean_flagged','sd_flagged','max_flagged','min_flagged');
+                'mean_flagged','sd_flagged','max_flagged','min_flagged', ...
+                'mean_flagged_prc','sd_flagged_prc','max_flagged_prc','min_flagged_prc', ...
+                'mean_FD','sd_FD','max_FD');
             fprintf('FD group statistics saved: %s\n', fullpath);
         end
     else   
@@ -206,7 +213,9 @@ function save_data(~,~)
             denoising_settings.func_paths = func_paths; 
             save(fullpath,'denoising_settings','FD','FDthr','flagged', ...
                 'N_25prc','N_50prc','N_75prc','N_95prc', ...
-                'mean_flagged','sd_flagged','max_flagged','min_flagged');
+                'mean_flagged','sd_flagged','max_flagged','min_flagged', ...
+                'mean_flagged_prc','sd_flagged_prc','max_flagged_prc','min_flagged_prc', ...
+                'mean_FD','sd_FD','max_FD');
             fprintf('FD group statistics and TMFC denoise settings saved: %s\n', fullpath);
         end
     end

@@ -8,7 +8,7 @@ function tmfc_plot_DVARS(preDVARS,postDVARS,FD,options,SPM_paths,subject_paths,a
 % Allows saving group FD-DVARS statistics only.
 %
 % FORMAT: tmfc_plot_DVARS(preDVARS,postDVARS,FD,options,SPM_paths,subject_paths,anat_paths,func_paths,masks)
-% Allows saving group FD statistics and TMFC denoise settings.
+% Allows saving group FD-DVARS statistics and TMFC denoise settings.
 %
 % =========================================================================
 % Copyright (C) 2025 Ruslan Masharipov
@@ -131,9 +131,9 @@ function plot_data(iSub)
         text(ax_frame_2,sess(jSess)+10,y1*1.1,{['Sess ' num2str(jSess)]},'VerticalAlignment','top'); hold(ax_frame_2,'on');
     end
     
-    text(ax_frame_2,x(2)+5,y1*0.5,{'Before'},'Color',[0 0.447 0.7410]); hold(ax_frame_2,'on');
+    text(ax_frame_2,x(2)+2,y1*0.5,{'Before'},'Color',[0 0.447 0.7410]); hold(ax_frame_2,'on');
     if ~isempty(postDVARS)
-        text(ax_frame_2,x(2)+5,0,{'After'},'Color',[0.8500 0.3250 0.0980]);
+        text(ax_frame_2,x(2)+2,0,{'After'},'Color',[0.8500 0.3250 0.0980]);
     end
     
     update_txt();
@@ -146,11 +146,11 @@ function update_txt(~,~)
     LB1_str = {}; temp_str = {};
     for iSub = 1:length(FD)
         if ~isempty(postDVARS)
-            temp_str = [FD(iSub).Subject ' :: Mean FD/DVARS correlation across sessions: [before/after denoising] = [' ...
+            temp_str = [FD(iSub).Subject ' :: Mean FD-DVARS correlation across sessions: [before/after denoising] = [' ...
                               num2str(round(preDVARS(iSub).DVARS.Mean_FD_DVARS_corr,2),'%.2f') '/' ...
                               num2str(round(postDVARS(iSub).DVARS.Mean_FD_DVARS_corr,2),'%.2f') ']']; 
         else
-            temp_str = [FD(iSub).Subject ' :: Mean FD/DVARS correlation across sessions: [before denoising] = [' ...
+            temp_str = [FD(iSub).Subject ' :: Mean FD-DVARS correlation across sessions: [before denoising] = [' ...
                               num2str(round(preDVARS(iSub).DVARS.Mean_FD_DVARS_corr,2),'%.2f') ']']; 
         end
         LB1_str = [LB1_str; {temp_str}];
@@ -175,9 +175,9 @@ function update_txt(~,~)
         group_SD_post_FD_DVARS_corr = [];
     end
 
-    text_info{1,1} = ['Mean (SD) FD/DVARS correlation across subjects before denoising: ' num2str(round(group_mean_pre_FD_DVARS_corr,2),'%.2f') ' (' num2str(round(group_SD_pre_FD_DVARS_corr,2),'%.2f') ')'];
+    text_info{1,1} = ['Mean (SD) FD-DVARS correlation across subjects before denoising: ' num2str(round(group_mean_pre_FD_DVARS_corr,2),'%.2f') ' (' num2str(round(group_SD_pre_FD_DVARS_corr,2),'%.2f') ')'];
     if ~isempty(postDVARS)
-        text_info{1,2} = ['Mean (SD) FD/DVARS correlation across subjects after denoising: ' num2str(round(group_mean_post_FD_DVARS_corr,2),'%.2f') ' (' num2str(round(group_SD_post_FD_DVARS_corr,2),'%.2f') ')'];
+        text_info{1,2} = ['Mean (SD) FD-DVARS correlation across subjects after denoising: ' num2str(round(group_mean_post_FD_DVARS_corr,2),'%.2f') ' (' num2str(round(group_SD_post_FD_DVARS_corr,2),'%.2f') ')'];
     end
 
     set(DVARS_MW_LB2,'String',text_info);    
@@ -187,20 +187,20 @@ end
 %--------------------------------------------------------------------------
 function save_data(~,~)
     if isempty(SPM_paths)
-        [filename, pathname] = uiputfile('*.mat', 'Save FD/DVARS group statistics');
+        [filename, pathname] = uiputfile('*.mat', 'Save FD-DVARS group statistics');
         if isequal(filename,0) || isequal(pathname,0)
-            fprintf(2,'FD/DVARS group statistics not saved: file name or path not selected.\n'); 
+            fprintf(2,'FD-DVARS group statistics not saved: file name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             save(fullpath,'FD','preDVARS','postDVARS', ...
                 'group_mean_pre_FD_DVARS_corr','group_mean_post_FD_DVARS_corr', ...
                 'group_SD_pre_FD_DVARS_corr','group_SD_post_FD_DVARS_corr');
-            fprintf('FD/DVARS group statistics saved: %s\n', fullpath);
+            fprintf('FD-DVARS group statistics saved: %s\n', fullpath);
         end
     else   
-        [filename, pathname] = uiputfile('*.mat', 'Save FD/DVARS group statistics and TMFC denoise settings');
+        [filename, pathname] = uiputfile('*.mat', 'Save FD-DVARS group statistics and TMFC denoise settings');
         if isequal(filename,0) || isequal(pathname,0)
-            fprintf(2,'FD/DVARS group statistics not saved: file name or path not selected.\n'); 
+            fprintf(2,'FD-DVARS group statistics not saved: file name or path not selected.\n'); 
         else
             fullpath = fullfile(pathname, filename);
             denoising_settings.SPM_paths = SPM_paths;
@@ -212,7 +212,7 @@ function save_data(~,~)
             save(fullpath,'denoising_settings','FD','preDVARS','postDVARS', ...
                 'group_mean_pre_FD_DVARS_corr','group_mean_post_FD_DVARS_corr', ...
                 'group_SD_pre_FD_DVARS_corr','group_SD_post_FD_DVARS_corr');
-            fprintf('FD/DVARS group statistics and TMFC denoise settings saved: %s\n', fullpath);
+            fprintf('FD-DVARS group statistics and TMFC denoise settings saved: %s\n', fullpath);
         end
     end
 end

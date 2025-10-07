@@ -1,6 +1,6 @@
 function TMFC
     
-% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.8.0 ]====
+% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.8.1 ]====
 %
 % Opens the main GUI window.
 %
@@ -76,6 +76,33 @@ function TMFC
 %
 % Contact email: masharipov@ihb.spb.ru
 
+%-Check SPM version
+%--------------------------------------------------------------------------
+if exist('spm','file')
+    spm_version = spm('Ver');
+    if ~isequal(spm_version,'SPM12') && ~isequal(spm_version,'SPM25')
+        warning('Your SPM version: %s. TMFC toolbox was tested only with SPM12 and SPM25.', spm_version)
+    end
+else
+    error('SPM not found on MATLAB path.');
+end
+
+%-Check TMFC toolbox version
+%--------------------------------------------------------------------------
+localVer  = 'v.1.8.1';
+try
+    r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
+                        'IHB-IBR-department','TMFC_toolbox'), ...
+                         weboptions('Timeout',5));
+    latestVer = r.tag_name;
+catch
+    latestVer = '';
+end
+
+if ~isequal(localVer,latestVer) 
+    disp(['Update available: ' latestVer '. Please visit: https://github.com/IHB-IBR-department/TMFC_toolbox']);
+end
+
 %% ==================[ Set up GUI and TMFC structure ]=====================
 if isempty(findobj('Tag', 'TMFC_GUI')) 
     
@@ -86,7 +113,7 @@ if isempty(findobj('Tag', 'TMFC_GUI'))
     tmfc.defaults.analysis = 1;
     
     % Main TMFC GUI
-    main_GUI.TMFC_GUI = figure('Name','TMFC toolbox v1.8.0','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.63 0.0875 0.250 0.850], 'color', 'w', 'Tag', 'TMFC_GUI');
+    main_GUI.TMFC_GUI = figure('Name',['TMFC toolbox ' localVer],'MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.63 0.0875 0.250 0.850], 'color', 'w', 'Tag', 'TMFC_GUI');
     
     % Box Panels
     main_GUI.MP1 = uipanel(main_GUI.TMFC_GUI,'Units', 'normalized','Position',[0.03 0.85 0.94 0.13],'HighlightColor',[0.78 0.78 0.78],'BackgroundColor','w','BorderType', 'line');

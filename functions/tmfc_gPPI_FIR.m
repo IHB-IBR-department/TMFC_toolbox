@@ -314,7 +314,7 @@ for iSub = start_sub:nSub
             
         case 1  % Parallel
             try
-                parpool;
+                if isempty(gcp('nocreate')), parpool; end
                 figure(findobj('Tag','TMFC_GUI'));
             end
 

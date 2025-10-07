@@ -98,6 +98,14 @@ end
 
 spm('defaults','fmri');
 spm_jobman('initcfg');
+spm_get_defaults('cmdline',true);
+spm_get_defaults('stats.resmem',tmfc.defaults.resmem);
+spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
+spm_get_defaults('stats.fmri.ufp',1);
+
+if tmfc.defaults.parallel==1
+    if isempty(gcp('nocreate')), parpool; end
+end
 
 nSub = length(tmfc.subjects);
 cond_list = tmfc.LSS.conditions;
@@ -272,12 +280,6 @@ for iSub = start_sub:nSub
                 trials = zeros(1,nTrial);
                 for kTrial = 1:nTrial                                          
                     % Specify LSS GLM
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
-                    spm_get_defaults('stats.resmem',tmfc.defaults.resmem);
-                    spm_get_defaults('stats.maxmem',tmfc.defaults.maxmem);
-                    spm_get_defaults('stats.fmri.ufp',1);
                     spm_jobman('run',batch{kTrial});
                     % Concatenated sessions
                     if SPM_concat(iSub) == 1
@@ -310,7 +312,6 @@ for iSub = start_sub:nSub
             % --------------------- Parallel computing --------------------      
             case 1
                 try
-                    parpool;
                     figure(findobj('Tag','TMFC_GUI'));
                 end
 

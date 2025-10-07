@@ -1,6 +1,6 @@
 function options = tmfc_denoise_options_GUI()
 
-% =[ Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4 ]=
+% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.1]=
 % 
 % Opens a GUI to select denoising options.
 %
@@ -38,17 +38,17 @@ options.parallel = 0;
 %-Options GUI
 %--------------------------------------------------------------------------
 set_HMP = {'Add 6 temporal derivatives and 12 quadratic terms (24HMP)','Add 6 temporal derivatives (12HMP)','Use standard 6 head motion parameters (6HMP)'};
-set_FD_rot = {'Radians (e.g., SPM12, FSL, fMRIPrep)','Degrees (e.g., HCP, AFNI)'};
+set_FD_rot = {'Radians (e.g., SPM, FSL, fMRIPrep)','Degrees (e.g., HCP, AFNI)'};
 set_DVARS = {'Calculate DVARS and FD-DVARS correlations','None'};
 set_ACC = {'Add fixed number of aCompCor regressors','Add regressors explaining 50% of variance in WM/CSF (aCompCor50)','None'};
 set_ACC_PO = {'Pre-orthogonalize w.r.t. HMP and HPF', 'None'};
 set_rWLS = {'None', 'Apply rWLS for model estimation'};
 set_SR = {'None','Add spike regressors'};
-set_WM_CSF = {'None','Add WM and CSF signals (2Phys)','Add WM and CSF signals along with their temporal derivatives (4Phys)','Add WM and CSF signals, 2 derivatives and 4 quadratic terms (8Phys)'};
-set_GSR = {'None','Add whole-brain signal (GSR)','Add whole-brain signal and its temporal derivative (2GSR)','Add whole-brain signal, its temporal derivative and 2 quadratic terms (4GSR)'};
+set_WM_CSF = {'None','Add WM and CSF signals (2Phys)','Add WM and CSF signals along with their temporal derivatives (4Phys)','Add WM and CSF signals, 2 derivatives, and 4 quadratic terms (8Phys)'};
+set_GSR = {'None','Add whole-brain signal (GSR)','Add whole-brain signal and its temporal derivative (2GSR)','Add whole-brain signal, its temporal derivative, and 2 quadratic terms (4GSR)'};
 set_PAR = {'None','Enable parallel computations'};
 
-tmfc_DN_GUI = figure('Name','TMFC denoise v1.4','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', ...
+tmfc_DN_GUI = figure('Name','TMFC denoise v1.4.1','MenuBar', 'none', 'ToolBar', 'none','NumberTitle', 'off', ...
     'Units', 'normalized', 'Position', [0.345 0.062 0.310 0.850], 'color', 'w', 'Tag', 'TMFC_DN_GUI','resize','on', ...
     'CloseRequestFcn',@close_options_GUI);
 
@@ -214,7 +214,7 @@ function export_options(~,~)
 
     FD_select_2{1} = get(DN_FD_pop_2,'String');
     FD_select_2{2} = get(DN_FD_pop_2,'Value');            
-    if strcmp(FD_select_2{1}{FD_select_2{2}},'Radians (e.g., SPM12, FSL, fMRIPrep)')
+    if strcmp(FD_select_2{1}{FD_select_2{2}},'Radians (e.g., SPM, FSL, fMRIPrep)')
     	options.rotation_unit = 'rad';
     elseif strcmp(FD_select_2{1}{FD_select_2{2}},'Degrees (e.g., HCP, AFNI)')
     	options.rotation_unit = 'deg';                   
@@ -282,7 +282,7 @@ function export_options(~,~)
     	options.WM_CSF = '2Phys';        
     elseif strcmp(WM_CSM_select{1}{WM_CSM_select{2}},'Add WM and CSF signals along with their temporal derivatives (4Phys)')
     	options.WM_CSF = '4Phys';        
-    elseif strcmp(WM_CSM_select{1}{WM_CSM_select{2}},'Add WM and CSF signals, 2 derivatives and 4 quadratic terms (8Phys)')
+    elseif strcmp(WM_CSM_select{1}{WM_CSM_select{2}},'Add WM and CSF signals, 2 derivatives, and 4 quadratic terms (8Phys)')
     	options.WM_CSF = '8Phys';                   
     end
     clear WM_CSM_select    
@@ -296,7 +296,7 @@ function export_options(~,~)
     	options.GSR = 'GSR';        
     elseif strcmp(GSR_select{1}{GSR_select{2}},'Add whole-brain signal and its temporal derivative (2GSR)')
     	options.GSR = '2GSR';        
-    elseif strcmp(GSR_select{1}{GSR_select{2}},'Add whole-brain signal, its temporal derivative and 2 quadratic terms (4GSR)')
+    elseif strcmp(GSR_select{1}{GSR_select{2}},'Add whole-brain signal, its temporal derivative, and 2 quadratic terms (4GSR)')
     	options.GSR = '4GSR';                   
     end
     clear GSR_select

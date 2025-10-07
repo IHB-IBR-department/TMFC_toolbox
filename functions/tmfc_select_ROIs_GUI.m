@@ -73,7 +73,16 @@ ROI_set_name = ROI_set_name_GUI();
 if ~isempty(ROI_set_name) 
     ROI_type = ROI_type_GUI();
     if ~isempty(ROI_type)
-        ROI_set = ROI_set_generation(ROI_set_name,ROI_type);
+        try
+            ROI_set = ROI_set_generation(ROI_set_name,ROI_type);
+        catch
+            ROI_set = [];
+            h = findall(0,'Type','figure','Tag','TMWWaitbar');
+            if ~isempty(h) && isvalid(h)
+                close(h)
+            end
+            warning('ROIs not selected.'); return;
+        end
     else
         ROI_set = [];
         warning('ROIs not selected.');  return;
@@ -100,7 +109,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     switch ROI_type
         % -----------------------------------------------------------------
         case 'binary_images'
-            ROI_paths = spm_select(inf,'any','Select ROI masks',{},pwd);
+            ROI_paths = spm_select(inf,'image','Select ROI masks',{},pwd);
             if ~isempty(ROI_paths)
                 for iROI = 1:size(ROI_paths,1)
                     [~, ROI_set.ROIs(iROI).name, ~] = fileparts(deblank(ROI_paths(iROI,:)));
@@ -149,7 +158,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
             end
         % -----------------------------------------------------------------
         case 'moving_spheres_inside_binary_images'
-            ROI_paths = spm_select(inf,'any','Select ROI masks',{},pwd);
+            ROI_paths = spm_select(inf,'image','Select ROI masks',{},pwd);
             if ~isempty(ROI_paths)
                 for iROI = 1:size(ROI_paths,1)
                     [~, ROI_set.ROIs(iROI).name, ~] = fileparts(deblank(ROI_paths(iROI,:)));
@@ -206,12 +215,12 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     for iSub = 1:nSub
         sub_mask{iSub,1} = [tmfc.subjects(iSub).path(1:end-7) 'mask.nii'];
     end
-    group_mask = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs','Group_mask.nii');
+    group_mask_path = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs','Group_mask.nii');
         
     if nSub == 1
-        copyfile(sub_mask{1,1},group_mask);
+        copyfile(sub_mask{1,1},group_mask_path);
     else
-        spm_imcalc(sub_mask,group_mask,'prod(X)',{1,0,1,2});
+        spm_imcalc(sub_mask,group_mask_path,'prod(X)',{1,0,1,2});
     end
 
     % ---------------------------------------------------------------------
@@ -221,32 +230,44 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
         [conditions] = tmfc_conditions_GUI(tmfc.subjects(1).path,1);
         if isstruct(conditions)
             w = waitbar(0,'Please wait...','Name','Calculating F-contrasts');
+            contrast_idx = nan(nSub,1);
             for iSub = 1:nSub
                 cond_col = [];
                 SPM = load(tmfc.subjects(iSub).path).SPM;
                 for iCond = 1:length(conditions)
-                    FCi = [];
                     FCi = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).i; 
-                    try
-                        FCp = []; 
+                    if isfield(SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number),'p')
                         FCp = SPM.Sess(conditions(iCond).sess).Fc(conditions(iCond).number).p; 
                         FCi = FCi(FCp==conditions(iCond).pmod);
                     end
-                    cond_col = [cond_col SPM.Sess(conditions(iCond).sess).col(FCi)];
+                    cond_col = [cond_col, SPM.Sess(conditions(iCond).sess).col(FCi)];
                 end 
                 weights = zeros(length(cond_col),size(SPM.xX.X,2));
                 for iCond = 1:length(cond_col)
                     weights(iCond,cond_col(iCond)) = 1;
                 end
-                % Estimate contrasts
-                matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
-                matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
-                matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
-                matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
-                matlabbatch{1}.spm.stats.con.delete = 0;
-                spm_get_defaults('cmdline',true);
-                spm_jobman('run',matlabbatch);
-                clear matlabbatch SPM weights
+                % Check if contrast already exists
+                idx = [];
+                if isfield(SPM,'xCon') && ~isempty(SPM.xCon)
+                    idx = find(arrayfun(@(c) isequal(c.c, weights'), SPM.xCon), 1, 'first');
+                    nCon = numel(SPM.xCon);
+                else
+                    nCon = 0;
+                end
+
+                % Estimate contrasts only if missing
+                if isempty(idx)
+                    matlabbatch = [];
+                    matlabbatch{1}.spm.stats.con.spmmat = {tmfc.subjects(iSub).path};
+                    matlabbatch{1}.spm.stats.con.consess{1}.fcon.name = 'F_omnibus';
+                    matlabbatch{1}.spm.stats.con.consess{1}.fcon.weights = weights;
+                    matlabbatch{1}.spm.stats.con.consess{1}.fcon.sessrep = 'none';
+                    matlabbatch{1}.spm.stats.con.delete = 0;
+                    spm_get_defaults('cmdline',true);
+                    spm_jobman('run',matlabbatch);
+                    idx = nCon + 1;
+                end
+                contrast_idx(iSub) = idx;
                 try
                     waitbar(iSub/nSub,w,['Subject No ' num2str(iSub,'%.f')]);
                 end
@@ -293,7 +314,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.spmmat = {tmfc.subjects(iSub).path};
                     job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,ROI_MS(jROI).ROI_name);
                     job.roi{1}.spm.spmmat = {tmfc.subjects(iSub).path};
-                    job.roi{1}.spm.contrast = length(SPM.xCon);
+                    job.roi{1}.spm.contrast = contrast_idx(iSub);
                     job.roi{1}.spm.conjunction = 1;
                     job.roi{1}.spm.threshdesc = 'none';
                     job.roi{1}.spm.thresh = Fthresh;
@@ -357,7 +378,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
                     job.spmmat = {tmfc.subjects(iSub).path};
                     job.name = fullfile(tmfc.project_path,'ROI_sets',ROI_set_name,'Masked_ROIs',tmfc.subjects(iSub).name,ROI_set.ROIs(jROI).name);
                     job.roi{1}.spm.spmmat = {''};
-                    job.roi{1}.spm.contrast = length(SPM.xCon);
+                    job.roi{1}.spm.contrast = contrast_idx(iSub);
                     job.roi{1}.spm.conjunction = 1;
                     job.roi{1}.spm.threshdesc = 'none';
                     job.roi{1}.spm.thresh = Fthresh;
@@ -408,7 +429,7 @@ function [ROI_set] = ROI_set_generation(ROI_set_name,ROI_type)
     % ---------------------------------------------------------------------
     % Calculate ROI size before masking
     w = waitbar(0,'Please wait...','Name','Calculating raw ROI sizes');
-    group_mask = spm_vol(group_mask);
+    group_mask = spm_vol(group_mask_path);
     nROI = numel(ROI_set.ROIs);
     for iROI = 1:nROI
         switch ROI_type
@@ -1500,9 +1521,6 @@ function [ROI_select] = select_ROIs_case_3()
             if strfind(ROI_path, '.mat') > 0
                 
                 % Loading data into workspace
-                
-                % NEED TO ADD ERROR CASE FOR EMPTY VARIABLES OR NaN
-                % Compatible files
                 try
                     temp_var = load(ROI_path);
                     var_names=fieldnames(temp_var);
@@ -1640,7 +1658,7 @@ function [ROI_select] = select_ROIs_case_3()
             for iROI = 1:size(ROI_select, 2)
                 full_string = horzcat('No ',num2str(iROI),': ', ROI_select(iROI).ROI_name, ' :: ',...
                             '[', num2str(ROI_select(iROI).X),' ', num2str(ROI_select(iROI).Y), ' ',num2str(ROI_select(iROI).Z),...
-                            '] :: ', num2str(ROI_select(iROI).moving_radius), ' mm :: ', num2str(ROI_select(iROI).moving_radius), ' mm');        
+                            '] :: ', num2str(ROI_select(iROI).moving_radius), ' mm :: ', num2str(ROI_select(iROI).fixed_radius), ' mm');        
                 ROI_string = vertcat(ROI_string, full_string);
             end
 

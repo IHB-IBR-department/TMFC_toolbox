@@ -312,7 +312,7 @@ for iSub = start_sub:nSub
             % --------------------- Parallel Computing ------------------------        
             case 1
                 try
-                    parpool;
+                    if isempty(gcp('nocreate')), parpool; end
                     figure(findobj('Tag','TMFC_GUI'));
                 end
                 trials = zeros(1,nTrial);
