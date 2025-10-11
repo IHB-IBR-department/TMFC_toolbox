@@ -72,6 +72,8 @@ TMFC denoise will add denoising regressors to the selected models. SPM.mat files
 
 The updated models with noise regressors can be used for further TMFC analysis (select the updated SPM.mat files during **Subject selection**).
 
+For detailed documentation, please see: https://tmfc-denoise.readthedocs.io
+
 ## Example data
 
 To illustrate the use of TMFC toolbox, we provide simulated BOLD time series. Simulation was performed for 100 subjects and 100 ROIs. <br/>
