@@ -1,5 +1,6 @@
 # Task-Modulated Functional Connectivity (TMFC) toolbox
 ![GitHub License](https://img.shields.io/github/license/Masharipov/TMFC_toolbox)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17177018.svg)](https://doi.org/10.5281/zenodo.17177018)
 
 <img src = "illustrations/TMFC_toolbox.png">
 
