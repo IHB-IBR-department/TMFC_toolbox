@@ -5,7 +5,7 @@ function tmfc_spikereg(SPM_paths,options)
 % Creates spike regressors based on a user-defined FD threshold. For each
 % flagged time point, a unit impulse function is included in the general
 % linear model, with a value of 1 at that time point and 0 elsewhere
-% (Lemieux et al., 2007; Satterthwaite et al., 2013).
+% (Lemieux et al., 2007; Satterthwaite et al., 2012).
 %
 % =========================================================================
 % Copyright (C) 2025 Ruslan Masharipov

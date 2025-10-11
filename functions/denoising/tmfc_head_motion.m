@@ -5,7 +5,7 @@ function FD = tmfc_head_motion(SPM_paths,subject_paths,options)
 % (1) Calculates head motion parameters (temporal derivatives and quadratic
 %     terms). Temporal derivatives are calculated as backward differences
 %     (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion
-%     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013).
+%     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2012).
 %
 % (2) Calculates framewise displacement (FD) as the sum of absolute
 %     derivatives of translational and rotational parameters

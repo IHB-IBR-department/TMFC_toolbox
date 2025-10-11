@@ -27,7 +27,7 @@ function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,
 % (1) Calculates head motion parameters (temporal derivatives and quadratic
 %     terms). Temporal derivatives are computed as backward differences
 %     (Van Dijk et al., 2012). Quadratic terms represent 6 squared motion
-%     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2013).
+%     parameters and 6 squared temporal derivatives (Satterthwaite et al., 2012).
 %
 % (2) Calculates framewise displacement (FD) as the sum of the absolute values
 %     of the derivatives of translational and rotational motion parameters
@@ -36,7 +36,7 @@ function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,
 % (3) Creates spike regressors based on a user-defined FD threshold. For each
 %     flagged time point, a unit impulse function is included in the general
 %     linear model; it has the value 1 at that time point and 0 elsewhere.
-%     (Lemieux et al., 2007; Satterthwaite et al., 2013).
+%     (Lemieux et al., 2007; Satterthwaite et al., 2012).
 %
 % (4) Creates aCompCor regressors (Behzadi et al., 2007). Calculates a fixed
 %     number of principal components (PCs) or variable number of PCs
