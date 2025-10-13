@@ -1,6 +1,6 @@
 function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
 
-% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.1]=
+% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.2]=
 % 
 % The TMFC denoise toolbox updates the selected general linear model with
 % the addition of noise regressors. It can be used prior to TMFC analysis 
@@ -179,7 +179,7 @@ end
 
 %-Check TMFC_denoise version
 %--------------------------------------------------------------------------
-localVer  = 'v1.4.1';
+localVer  = 'v1.4.2';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_denoise'), ...
@@ -213,10 +213,14 @@ end
 
 % Subject paths
 if nargin<2 || isempty(subject_paths)
-    subject_paths = tmfc_SPM_subject_paths(SPM_paths);
+    if isempty(subject_paths)
+        subject_paths = cellstr(spm_select(inf,'dir', ...
+            'Select ALL subject folders (same order as SPMs)'));
+    end
 end
 if numel(subject_paths) ~= numel(SPM_paths)
-    error('subject_paths must have the same length as SPM_paths.');
+    error(['The number of selected subject folders (' num2str(numel(subject_paths)) ...
+           ') must match the number of SPM.mat files (' num2str(numel(SPM_paths)) ').']);;
 end
 
 % Define denoising options
@@ -354,22 +358,4 @@ end
 
 end
 
-%%============================[Subfunctions]===============================
-function [subject_paths] = tmfc_SPM_subject_paths(SPM_paths)
-subfolders = regexp(SPM_paths, filesep, 'split');
-if length(SPM_paths) > 1
-    nLevel1 = length(subfolders{1});
-    nLevel2 = length(subfolders{2});
-    for iLevel = 1:nLevel1
-        if ~strcmp(subfolders{1}{nLevel1-iLevel},subfolders{2}{nLevel2-iLevel})
-            break;
-        end
-    end
-    for iSub = 1:length(SPM_paths)
-        nLevel = length(subfolders{iSub});
-        subject_paths{iSub,1} = fullfile(subfolders{iSub}{1:nLevel-iLevel});
-    end
-else
-    subject_paths{1,1} = spm_select(1,'dir','Select "Subject" folder');
-end
-end
+
