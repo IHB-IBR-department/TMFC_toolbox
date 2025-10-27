@@ -1,6 +1,6 @@
 function TMFC
     
-% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.8.2 ]====
+% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.8.3 ]====
 %
 % Opens the main GUI window.
 %
@@ -89,7 +89,7 @@ end
 
 %-Check TMFC toolbox version
 %--------------------------------------------------------------------------
-localVer  = 'v.1.8.2';
+localVer  = 'v.1.8.3';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_toolbox'), ...

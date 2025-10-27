@@ -1,6 +1,6 @@
 function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
 
-% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.2]=
+% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.3]=
 % 
 % The TMFC denoise toolbox updates the selected general linear model with
 % the addition of noise regressors. It can be used prior to TMFC analysis 
@@ -179,7 +179,7 @@ end
 
 %-Check TMFC_denoise version
 %--------------------------------------------------------------------------
-localVer  = 'v1.4.2';
+localVer  = 'v1.4.3';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_denoise'), ...
@@ -220,7 +220,7 @@ if nargin<2 || isempty(subject_paths)
 end
 if numel(subject_paths) ~= numel(SPM_paths)
     error(['The number of selected subject folders (' num2str(numel(subject_paths)) ...
-           ') must match the number of SPM.mat files (' num2str(numel(SPM_paths)) ').']);;
+           ') must match the number of SPM.mat files (' num2str(numel(SPM_paths)) ').']);
 end
 
 % Define denoising options

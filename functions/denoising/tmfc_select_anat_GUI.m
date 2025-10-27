@@ -111,11 +111,13 @@ anat_paths = {};
 txt_filter = '';
 anat_root = '';              
 anat_subfolder_full = '';    
-anat_subfolder_rel  = '';    
+anat_subfolder_rel  = '';
+no_file = {};
 
 if ischar(subject_paths), subject_paths = cellstr(subject_paths); end
 subject_paths = subject_paths(:);  
 
+% -------------------------------------------------------------------------
 % GUI elements 
 % -------------------------------------------------------------------------
 ST_MW = figure('Name','Select structural images','NumberTitle','off','Units','normalized',...
@@ -158,7 +160,7 @@ ST_MW_S1_panel = uipanel(ST_MW,'Units','normalized','Position',[0.45 0.733 0.525
 
 % Box text: ANAT subfolder
 ST_MW_S1_txt = uicontrol('Parent',ST_MW_S1_panel,'Style','text','String','Not selected','ForegroundColor','red',...
-    'Units','normalized','Position',[0.03 0.14 0.94 0.64],'FontUnits','normalized','FontSize',0.55,...
+    'Units','normalized','Position',[0.03 0.09 0.94 0.64],'FontUnits','normalized','FontSize',0.50,...
     'HorizontalAlignment','center','backgroundcolor','w');
 
 % Button: Text filter
@@ -192,14 +194,18 @@ ST_MW_HELP = uicontrol(ST_MW,'Style','pushbutton','String','Help','Units','norma
 
 movegui(ST_MW,'center');
 
+% -------------------------------------------------------------------------
 % Close GUI 
+% -------------------------------------------------------------------------
 function ST_MW_exit(~,~)
     anat_paths = {};
     fprintf(2,'Structural images are not selected.\n');
     uiresume(ST_MW);
 end
 
+% -------------------------------------------------------------------------
 % Select parent folder (contains sub-*/anat)
+% -------------------------------------------------------------------------
 function select_anat_root(~,~)
     tmp = deblank(spm_select(1,'dir','Select parent folder (contains sub-*/anat)',{},anat_root,'..'));
     if ~isempty(tmp)
@@ -215,7 +221,9 @@ function select_anat_root(~,~)
     end
 end
 
+% -------------------------------------------------------------------------
 % Select the ANAT subfolder for the first subject
+% -------------------------------------------------------------------------
 function select_subfolder(~,~)
     set(ST_MW_S1_txt,'String','Not selected','ForegroundColor','red','HorizontalAlignment','center');
 
@@ -240,26 +248,57 @@ function select_subfolder(~,~)
     end
 end
 
+% -------------------------------------------------------------------------
 % Compute relative path & show it
+% -------------------------------------------------------------------------
 function update_rel_display()
+    if isempty(anat_subfolder_full) || ~isfolder(anat_subfolder_full)
+        set(ST_MW_S1_txt,'String','Not selected','ForegroundColor','red', ...
+            'HorizontalAlignment','center');
+        anat_subfolder_rel = '';
+        return;
+    end
+
     [~, subj_id1] = fileparts(subject_paths{1});
     base_first = [fullfile(anat_root, subj_id1) filesep];
+    tmp_rel = '';
+
+    % Try strict relative path
     if strncmpi(anat_subfolder_full, base_first, numel(base_first))
-        anat_subfolder_rel = anat_subfolder_full(numel(base_first)+1:end);
+        tmp_rel = anat_subfolder_full(numel(base_first)+1:end);
     else
-        % fallback: relative to subject_paths{1}
+        % Try fallback relative to subject_paths{1}
         base_first2 = [subject_paths{1} filesep];
-        anat_subfolder_rel = strrep(anat_subfolder_full, base_first2, '');
+        tmp_rel = strrep(anat_subfolder_full, base_first2, '');
     end
-    if isempty(anat_subfolder_rel)
-        set(ST_MW_S1_txt,'String','Not selected','ForegroundColor','red','HorizontalAlignment','center');
-    else
-        set(ST_MW_S1_txt,'String',anat_subfolder_rel,'ForegroundColor',[0 0 0],...
-            'HorizontalAlignment','center');
+
+    % If both fail (different roots or mismatched names) - use folder name only
+    if isempty(tmp_rel) || strcmp(tmp_rel, anat_subfolder_full)
+        [~, tmp_rel] = fileparts(anat_subfolder_full);
     end
+
+    % If tmp_rel starts with the first subject ID, strip it (avoid subject-specific prefixes)
+    prefix = [subj_id1 filesep];
+    if strncmpi(tmp_rel, prefix, numel(prefix))
+        tmp_rel = tmp_rel(numel(prefix)+1:end);
+    end
+
+    % If user selected the subject folder itself (e.g. T1 files directly inside),
+    % keep it as relative path = subject folder
+    if strcmpi(anat_subfolder_full, fullfile(anat_root, subj_id1))
+        tmp_rel = subj_id1;
+    end
+
+    anat_subfolder_rel = tmp_rel;
+
+    % Update GUI text
+    set(ST_MW_S1_txt, 'String', anat_subfolder_rel, ...
+        'ForegroundColor', [0 0 0], 'HorizontalAlignment', 'center');
 end
 
+% -------------------------------------------------------------------------
 % Apply text filter and generate paths 
+% -------------------------------------------------------------------------
 function apply_filter(~,~)
     f = msgbox('Selecting structural images. Please wait . . .');
     if ~isempty(anat_subfolder_rel)
@@ -267,8 +306,8 @@ function apply_filter(~,~)
         txt_filter = strrep(txt_filter,' ','');
         if ~isempty(txt_filter) 
             anat_paths = {};
-            no_file = {};     
-
+            no_file = {};
+            
             % Prepare subject paths
             subject_paths = strtrim(subject_paths); 
 
@@ -276,12 +315,62 @@ function apply_filter(~,~)
             for iSub = 1:size(subject_paths,1)
                 [~, subj_id] = fileparts(subject_paths{iSub});
                 subj_base = fullfile(anat_root, subj_id);
+
+                % If exact match not found – search for closest folder in anat_root
                 if ~exist(subj_base,'dir')
-                    subj_base = subject_paths{iSub};
+
+                    % Try direct wildcard match
+                    d = dir(fullfile(anat_root, ['*' subj_id '*']));
+                    d = d([d.isdir]);
+                    d = d(~ismember({d.name},{'.','..'}));             
+                
+                    % Try substring-based search
+                    if isempty(d)
+                        d_all = dir(anat_root);
+                        d_all = d_all([d_all.isdir]);
+                        names = setdiff({d_all.name},{'.','..'});
+                        bestName = '';
+                        bestScore = -inf;
+                        for k = 1:numel(names)
+                            common = lcsstr(subj_id, strrep(names{k}, filesep, '_'));
+                            sc = numel(common);
+                            if sc > bestScore
+                                bestScore = sc;
+                                bestName = names{k};
+                            end
+                        end
+                
+                        if ~isempty(bestName)
+                            subj_base = fullfile(anat_root, bestName);
+                            if bestScore < 4
+                                fprintf(2,'[Notice] No clear match for "%s" in "%s". Please check folder names.\n', ...
+                                    subj_id, anat_root);
+                            end
+                        else
+                            subj_base = subject_paths{iSub}; 
+                        end
+                    else
+                        subj_base = fullfile(anat_root, d(1).name);
+                    end
+                end  
+                
+                % Build search path
+                if (ispc && ~isempty(strfind(anat_subfolder_rel, ':\'))) || (~ispc && strncmp(anat_subfolder_rel, filesep, 1))
+                    search_dir = anat_subfolder_rel;
+                else
+                    search_dir = fullfile(subj_base, anat_subfolder_rel);
                 end
-                anat_file = dir(fullfile(subj_base,anat_subfolder_rel,txt_filter));
+
+                % If folder not found, try subject folder itself
+                if ~isfolder(search_dir)
+                    search_dir = subj_base;
+                end
+                
+                fprintf('Searching in: %s | pattern: %s\n', search_dir, txt_filter);
+                anat_file = dir(fullfile(search_dir, txt_filter));
+                
                 if ~isempty(anat_file)
-                    anat_paths = vertcat(anat_paths,fullfile(subj_base,anat_subfolder_rel,anat_file(1).name));
+                    anat_paths = vertcat(anat_paths,fullfile(search_dir,anat_file(1).name));
                 else
                     no_file = vertcat(no_file,subject_paths(iSub));
                 end
@@ -304,7 +393,9 @@ function apply_filter(~,~)
     try; close(f); end
 end
 
+% -------------------------------------------------------------------------
 % Clear anat paths
+% -------------------------------------------------------------------------
 function clear_paths(~,~)
     if isempty(anat_paths)
         disp('No images to remove.');
@@ -315,8 +406,11 @@ function clear_paths(~,~)
     end
 end
 
+% -------------------------------------------------------------------------
 % Add all structural images manually
+% -------------------------------------------------------------------------
 function add_images(~,~)
+    no_file = {}
     anat_paths = {};
     sel = spm_select(inf,'any','Select structural images for all subjects',{},subject_paths{1},'T1.*\.nii$');
     if ~isempty(sel), anat_paths = cellstr(sel); end
@@ -326,28 +420,66 @@ function add_images(~,~)
     set(ST_MW_LB1,'String',cellstr(anat_paths));
 end
 
+% -------------------------------------------------------------------------
 % Export anat paths
+% -------------------------------------------------------------------------
 function export_paths(~,~)
-    if ~isempty(anat_paths)
-        if size(anat_paths,1) == size(subject_paths,1) 
+    nSubs = numel(subject_paths);
+    nFiles = numel(anat_paths);
+
+    if isempty(anat_paths)
+        fprintf(2,'No images selected, please try again.\n');
+        return;
+    end
+
+    % CASE 1: Filter-based selection 
+    if exist('no_file','var') && ~isempty(no_file)
+        if nFiles == nSubs
             disp('Structural images have been selected.');
             uiresume(ST_MW);
-        elseif size(anat_paths,1) > size(subject_paths,1) 
-            fprintf(2,'The number of structural images must equal the number of selected SPM.mat files. Please try again.\n');
         else
-            % some missing -> list them
-            no_file = {};
-            for iSub = size(anat_paths,1)+1:size(subject_paths,1)
-                no_file = vertcat(no_file,subject_paths(iSub));
-            end
+            % Some subjects missing (known from filtering)
             missing_file_GUI(no_file);
         end
-    else 
-        fprintf(2,'No images selected, please try again.\n');
+        return;
+    end
+
+    % CASE 2: Manual selection
+    % Assume user selected files in order of subject_paths
+    if nFiles == nSubs
+        disp('Structural images have been selected.');
+        uiresume(ST_MW);
+        return;
+    elseif nFiles > nSubs
+        fprintf(2,'The number of structural images must equal the number of selected SPM.mat files. Please try again.\n');
+        return;
+    else
+        % Fewer files than subjects -> assume missing at the end
+        missing_idx = (nFiles + 1):nSubs;
+        missing_file_GUI(subject_paths(missing_idx));
     end
 end
 
+% -------------------------------------------------------------------------
+% Warning window: missing images
+% -------------------------------------------------------------------------
+function missing_file_GUI(file_missing)
+    ST_WW = figure('Name','Missing structural images','NumberTitle','off','Units','normalized','Position',[0.32 0.30 0.35 0.28],'color','w','MenuBar','none','ToolBar','none','WindowStyle','Modal');
+    ST_WW_LB = uicontrol(ST_WW,'Style','listbox','String',file_missing,'Max',inf,'Units','normalized','Position',[0.032 0.250 0.940 0.520],'FontUnits','points','FontSize',10,'Value',[]);
+    ST_WW_S1 = uicontrol(ST_WW,'Style','text','String','Warning: structural images are missing for the following subjects:',...
+        'Units','normalized','Position',[0.15 0.820 0.720 0.095],...
+        'FontUnits','points','FontSize',11,'HorizontalAlignment','center','backgroundcolor','w');
+    ST_WW_close = uicontrol(ST_WW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.415 0.06 0.180 0.120],'FontUnits','normalized','FontSize',0.30,'callback',@close_SS_WW);
+    movegui(ST_WW,'center');
+    uiwait(ST_WW); 
+    function close_SS_WW(~,~)
+        close(ST_WW);
+    end
+end
+
+% -------------------------------------------------------------------------
 % Help window
+% -------------------------------------------------------------------------
 function open_help(~,~)
     page1 = {
         ''
@@ -494,19 +626,31 @@ function open_help(~,~)
     function out = tern(cond,a,b), if cond, out=a; else, out=b; end, end
 end
 
-% Warning window: missing images
-function missing_file_GUI(file_missing)
-    ST_WW = figure('Name','Missing structural images','NumberTitle','off','Units','normalized','Position',[0.32 0.30 0.35 0.28],'color','w','MenuBar','none','ToolBar','none','WindowStyle','Modal');
-    ST_WW_LB = uicontrol(ST_WW,'Style','listbox','String',file_missing,'Max',inf,'Units','normalized','Position',[0.032 0.250 0.940 0.520],'FontUnits','points','FontSize',10,'Value',[]);
-    ST_WW_S1 = uicontrol(ST_WW,'Style','text','String','Warning: structural images are missing for the following subjects:',...
-        'Units','normalized','Position',[0.15 0.820 0.720 0.095],...
-        'FontUnits','points','FontSize',11,'HorizontalAlignment','center','backgroundcolor','w');
-    ST_WW_close = uicontrol(ST_WW,'Style','pushbutton','String','OK','Units','normalized','Position',[0.415 0.06 0.180 0.120],'FontUnits','normalized','FontSize',0.30,'callback',@close_SS_WW);
-    movegui(ST_WW,'center');
-    uiwait(ST_WW); 
-    function close_SS_WW(~,~)
-        close(ST_WW);
+% -------------------------------------------------------------------------
+% Longest common substring, case-insensitive
+% -------------------------------------------------------------------------
+function s = lcsstr(a,b)
+a = lower(a); b = lower(b);
+na = numel(a); nb = numel(b);
+L = zeros(na+1, nb+1, 'uint16');
+bestLen = 0; bestEnd = 0;
+for i = 1:na
+    ai = a(i);
+    for j = 1:nb
+        if ai == b(j)
+            L(i+1,j+1) = L(i,j) + 1;
+            if L(i+1,j+1) > bestLen
+                bestLen = L(i+1,j+1);
+                bestEnd = i;
+            end
+        end
     end
+end
+if bestLen == 0
+    s = '';
+else
+    s = a(bestEnd-bestLen+1:bestEnd);
+end
 end
 
 % -------------------------------------------------------------------------

@@ -139,8 +139,34 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
 
                 % Continue if the selected files do not contain multiple variables
                 for i = 1:size(M_VAR,1)
-                    % M(i).m = struct2array(load(M_VAR{i,:}));
-                    tmp = load(M_VAR{i,:}); fn  = fieldnames(tmp); M(i).m = tmp.(fn{1});
+                    tmp = load(M_VAR{i,:}); 
+                    fn  = fieldnames(tmp); 
+                    val = tmp.(fn{1});
+                
+                    % ---- Strict numeric matrix check ----
+                    if ~isnumeric(val)
+                        shortwarn(sprintf('File "%s" does not contain a numeric matrix (found %s).', ...
+                            M_VAR{i,:}, class(val)));
+                        M_VAR = {}; M = []; return;
+                    end
+                    if ~ismatrix(val) && ndims(val) ~= 3
+                        shortwarn(sprintf('File "%s" must be ROI×ROI or ROI×ROI×Subjects (found %d-D array).', ...
+                            M_VAR{i,:}, ndims(val)));
+                        M_VAR = {}; M = []; return;
+                    end
+
+                    if size(val,1) ~= size(val,2)
+                        shortwarn(sprintf('File "%s" must be square (ROI×ROI or ROI×ROI×Subjects).', M_VAR{i,:}));
+                        M_VAR = {}; M = []; return;
+                    end
+                    
+                    if size(val,1) < 2
+                        shortwarn(sprintf('File "%s" has only one ROI. At least 2 ROIs are required for connectivity analyses.', M_VAR{i,:}));
+                        M_VAR = {}; M = []; return;
+                    end
+                    % -------------------------------------
+                
+                    M(i).m = val;
                 end
     
                 try
@@ -158,7 +184,7 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
                 
             elseif mv_flag == 1
                 M_VAR = {};
-                shortwarn('Each selected *.mat file must contain only one variable.');
+                shortwarn('Each selected *.mat file must contain one variable (2D or 3D matrix).');
             end 
         end
                
@@ -190,49 +216,71 @@ function file_selector(M_VAR, matrix, disp_box, disp_str, case_maker)
     else
         % Select new files via function
         new_M_VAR = select_mat_file();
-        
+
         % If new files are selected then proceed 
         if ~isempty(new_M_VAR) && numel(new_M_VAR) >= 1 && ~isempty(new_M_VAR{1})
                
             % Check for multiple variables within selected files   
             if multi_var_check(new_M_VAR) ~= 1        
                 
-                % Continue if the selected files do not contain multiple variables
+                % Validate NEW files only
                 for i = 1:size(new_M_VAR,1)
-                    % M(i).m = struct2array(load(new_M_VAR{i,:}));
-                    tmp = load(new_M_VAR{i,:}); fn  = fieldnames(tmp); M(i).m = tmp.(fn{1});
+                    tmp = load(new_M_VAR{i,:}); 
+                    fn  = fieldnames(tmp); 
+                    val = tmp.(fn{1});
+                
+                    % ---- Strict numeric matrix check ----
+                    if ~isnumeric(val)
+                        shortwarn(sprintf('File "%s" does not contain a numeric matrix (found %s).', ...
+                            new_M_VAR{i,:}, class(val)));
+                        return;
+                    end
+                    if ~ismatrix(val) && ndims(val) ~= 3
+                        shortwarn(sprintf('File "%s" must be ROI×ROI or ROI×ROI×Subjects (found %d-D array).', ...
+                            new_M_VAR{i,:}, ndims(val)));
+                        return;
+                    end
+                    if size(val,1) ~= size(val,2)
+                        shortwarn(sprintf('File "%s" must be square (ROI×ROI or ROI×ROI×Subjects).', new_M_VAR{i,:}));
+                        return;
+                    end
+                    if size(val,1) < 2
+                        shortwarn(sprintf('File "%s" has only one ROI. At least 2 ROIs are required for connectivity analyses.', new_M_VAR{i,:}));
+                        return;
+                    end
+                    % -------------------------------------
+
+                    M_new(i).m = val;
                 end
-    
+
                 try
-                    new_matrices = cat(3,M(:).m);
+                    new_matrices = cat(3,M_new(:).m);
                     if size(new_matrices,1) ~= size(new_matrices,2)
                         shortwarn('Matrices are not square.');
-                        clear M 
-                        new_M_VAR = {};
+                        return;
                     end
-                catch
-                    shortwarn('Matrices have different dimensions.');
-                    clear M  
-                    new_M_VAR = {};
-                end
-                
-                % Concatenate old and new matrices
-                try
+
+                    % ---- Check consistency with old selection ----
+                    if ~isempty(matrix) && size(new_matrices,1) ~= size(matrix,1)
+                        shortwarn('New matrices have different number of ROIs than the previously selected ones.');
+                        return;
+                    end
+                    % ----------------------------------------------
+
                     matrix = cat(3,matrix,new_matrices);
                     M_VAR = vertcat(M_VAR, new_M_VAR);
-                    % Updating the GUI 
+
                     fprintf('Number of .mat files selected: %d\n', size(new_M_VAR,1));
                     set(disp_box,'String', M_VAR);
                     set(disp_box,'Value', []);
-        
-                    % Update the ROI x ROI x Subjects number
-                    set(disp_str, 'String', strcat(num2str(size(matrix,2)), ' ROIs x',32, num2str(size(matrix,3)),' subjects'));
+                    set(disp_str, 'String', sprintf('%d ROIs x %d subjects', size(matrix,2), size(matrix,3)));
                     set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]); 
-                    clear M new_M_VAR
+                    clear M_new new_M_VAR
+
                 catch
-                    shortwarn('Matrices have different numbers of ROIs.');
-                    clear new_matrices new_M_VAR M
-                end
+                    shortwarn('Matrices have inconsistent dimensions.');
+                    clear new_matrices new_M_VAR M_new
+                end        
             else
                 shortwarn('Selected *.mat file(s) consist(s) of multiple variables, please select *.mat files each containing only one variable.');
             end
@@ -267,11 +315,12 @@ function file_remove(sel_box,M_VAR,disp_box,disp_str,case_maker)
         shortwarn('There are no files to remove.');
         return;
     end
-
+    
+    % Remove selected files
     M_VAR(sel_var,:) = [];
     fprintf('Number of .mat files removed: %d\n', numel(sel_var));
 
-    % Rebuild matrix from remaining files
+    % Rebuild group matrix from remaining files
     matrix = [];
     if ~isempty(M_VAR)
        try
@@ -279,48 +328,36 @@ function file_remove(sel_box,M_VAR,disp_box,disp_str,case_maker)
                tmp = load(M_VAR{i,:}); fn = fieldnames(tmp); M(i).m = tmp.(fn{1});
            end
            matrix = cat(3, M(:).m);
-           if size(matrix,1) ~= size(matrix,2)
-               shortwarn('Matrices are not square.');
-               matrix = [];
-           end
            clear M
        catch
-           shortwarn('Matrices have different dimensions.');
+           shortwarn('Error rebuilding group matrix after removal.');
            matrix = [];
            clear M
        end
     end
-    % --------------------------------------------------
-          
+    
+    % Update GUI
     set(disp_box,'Value', []);
     set(disp_box,'String', M_VAR);
-    sel_var = {};
     
-    if ~isempty(M_VAR)
-        S  = whos('-file', M_VAR{1,:});  dims = S(1).size;
-        subs = 0;
-        for i = 1:length(M_VAR)
-            temp = whos('-file', M_VAR{i,:}); temp_dim = temp(1).size;
-            if numel(temp_dim) == 2, subs = subs + 1;
-            elseif numel(temp_dim) == 3, subs = subs + temp_dim(3);
-            else, shortwarn('Files must be ROI×ROI or ROI×ROI×Subjects.');
-            end
-        end
-        set(disp_str, 'String', sprintf('%d ROIs x %d subjects', dims(1), subs));
-        set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]);
-    end
-    
-
     if isempty(M_VAR)
         set(disp_str, 'String', '0 ROIs x 0 subjects');
         set(disp_str, 'ForegroundColor',[0.773, 0.353, 0.067]);
+    else
+        nROI = size(matrix,1);
+        nSub = size(matrix,3);
+        set(disp_str, 'String', sprintf('%d ROIs x %d subjects', nROI, nSub));
+        set(disp_str, 'ForegroundColor',[0.219, 0.341, 0.137]);
     end
-   
+    
+    % Reset current selections
+    sel_var = {};
     selection_0 = '';  selection_1 = '';  selection_2 = '';
-  
+    
+    % Update main variables
     switch (case_maker)
         case 'one_samp_sel'
-            M0 = M_VAR; if isempty(M0), M0 = {}; end
+            M0 = M_VAR;
             matrices_0 = matrix;
         case 'left_samp_sel'
             M1 = M_VAR; if isempty(M1), M1 = {}; end
@@ -510,7 +547,7 @@ function run(~,~)
                     n1 = size(matrices_1,3);
                     n2 = size(matrices_2,3);
                     if n1 ~= n2
-                        shortwarn('Paired t-test requires the same number of subjects. Left: %d, Right: %d.', n1, n2);
+                        shortwarn(sprintf('Paired t-test requires the same number of subjects. Left: %d, Right: %d.', n1, n2));
                         set([ST_L1_CTR,ST_L2_CTR], 'ForegroundColor',[0.773, 0.353, 0.067]);
                         return;
                     end
@@ -711,17 +748,25 @@ function flag = multi_var_check(input_file)
         flag = -1;  % nothing to check
         return;
     end
-    flag = 0;
+    flag = 0; 
     for i = 1:size(input_file,1)
-        varlist = who('-file', input_file{i,:});
-        if numel(varlist) ~= 1
-            if isempty(varlist)
-                shortwarn('No variables found in file: %s\n', input_file{i,:});
-            else
-                shortwarn('Multiple variables found in file: %s\n', input_file{i,:});
-            end
+        fname = input_file{i,:};
+        try
+            varlist = who('-file', fname);
+        catch 
+            shortwarn(sprintf('Cannot read file "%s" as a valid MAT-file.', fname));
             flag = 1;
-            break;
+            return;
+        end
+
+        if isempty(varlist)
+            shortwarn(sprintf('No variables found in file: %s', fname));
+            flag = 1;
+            return;
+        elseif numel(varlist) > 1
+            shortwarn(sprintf('Multiple variables found in file: %s', fname));
+            flag = 1;
+            return;
         end
     end
 end

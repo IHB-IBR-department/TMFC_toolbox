@@ -13,6 +13,18 @@ function [func_paths] = tmfc_select_func_GUI(SPM_paths,subject_paths)
 % filter (e.g., *war*.nii, *wr*.nii, or *preproc*.nii.gz) to match all
 % unsmoothed, normalized, realigned functional images.
 %
+% NOTE: You can also try applying the text filter without changing folders.
+%
+%  • If you do NOT select a new parent folder (FUNC root), the toolbox will
+%    use the same parent directory as the STAT folder (SPM.mat).
+%
+%  • If you do NOT select a FUNC subfolder for the first subject, the toolbox
+%    will attempt to use the same relative structure as in SPM.xY.VY paths.
+%
+% In both cases, the search will be performed automatically using paths
+% derived from the original SPM.mat configuration, so it may still find the
+% correct functional files — provided their locations have not changed.
+%
 % Alternatively, you can preserve functional image paths from the SPM.mat 
 % files (if the GLMs were specified with unsmoothed functional images).
 %
@@ -30,8 +42,8 @@ function [func_paths] = tmfc_select_func_GUI(SPM_paths,subject_paths)
 %    │  │  ├─ sess-01/
 %    │  │  │  ├─ Unprocessed functional files (*.nii)
 %    │  │  │  └─ Preprocessed functional files:
-%    │  │  │     ● smoothed + normalized + realigned (e.g., swar*.nii)
-%    │  │  │     ● unsmoothed + normalized + realigned (e.g., war*.nii) <---- [Apply text filter] (2)
+%    │  │  │     • smoothed + normalized + realigned (e.g., swar*.nii)
+%    │  │  │     • unsmoothed + normalized + realigned (e.g., war*.nii) <---- [Apply text filter] (2)
 %    │  │  └─ sess-02/ ... 
 %    │  └─ stat/                # first-level models (one folder per GLM)
 %    │     ├─ GLM-01/
@@ -59,11 +71,11 @@ function [func_paths] = tmfc_select_func_GUI(SPM_paths,subject_paths)
 % └── derivatives
 %     ├── fmriprep/ <------------------ [Select parent folder (contains sub-*/ses-*/func)] (1)
 %     │   ├── sub-01/
-%     │   │   ├── ses-01/
-%     │   │   │   └── func/   <--------- [Select the FUNC subfolder for the first subject] (2)
+%     │   │   ├── ses-01/     
+%     │   │   │   └── func/   
 %     │   │   │       └── Preprocessed functional files:
-%     │   │   │           ● smoothed + normalized + realigned
-%     │   │   │           ● unsmoothed + normalized + realigned <----- [Apply text filter] (3)
+%     │   │   │           • smoothed + normalized + realigned
+%     │   │   │           • unsmoothed + normalized + realigned <----- [Apply text filter] (2)
 %     │   │   └── ses-02/ ...
 %     │   └── sub-02/ ...
 %     └── firstlevel-spm/ <------------- [Parent folder with FUNC subfolders (BY DEFAULT)] (Needs to be changed!)
@@ -91,8 +103,8 @@ function [func_paths] = tmfc_select_func_GUI(SPM_paths,subject_paths)
 % │  │     ├─ sess-01/
 % │  │     │  ├─ Unprocessed functional files (*.nii)
 % │  │     │  └─ Preprocessed functional files (*.nii):
-% │  │     │     ● smoothed + normalized + realigned 
-% │  │     │     ● unsmoothed + normalized + realigned <---- [Apply text filter] (3)
+% │  │     │     • smoothed + normalized + realigned 
+% │  │     │     • unsmoothed + normalized + realigned <---- [Apply text filter] (3)
 % │  │     └─ sess-02/ ... 
 % │  └─ sub-02/ ...   
 % └─ firstlevel-spm/ <-------- [Parent folder with FUNC subfolders (BY DEFAULT)] (Needs to be changed!)
@@ -134,6 +146,7 @@ unsm_index = struct([]);
 user_changed_root = false;
 user_changed_subf = false;
 
+% -------------------------------------------------------------------------
 % GUI elements
 % -------------------------------------------------------------------------
 SF_MW = figure('Name','Select unsmoothed functional images','NumberTitle','off', ...
@@ -176,8 +189,8 @@ SF_MW_S1_panel = uipanel(SF_MW,'Units','normalized','Position',[0.45 0.733 0.525
 
 % Box text: Select the FUNC subfolder for the first subject
 SF_MW_S1_txt = uicontrol('Parent',SF_MW_S1_panel,'Style','text','String','Not selected', ...
-    'ForegroundColor','red','Units','normalized','Position',[0.03 0.14 0.94 0.64], ...
-    'FontUnits','normalized','FontSize',0.55,'HorizontalAlignment','center','BackgroundColor','w');
+    'ForegroundColor',[1 0.55 0],'Units','normalized','Position',[0.03 0.09 0.94 0.64], ...
+    'FontUnits','normalized','FontSize',0.50,'HorizontalAlignment','center','BackgroundColor','w');
 
 % Button: Text filter
 SF_MW_B1 = uicontrol(SF_MW,'Style','pushbutton','String','Apply text filter unique for functional images:', ...
@@ -214,33 +227,42 @@ SF_MW_HELP = uicontrol(SF_MW,'Style','pushbutton','String','Help', ...
 
 movegui(SF_MW,'center');
 
+% -------------------------------------------------------------------------
 % Close GUI
+% -------------------------------------------------------------------------
 function SF_MW_exit(~,~)
     func_paths = [];
     fprintf(2,'Functional images are not selected.\n');
     uiresume(SF_MW);
 end
 
-% Select parent folder (contains sub-*/ses-*/func)
+% -------------------------------------------------------------------------
+% Select FUNC root folder (contains sub-*/ses-*/func)
+% -------------------------------------------------------------------------
 function select_func_root(~,~)
     tmp = deblank(spm_select(1,'dir','Select parent folder (contains sub-*/ses-*/func)',{},func_root,'..'));
     if ~isempty(tmp)
         user_changed_root = ~strcmp(tmp, func_root);
         func_root = tmp;
         set(SF_MW_S0_txt,'String',func_root,'ForegroundColor',[0 0 0],'HorizontalAlignment','center');
+        % changing root cancels preserve-mode
+        preserve_spm_paths = false;
+        spm_first_images   = {};
         % Reset downstream choices & cached mappings
         func_subfolder_full = '';
         func_subfolder_rel  = '';
         user_changed_subf    = false;
-        set(SF_MW_S1_txt,'String','Not selected','ForegroundColor','red','HorizontalAlignment','center');
+        set(SF_MW_S1_txt,'String','Not selected','ForegroundColor',[1 0.55 0],'HorizontalAlignment','center');
         set(SF_MW_LB1,'String','');  % clear preview list
         unsm_index = struct([]);     % clear mappings
     end
 end
 
-% Select the FUNC subfolder for the first subject
+% -------------------------------------------------------------------------
+% Select FUNC subfolder for the first subject
+% -------------------------------------------------------------------------
 function select_subfolder(~,~)
-    set(SF_MW_S1_txt,'String','Not selected','ForegroundColor','red','HorizontalAlignment','center');
+    set(SF_MW_S1_txt,'String','Not selected','ForegroundColor',[1 0.55 0],'HorizontalAlignment','center');
 
     [~, subj_id1] = fileparts(subject_paths{1});
     start_dir = fullfile(func_root, subj_id1);
@@ -254,65 +276,46 @@ function select_subfolder(~,~)
         update_rel_display();
         set(SF_MW_LB1,'String','');  % clear preview (must re-apply filter)
         unsm_index = struct([]);     % clear mappings
+        % selecting a subfolder cancels preserve-mode
+        preserve_spm_paths = false;
+        spm_first_images   = {};
     else
         fprintf(2,'Please select ''functional'' subfolder for the first subject.\n');
     end
 end
 
+% -------------------------------------------------------------------------
 % Compute relative path & show it (relative to <func_root>/<sub-01>)
+% -------------------------------------------------------------------------
 function update_rel_display()
     [~, subj_id1] = fileparts(subject_paths{1});
     base_first = [fullfile(func_root, subj_id1) filesep];
+
+    % Default computation
     if strncmpi(func_subfolder_full, base_first, numel(base_first))
         func_subfolder_rel = func_subfolder_full(numel(base_first)+1:end);
     else
         base_first2 = [subject_paths{1} filesep];
         func_subfolder_rel = strrep(func_subfolder_full, base_first2, '');
     end
+
+    % If user selected subject folder itself - no subfolder
+    if isempty(func_subfolder_rel) || strcmpi(func_subfolder_rel, subj_id1)
+        func_subfolder_rel = '';
+    end
+
+    % Update GUI display
     if isempty(func_subfolder_rel)
-        set(SF_MW_S1_txt,'String','Not selected','ForegroundColor','red','HorizontalAlignment','center');
+        set(SF_MW_S1_txt,'String','Not selected','ForegroundColor',[1 0.55 0],'HorizontalAlignment','center');
     else
         set(SF_MW_S1_txt,'String',func_subfolder_rel,'ForegroundColor',[0 0 0], ...
             'HorizontalAlignment','center');
     end
 end
 
-% Map original SPM.mat directory -> target directory under FUNC root.
-% If a FUNC subfolder was selected, we FORCE searches under that subfolder,
-% keeping only the tail (e.g., "sess-01") from the original path.
-function target_dir = map_dir_to_target(orig_dir, subj_id)
-    % remainder of path after ".../sub-XX/"
-    low_dir = lower(orig_dir);
-    low_key = [filesep lower(subj_id) filesep];
-    remainder = '';
-    idx = strfind(low_dir, low_key);
-    if ~isempty(idx)
-        cut = idx(1) + length(low_key) - 1;
-        remainder = orig_dir(cut+1:end); % e.g. "func/sess-01" or "func"
-    end
-
-    if ~isempty(func_subfolder_rel)
-        % drop the first component of the remainder (e.g., "func") and keep the tail (e.g., "sess-01")
-        tail = '';
-        if ~isempty(remainder)
-            parts = strsplit(remainder, filesep);
-            if numel(parts) >= 2
-                tail = fullfile(parts{2:end});
-            end
-        end
-        % Force under the subfolder the user selected
-        target_dir = fullfile(func_root, subj_id, func_subfolder_rel, tail);
-    else
-        % No explicit subfolder selected — preserve the whole remainder
-        if isempty(remainder)
-            target_dir = fullfile(func_root, subj_id);
-        else
-            target_dir = fullfile(func_root, subj_id, remainder);
-        end
-    end
-end
-
+% -------------------------------------------------------------------------
 % Build scan groups by original directory in SPM.xY.VY
+% -------------------------------------------------------------------------
 function groups = build_scan_groups(SPM)
     n = numel(SPM.xY.VY);
     groups = struct('orig_dir',{},'scan_indices',{});
@@ -332,24 +335,32 @@ function groups = build_scan_groups(SPM)
     end
 end
 
-% Apply text filter: find actual unsmoothed files per session/run dir
+% -------------------------------------------------------------------------
+% Apply text filter: find unsmoothed files per session/run dir
+% -------------------------------------------------------------------------
 function apply_filter(~,~)
     f = msgbox('Selecting functional images. Please wait . . .');
     set(SF_MW_LB1,'String','');    % clear preview
     unsm_index = struct([]);       % reset mappings
     no_files = {};
+    % leave preserve-mode when user applies a filter
+    preserve_spm_paths = false;
+    spm_first_images   = {};
 
     txt_filter = get(SF_MW_B1_E,'String');
     txt_filter = strrep(txt_filter,' ','');
+
     if isempty(txt_filter)
         fprintf(2,'Filter is empty or invalid, please re-enter.\n');
         try; close(f); end
         return;
     end
+
     % 'dir' uses wildcards, not regex; allow '^war*.nii' in UI by stripping '^'
     dir_filter = regexprep(txt_filter,'^\^','');
 
-    preview_first = {};
+    % preview lines we’ll render into the listbox
+    preview_lines = {};
 
     for iSub = 1:numel(subject_paths)
         [~, subj_id] = fileparts(subject_paths{iSub});
@@ -359,65 +370,99 @@ function apply_filter(~,~)
         groups = build_scan_groups(SPM);
 
         out_groups = struct('orig_dir',{},'target_dir',{},'unsm_files',{},'scan_indices',{});
-        first_added = '';
+
+        % Subject header in the preview
+        preview_lines{end+1,1} = sprintf('▶ %s', subj_id);
 
         for g = 1:numel(groups)
             orig_dir   = groups(g).orig_dir;
             scan_idx   = groups(g).scan_indices;
 
-            target_dir = map_dir_to_target(orig_dir, subj_id);
-            cand = dir(fullfile(target_dir, dir_filter));
+            % Try structured candidates derived from STAT->FUNC mapping
+            cand_dirs = generate_candidates(orig_dir, subj_id, func_root, func_subfolder_rel, subject_paths);
             
-            % Only allow fallback to the ORIGINAL SPM folder if the user did NOT change root/subfolder.
+            cand = []; target_dir = '';
+            for ci = 1:numel(cand_dirs)
+                td = cand_dirs{ci};
+                fprintf('Searching in: %s | pattern: %s\n', td, dir_filter);
+                cand = dir(fullfile(td, dir_filter));
+                if ~isempty(cand)
+                    target_dir = td;
+                    break;
+                end
+            end
+            
+            % If still empty, do a bounded BFS under the subject's FUNC root,
+            % ranking hits by overlap with the STAT remainder (session/run hint).
+            if isempty(cand)
+                subj_root = fullfile(func_root, resolve_func_subject_name(func_root, subj_id));
+                rr_hint   = split_parts(remainder_under_subject(orig_dir, subj_id));
+                td = bfs_find_dir_with_pattern(subj_root, dir_filter, 3, rr_hint);  % depth=3 is usually enough
+                if ~isempty(td)
+                    fprintf('BFS found: %s | pattern: %s\n', td, dir_filter);
+                    cand = dir(fullfile(td, dir_filter));
+                    if ~isempty(cand)
+                        target_dir = td;
+                    end
+                end
+            end
+            
+            % Fallback to original SPM folder (only if the user did NOT change root/subfolder)
             if isempty(cand) && (~user_changed_root && ~user_changed_subf)
+                fprintf('Fallback to original SPM folder: %s | pattern: %s\n', orig_dir, dir_filter);
                 cand = dir(fullfile(orig_dir, dir_filter));
                 if ~isempty(cand)
                     target_dir = orig_dir;
                 end
             end
 
-            % Only allow fallback to original dir when user didn't change root/subfolder
-            if isempty(cand) && (~user_changed_root && ~user_changed_subf)
-                cand = dir(fullfile(orig_dir, dir_filter));
-                if ~isempty(cand)
-                    target_dir = orig_dir;
-                end
-            end
 
             if ~isempty(cand)
                 % sort by name (assumes zero-padded numbering; common for NIfTI series)
-                names = {cand.name}';
-                names = sort(names);
+                names = sort({cand.name}');
                 unsm_files = cellfun(@(z) fullfile(target_dir,z), names, 'UniformOutput', false);
 
-                out_groups(end+1).orig_dir    = orig_dir;        
+                out_groups(end+1).orig_dir    = orig_dir;
                 out_groups(end).target_dir    = target_dir;
-                out_groups(end).unsm_files    = unsm_files;      % could be 1 (4D) or many (3D series)
+                out_groups(end).unsm_files    = unsm_files;  % 1 = 4D, >1 = 3D series
                 out_groups(end).scan_indices  = scan_idx;
 
-                if isempty(first_added)
-                    first_added = unsm_files{1};
+                % Add a per-group preview line (first file only)
+                kind = '4D';
+                if numel(unsm_files) > 1
+                    kind = sprintf('3D×%d', numel(unsm_files));
                 end
+                preview_lines{end+1,1} = sprintf('   [%02d] %s  (%s)', g, unsm_files{1}, kind);
+            else
+                % Show that this group had no matches
+                preview_lines{end+1,1} = sprintf('   [%02d] [no matches]  (%s)', g, target_dir);
             end
         end
 
         if isempty(out_groups)
             no_files = vertcat(no_files, subject_paths(iSub));
+            % If absolutely nothing for the subject, make sure there's a clear line
+            % (header already added; add an explicit "no matches")
+            preview_lines{end+1,1} = '   [no matches for subject]';
         else
-            unsm_index(iSub).groups = out_groups; 
-            preview_first{end+1,1} = first_added; 
+            unsm_index(iSub).groups = out_groups;
         end
+
+        % Blank line between subjects (purely visual)
+        preview_lines{end+1,1} = '';
     end
 
-    if isempty(preview_first)
+    if all(cellfun(@(s) contains(s,'no matches','IgnoreCase',true) || isempty(s), preview_lines))
         fprintf(2,'No images matched the filter "%s". Please check the FUNC root/subfolder and filter.\n', txt_filter);
     end
 
-    set(SF_MW_LB1,'String',preview_first);
+    set(SF_MW_LB1,'String',preview_lines,'Value',[]);
     try; close(f); end
 end
 
+% -------------------------------------------------------------------------
 % Preserve FUNC paths form SPM.mat files
+% -------------------------------------------------------------------------
 function preserve_from_spm_cb(~,~)
     % Set mode and preview: first image per subject from SPM.xY.VY(1).fname
     fpr1 = msgbox('Selecting functional images. Please wait . . .');
@@ -431,7 +476,9 @@ function preserve_from_spm_cb(~,~)
     set(SF_MW_LB1,'String',spm_first_images,'Value',[]);
 end
 
+% -------------------------------------------------------------------------
 % Check and export paths (per scan; 4D or 3D series handled)
+% -------------------------------------------------------------------------
 function export_paths(~,~)
     if preserve_spm_paths
         fpr2 = msgbox('Selecting functional images. Please wait . . .');
@@ -460,74 +507,86 @@ function export_paths(~,~)
     end
 
     func_paths = struct([]);
-    miss_sub = false(1,numel(SPM_paths));
-
     for jSub = 1:numel(SPM_paths)
         SPM = load(SPM_paths{jSub}).SPM;
 
         if jSub>numel(unsm_index) || ~isfield(unsm_index(jSub),'groups') || isempty(unsm_index(jSub).groups)
-            miss_sub(jSub) = true;
+            func_paths(jSub).fname = {};
             continue;
         end
 
         G = unsm_index(jSub).groups;
-
-        % Initialize cell big enough for all scans
         nScan = numel(SPM.xY.VY);
         func_paths(jSub).fname = cell(nScan,1);
 
-        ok_this_sub = true;
-
         for g = 1:numel(G)
-            scan_idx = G(g).scan_indices(:)';         % indices of scans for this session
-            unsmf    = G(g).unsm_files(:)';           % matched unsmoothed files for this session
+            scan_idx = G(g).scan_indices(:)';         
+            unsmf    = G(g).unsm_files(:)';           
 
-            if isempty(scan_idx)
+            if isempty(scan_idx) || isempty(unsmf)
                 continue;
             end
 
             if numel(unsmf) == 1
-                % Assume 4D file; use volume index from original SPM
+                % 4D file
                 file4D = unsmf{1};
                 for kk = scan_idx
                     vol_idx = SPM.xY.VY(kk).n(1);
                     func_paths(jSub).fname{kk,1} = [file4D ',' num2str(vol_idx)];
                 end
             else
-                % Assume series of 3D files
-                if numel(unsmf) < numel(scan_idx)
-                    fprintf(2,['Not enough files matched in "%s" for subject %d: ' ...
-                               'found %d, need %d. Check filter or folder mapping.\n'], ...
-                               G(g).target_dir, jSub, numel(unsmf), numel(scan_idx));
-                    ok_this_sub = false;
-                    break;
-                end
-                % Map scan #i to file #i (1-based), append ",1" for SPM compatibility
-                for i = 1:numel(scan_idx)
+                % 3D series
+                for i = 1:min(numel(scan_idx), numel(unsmf))
                     kk = scan_idx(i);
                     func_paths(jSub).fname{kk,1} = [unsmf{i} ',1'];
                 end
             end
         end
+    end
+    
+    % Check existence of all files and collect missing subjects
+    missing_subs = {};
+    for jSub = 1:numel(func_paths)
+        miss_any = false;
 
-        if ~ok_this_sub
-            miss_sub(jSub) = true;
+        % Skip if struct entry missing
+        if ~isfield(func_paths(jSub),'fname') || isempty(func_paths(jSub).fname)
+            miss_any = true;
+        else
+            fnames = func_paths(jSub).fname;
+            for k = 1:numel(fnames)
+                if isempty(fnames{k})
+                    miss_any = true;
+                    break;
+                end
+                parts = strsplit(fnames{k}, ',');
+                fpath = strtrim(parts{1});
+                if ~isfile(fpath)
+                    miss_any = true;
+                    break;
+                end
+            end
+        end
+    
+        if miss_any
+            missing_subs{end+1,1} = subject_paths{jSub};
         end
     end
 
-    if any(miss_sub)
-        missing_idx = find(miss_sub);
-        miss = subject_paths(missing_idx);
-        missing_images_GUI(miss);
+    try; close(f3); end
+
+    if ~isempty(missing_subs)
+        fprintf(2,'[Warning] Missing functional files detected for %d subject(s).\n', numel(missing_subs));
+        missing_images_GUI(missing_subs);
     else
-        disp('Functional images selected.');
+        disp('All functional images exist and were successfully selected.');
         uiresume(SF_MW);
     end
-
-    try; close(f3); end
 end
 
+% -------------------------------------------------------------------------
 % Warning window: missing images
+% -------------------------------------------------------------------------
 function missing_images_GUI(no_files_loc)
     SF_WW = figure('Name','Select subjects','NumberTitle','off','Units','normalized', ...
         'Position',[0.32 0.30 0.35 0.28],'Color','w','MenuBar','none','ToolBar','none','WindowStyle','Modal');
@@ -544,7 +603,9 @@ function missing_images_GUI(no_files_loc)
     uiwait(SF_WW);
 end
 
+% -------------------------------------------------------------------------
 % Help window
+% -------------------------------------------------------------------------
 function open_help(~,~)
    page1 = {
         ''
@@ -554,6 +615,17 @@ function open_help(~,~)
         '   Then select the FUNC subfolder for the first subject and apply text'
         '   filter (e.g., *war*.nii, *wr*.nii, or *preproc*.nii.gz) to match all fMRI images.'
         ''
+        '   NOTE: You can also try applying the text filter without changing folders.'
+        ''
+        '   • If you do NOT select a new parent folder (FUNC root), the toolbox will'
+        '     use the same parent directory as the STAT folder (SPM.mat).'
+        ''
+        '   • If you do NOT select a FUNC subfolder for the first subject, the toolbox'
+        '     will attempt to use the same relative structure as in SPM.xY.VY paths.'
+        ''
+        '   In both cases, the search will be performed automatically using paths'
+        '   derived from the original SPM.mat configuration, so it may still find the'
+        '   correct functional files — provided their locations have not changed.'
         ''
         '   ================= EXAMPLE #1 (SPM-like folder structure) =================='
         ''
@@ -597,13 +669,13 @@ function open_help(~,~)
         '   │   └── ses-02/ ...'
         '   ├── sub-02/ ...'
         '   └── derivatives'
-        '       ├── fmriprep/<------------------ [Select parent folder (contains sub-*/ses-*/func)] (1)'
+        '       ├── fmriprep/ <----------------- [Select parent folder (contains sub-*/ses-*/func)] (1)'
         '       │   ├── sub-01/'
         '       │   │   ├── ses-01/'
-        '       │   │   │   └── func/<----------- [Select the FUNC subfolder for the first subject] (2)'
+        '       │   │   │   └── func/'
         '       │   │   │       └── Preprocessed functional files:'
         '       │   │   │           ◦ smoothed + normalized + realigned'
-        '       │   │   │           ◦ unsmoothed + normalized + realigned <---- [Apply text filter] (3)'
+        '       │   │   │           ◦ unsmoothed + normalized + realigned <---- [Apply text filter] (2)'
         '       │   │   └── ses-02/ ...'
         '       │   └── sub-02/ ...'
         '       └── firstlevel-spm/  <---- [Parent folder with FUNC (BY DEFAULT)](Needs to be changed!)'
@@ -688,6 +760,261 @@ function open_help(~,~)
     function go_prev(~,~), if cur>1, cur=cur-1; render_page(); end, end
     function go_next(~,~), if cur<total, cur=cur+1; render_page(); end, end
     function out = tern(cond,a,b), if cond, out=a; else, out=b; end, end
+end
+
+% -------------------------------------------------------------------------
+% Helpers
+% -------------------------------------------------------------------------
+function cand_dirs = generate_candidates(orig_dir, subj_id, func_root, func_subfolder_rel, subject_paths)
+    orig_dir = strrep(strrep(orig_dir,'/',filesep),'\',filesep);
+    func_subj_name = resolve_func_subject_name(func_root, subj_id);
+
+    base_rel = sanitize_base_rel(func_subfolder_rel, func_root, subject_paths, func_subj_name);
+
+    remainder = remainder_under_subject(orig_dir, subj_id);
+
+    br = split_parts(base_rel);
+    rr = split_parts(remainder);
+
+    k = common_prefix_len(br, rr);
+    tail = rr(k+1:end);
+
+    C1 = fullfile(func_root, func_subj_name, br{:}, tail{:});
+    C2 = fullfile(func_root, func_subj_name, rr{:});
+    C3 = fullfile(func_root, func_subj_name, br{:});
+
+    rr2 = strip_stat_tokens(rr);
+    k2 = common_prefix_len(br, rr2);
+    tail2 = rr2(k2+1:end);
+    C4 = fullfile(func_root, func_subj_name, br{:}, tail2{:});
+
+    cand_dirs = unique_nonempty({C1,C2,C3,C4});
+end
+
+% Best-match subject folder under FUNC root (prefix/suffix tolerant)
+function name = resolve_func_subject_name(root_dir, subj_id)
+    cand = fullfile(root_dir, subj_id);
+    if exist(cand, 'dir')
+        name = subj_id; 
+        return;
+    end
+    % list candidates
+    d = dir(root_dir);
+    d = d([d.isdir]);
+    names = setdiff({d.name},{'.','..'});
+
+    % try contains() first
+    hit = find(contains(lower(names), lower(subj_id)), 1, 'first');
+    if ~isempty(hit)
+        name = names{hit}; 
+        return;
+    end
+
+    % fallback: longest common substring (uses your lcsstr() at file bottom)
+    bestName = '';
+    bestScore = -inf;
+    for k = 1:numel(names)
+        common = lcsstr(subj_id, names{k});
+        sc = numel(common);
+        if sc > bestScore
+            bestScore = sc; bestName = names{k};
+        end
+    end
+    if ~isempty(bestName)
+        name = bestName;
+        if bestScore < 4
+            fprintf(2,'[Notice] Weak match for subject "%s" under "%s": picked "%s"\n', ...
+                subj_id, root_dir, name);
+        end
+    else
+        % use provided subj_id (will likely fail later, but is explicit)
+        name = subj_id;
+        fprintf(2,'[Warning] No subject-like folder under "%s" matched "%s".\n', root_dir, subj_id);
+    end
+end
+
+% Longest common substring, case-insensitive
+function s = lcsstr(a,b)
+a = lower(a); b = lower(b);
+na = numel(a); nb = numel(b);
+L = zeros(na+1, nb+1, 'uint16');
+bestLen = 0; bestEnd = 0;
+for i = 1:na
+    ai = a(i);
+    for j = 1:nb
+        if ai == b(j)
+            L(i+1,j+1) = L(i,j) + 1;
+            if L(i+1,j+1) > bestLen
+                bestLen = L(i+1,j+1);
+                bestEnd = i;
+            end
+        end
+    end
+end
+if bestLen == 0
+    s = '';
+else
+    s = a(bestEnd-bestLen+1:bestEnd);
+end
+end
+
+function out = sanitize_base_rel(base_rel, func_root, subject_paths, func_subj_name)
+    out = base_rel;
+    if isempty(out), return; end
+
+    % normalize seps
+    out = strrep(strrep(out,'/',filesep),'\',filesep);
+
+    low_out  = lower(out);
+    low_root = lower(func_root);
+
+    if startsWith(low_out, low_root)
+        % strip func_root prefix
+        rem = out(numel(func_root)+1:end);
+        if ~isempty(rem) && rem(1)==filesep, rem = rem(2:end); end
+
+        parts = split_parts(rem);
+
+        % drop a leading subject folder if it’s the current subject
+        if ~isempty(parts) && strcmpi(parts{1}, func_subj_name)
+            parts(1) = [];
+        end
+
+        % also drop a leading subject folder if it’s ANY subject under func_root
+        d = dir(func_root); d = d([d.isdir]);
+        allsubs = lower(setdiff({d.name},{'.','..'}));
+        if ~isempty(parts) && any(strcmpi(lower(parts{1}), allsubs))
+            parts(1) = [];
+        end
+
+        out = strjoin(parts, filesep);
+    end
+
+    % if the remaining rel path still starts with the subject name, drop it
+    if startsWith(lower(out), [lower(func_subj_name) filesep])
+        out = out(numel(func_subj_name)+2:end);
+    elseif strcmpi(out, func_subj_name)
+        out = '';
+    end
+end
+
+function remainder = remainder_under_subject(orig_dir, subj_id)
+    low_dir = lower(orig_dir);
+    low_key = [filesep lower(subj_id) filesep];
+    remainder = '';
+    p = strfind(low_dir, low_key);
+    if ~isempty(p)
+        cut = p(1) + numel(low_key) - 1;
+        remainder = orig_dir(cut+1:end);
+        if ~isempty(remainder) && remainder(1)==filesep, remainder = remainder(2:end); end
+    else
+        % best-effort
+        [~, remainder] = fileparts(orig_dir);
+    end
+end
+
+function parts = split_parts(p)
+    if isempty(p), parts = {}; return; end
+    parts = regexp(p, ['[^' regexptranslate('escape', filesep) ']+'], 'match');
+    parts = parts(:)';
+end
+
+function k = common_prefix_len(a,b)
+    n = min(numel(a), numel(b)); k = 0;
+    for i=1:n
+        if strcmpi(a{i}, b{i}), k = k + 1; else, break; end
+    end
+end
+
+function rr2 = strip_stat_tokens(rr)
+    if isempty(rr), rr2 = rr; return; end
+    tokens = {'stat','stats','firstlevel','firstlvl','firstlvl-spm','firstlevel-spm','spm','models','model','glm'};
+    rr2 = rr;
+    while ~isempty(rr2)
+        head = lower(rr2{1});
+        if any(strcmp(head, tokens)) || startsWith(head,'glm') || startsWith(head,'model')
+            rr2(1) = [];
+        else
+            break;
+        end
+    end
+end
+
+function list = unique_nonempty(cellstrs)
+    seen = containers.Map('KeyType','char','ValueType','logical');
+    list = {};
+    for i=1:numel(cellstrs)
+        s = cellstrs{i};
+        if isempty(s), continue; end
+        key = lower(s);
+        if ~isKey(seen, key)
+            seen(key) = true;
+            list{end+1} = s; 
+        end
+    end
+end
+
+function best = bfs_find_dir_with_pattern(root_dir, pattern, max_depth, rr_hint)
+    % Collect all hits, then rank by overlap with rr_hint (component LCP), then shorter depth.
+    best = '';
+    if ~isfolder(root_dir), return; end
+    root_dir = char(root_dir);
+    rr_hint = rr_hint(:)';
+
+    % BFS
+    Q = {root_dir, 0};
+    seen = containers.Map('KeyType','char','ValueType','logical');
+    seen(lower(root_dir)) = true;
+    hits = {}; meta = []; 
+    depths = [];
+
+    while ~isempty(Q)
+        dir_path = Q{1}; depth = Q{2}; Q(1:2) = [];
+        if depth > max_depth, continue; end
+
+        if ~isempty(dir(fullfile(dir_path, pattern)))
+            hits{end+1} = dir_path; 
+            depths(end+1) = depth;  
+        end
+
+        d = dir(dir_path);
+        d = d([d.isdir]);
+        names = setdiff({d.name},{'.','..'});
+        % Stable order
+        names = sort(names);
+        for i=1:numel(names)
+            child = fullfile(dir_path, names{i});
+            key = lower(child);
+            if ~isKey(seen, key)
+                seen(key) = true;
+                Q(end+1:end+2) = {child, depth+1}; 
+            end
+        end
+    end
+
+    if isempty(hits), return; end
+
+    % Rank hits by common-prefix with rr_hint (relative to root_dir), then by smaller depth, then lexicographic.
+    scores = zeros(1,numel(hits));
+    rels = cell(1,numel(hits));
+    for i=1:numel(hits)
+        h = hits{i};
+        rel = h;
+        low_h = lower(h);
+        low_root = lower(root_dir);
+        if startsWith(low_h, [low_root filesep])
+            rel = h(numel(root_dir)+2:end);
+        elseif strcmpi(low_h, low_root)
+            rel = '';
+        end
+        rels{i} = split_parts(rel);
+        scores(i) = common_prefix_len(rels{i}, rr_hint);
+    end
+
+    % Pick best
+    [~, ord] = sortrows([(-scores(:)) depths(:)], [1 2]); % max score, then min depth
+    hits = hits(ord);
+    best = hits{1};
 end
 
 % -------------------------------------------------------------------------
