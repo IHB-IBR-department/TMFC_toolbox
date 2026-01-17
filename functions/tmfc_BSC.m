@@ -316,7 +316,10 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
                 clear betas_masked v s u d
             end
         end
-
+        
+        % Remove zero betas
+        beta_series(jCond).ROI_average(all(beta_series(jCond).ROI_average == 0, 2), :) = [];
+ 
         % ROI-to-ROI correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
             z_matrix = atanh(tmfc_corr(beta_series(jCond).ROI_average));
