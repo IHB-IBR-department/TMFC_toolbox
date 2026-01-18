@@ -284,12 +284,37 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
     for jCond = 1:nCond
 
         % Extract average beta series from ROIs
+        % -------------------------------------
         disp(['Extracting average beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
         
         for kTrial = 1:nTrialCond(jCond)
             betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression',tmfc.subjects(iSub).name,'Betas', ...
                 ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
         end
+
+        % Remove NaN columns (voxels outside brain)
+        tmp_betas = betas;
+        tmp_betas(:, all(isnan(tmp_betas),1)) = [];
+
+        % Row indices with zeros
+        isZeroRow = all(tmp_betas == 0, 2);
+        idxZero   = find(isZeroRow);
+        
+        % Row indices > 2 SD among non-zero rows      
+        rowNorm   = sqrt(sum(tmp_betas.^2, 2));
+        validRows = ~isZeroRow & isfinite(rowNorm);
+        
+        % Remove zeros and outliers
+        if nnz(validRows) < 3
+            badRows = idxZero;  
+        else
+            mu = mean(rowNorm(validRows));
+            sd = std(rowNorm(validRows));
+            idxOut2SD = find(validRows & (rowNorm > mu + 2*sd));
+            badRows = unique([idxZero; idxOut2SD]);
+        end
+
+        betas(badRows,:) = [];
 
         for kROI = 1:nROI
             betas_masked = betas;
@@ -316,10 +341,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
                 clear betas_masked v s u d
             end
         end
-        
-        % Remove zero betas
-        beta_series(jCond).ROI_average(all(beta_series(jCond).ROI_average == 0, 2), :) = [];
- 
+
         % ROI-to-ROI correlation
         if tmfc.defaults.analysis == 1 || tmfc.defaults.analysis == 2
             z_matrix = atanh(tmfc_corr(beta_series(jCond).ROI_average));
@@ -349,7 +371,7 @@ function tmfc_extract_betas(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iX
                 spm_write_vol(hdr,image);
             end
 
-            clear BSC_image
+            clear BSC_image tmp_betas isZeroRow idxZero idxOut2SD rowNorm validRows mu sd badRows
         end
 
         clear betas  
