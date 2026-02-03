@@ -347,9 +347,10 @@ clear conditions
 % enter the following line: 
 % tmfc.ROI_set(ROI_set_number).PPI_centering = 'no_mean_centering';
 %
-% Whitening inversion is enabled by default to avoid double prewhitening:
-% To disable whitening inversion, enter the following line:
-% tmfc.ROI_set(ROI_set_number).PPI_whitening = 'none';
+% Note: Inverse whitening has been deprecated since v1.9.0. 
+% Whitening is applied during deconvolution, consistent with SPM PEB i.i.d. assumptions.
+% In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal is used for
+% the PHYS regressor to avoid double whitening (He et al., 2025). 
 [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub);
 
 % gPPI calculation

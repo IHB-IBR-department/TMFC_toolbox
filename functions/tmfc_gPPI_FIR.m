@@ -246,8 +246,16 @@ for iSub = start_sub:nSub
             end
 
             % Add PHYS regressors
+            VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ...
+                  tmfc.subjects(iSub).name, ['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(jROI).name '_' num2str(sess_num(kSess)) '.mat']);
+            tmp = load(VOI);
             matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).name = ['Seed_' tmfc.ROI_set(ROI_set_number).ROIs(jROI).name];
-            matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = PPI(find(sess == sess_num(kSess),1)).PPI.Y;
+            if isfield(tmp,'Yraw')
+                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Yraw;  % Use raw (unwhitened) demeanted VOI time series
+            else
+                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Y;     % Backward compatibility: old VOI files contain only Y
+            end
+            clear VOI tmp
             
             % Confounds       
             for conf = 1:length(SPM.Sess(sess_num(kSess)).C.name)

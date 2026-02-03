@@ -1,6 +1,6 @@
 function TMFC
     
-% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.8.3 ]====
+% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.9.0 ]====
 %
 % Opens the main GUI window.
 %
@@ -51,7 +51,6 @@ function TMFC
 %
 %   tmfc.ROI_set(i).PPI_centering   - 'with_mean_centering' or
 %                                     'no_mean_centering'
-%   tmfc.ROI_set(i).PPI_whitening   - 'inverse' or 'none'
 %
 %   tmfc.ROI_set(i).gPPI_FIR.window - FIR window length [seconds]
 %   tmfc.ROI_set(i).gPPI_FIR.bins   - Number of FIR time bins
@@ -89,7 +88,7 @@ end
 
 %-Check TMFC toolbox version
 %--------------------------------------------------------------------------
-localVer  = 'v.1.8.3';
+localVer  = 'v.1.9.0';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_toolbox'), ...
@@ -472,9 +471,12 @@ function VOI_GUI(~,~,~)
             tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).VOI = sub_check(iSub);
         end
         disp('VOI computation completed.');
-    catch
+    catch ME
         freeze_GUI(0);
-        error('Error: VOIs must be calculated for all subjects.');
+        fprintf(2, '\n%s\n', repmat('=',1,30));
+        fprintf(2, '    VOI computation failed\n');
+        fprintf(2, '%s\n\n', repmat('=',1,30));
+        rethrow(ME);
     end
 
     save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
@@ -586,13 +588,12 @@ function PPI_GUI(~,~,~)
         try 
             % Define mean centering
             if start_sub == 1
-                [centering, whitening] = PPI_centering_GUI;
-                if isempty(centering) || isempty(whitening)
+                centering = PPI_centering_GUI;
+                if isempty(centering)
                     freeze_GUI(0);
                     return;
                 end
                 tmfc.ROI_set(tmfc.ROI_set_number).PPI_centering = centering;
-                tmfc.ROI_set(tmfc.ROI_set_number).PPI_whitening = whitening;
                 save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             end
             % Run PPI calculation
@@ -601,9 +602,12 @@ function PPI_GUI(~,~,~)
                 tmfc.ROI_set(tmfc.ROI_set_number).subjects(iSub).PPI = sub_check(iSub);
             end
             disp('PPI computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: Calculate PPIs for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,30));
+            fprintf(2, '    PPI computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,30));
+            rethrow(ME);
         end
     end
 
@@ -724,9 +728,12 @@ function gPPI_GUI(~,~,~)
                 end
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
-        catch
+        catch ME
             freeze_GUI(0);       
-            error('Error: Calculate new contrasts.');
+            fprintf(2, '\n%s\n', repmat('=',1,40));
+            fprintf(2, '    New contrasts computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,40));
+            rethrow(ME);
         end
 
     % gPPI was calculated for some subjects
@@ -757,9 +764,12 @@ function gPPI_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('gPPI computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-        	error('Error: Calculate gPPI for all subjects.');
+        	fprintf(2, '\n%s\n', repmat('=',1,31));
+            fprintf(2, '    gPPI computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,31));
+            rethrow(ME);
         end 
     end
 
@@ -891,9 +901,12 @@ function gPPI_FIR_GUI(~,~,~)
                 end
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
-        catch
+        catch ME
             freeze_GUI(0);       
-            error('Error: Calculate new contrasts.');
+            fprintf(2, '\n%s\n', repmat('=',1,40));
+            fprintf(2, '    New contrasts computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,40));
+            rethrow(ME);
         end
 
     % gPPI-FIR was calculated for some subjects
@@ -924,9 +937,12 @@ function gPPI_FIR_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('gPPI-FIR computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: Calculate gPPI-FIR for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,35));
+            fprintf(2, '    gPPI-FIR computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,35));
+            rethrow(ME);
         end 
     end 
 
@@ -1106,9 +1122,12 @@ function LSS_GLM_GUI(~,~,~)
         end
         save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('LSS computation completed.');
-    catch
+    catch ME
         freeze_GUI(0);
-        error('Error: Calculate LSS for all subjects.');
+        fprintf(2, '\n%s\n', repmat('=',1,30));
+        fprintf(2, '    LSS computation failed\n');
+        fprintf(2, '%s\n\n', repmat('=',1,30));
+        rethrow(ME);
     end
     
     save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
@@ -1189,9 +1208,12 @@ function BSC_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: BSC must be calculated for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,34));
+            fprintf(2, '    BSC LSS computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,34));
+            rethrow(ME);
         end
 
     % BSC was calculated for all subjects
@@ -1226,9 +1248,12 @@ function BSC_GUI(~,~,~)
                 end
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
-        catch
+        catch ME
             freeze_GUI(0);       
-            error('Error: Calculate new contrasts.');
+            fprintf(2, '\n%s\n', repmat('=',1,40));
+            fprintf(2, '    New contrasts computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,40));
+            rethrow(ME);
         end
 
     % BSC was calculated for some subjects (recompute)
@@ -1247,9 +1272,12 @@ function BSC_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: Recompute BSC for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,34));
+            fprintf(2, '    BSC LSS computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,34));
+            rethrow(ME);
         end
     end
 
@@ -1382,9 +1410,12 @@ function FIR_GUI(~,~,~)
         end
         save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('FIR computation completed.');
-    catch
+    catch ME
         freeze_GUI(0);
-        error('Error: FIR GLMs must be calculated for all subjects.');
+        fprintf(2, '\n%s\n', repmat('=',1,30));
+        fprintf(2, '    FIR computation failed\n');
+        fprintf(2, '%s\n\n', repmat('=',1,30));
+        rethrow(ME);
     end   
     
     save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
@@ -1464,9 +1495,12 @@ function BGFC_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BGFC computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: Calculate BGFC for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,31));
+            fprintf(2, '    BGFC computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,31));
+            rethrow(ME);
         end
 
     % BGFC was calculated for all subjects    
@@ -1492,9 +1526,12 @@ function BGFC_GUI(~,~,~)
             else
                 warning('BGFC computation not initiated.');
             end
-        catch
+        catch ME
             freeze_GUI(0);
-        	error('Error: Continue BGFC computation.');
+        	fprintf(2, '\n%s\n', repmat('=',1,31));
+            fprintf(2, '    BGFC computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,31));
+            rethrow(ME);
         end
     end 
 
@@ -1678,9 +1715,12 @@ function LSS_FIR_GUI(~,~,~)
         end
         save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
         disp('LSS after FIR computation completed.');
-    catch
+    catch ME
         freeze_GUI(0);
-        error('Error: Calculate LSS after FIR for all subjects.');
+        fprintf(2, '\n%s\n', repmat('=',1,41));
+        fprintf(2, '    LSS after FIR computation failed\n');
+        fprintf(2, '%s\n\n', repmat('=',1,41));
+        rethrow(ME);
     end
 
     save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
@@ -1762,9 +1802,12 @@ function BSC_after_FIR_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS after FIR computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: BSC after FIR must be calculated for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,41));
+            fprintf(2, '    LSS after FIR computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,41));
+            rethrow(ME);
         end
 
     % BSC after FIR was calculated for all subjects
@@ -1799,9 +1842,12 @@ function BSC_after_FIR_GUI(~,~,~)
                 end
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
-        catch
+        catch ME
             freeze_GUI(0);       
-            error('Error: Calculate new contrasts.');
+            fprintf(2, '\n%s\n', repmat('=',1,40));
+            fprintf(2, '    New contrasts computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,40));
+            rethrow(ME);
         end
 
     % BSC after FIR was calculated for some subjects (recompute)
@@ -1820,9 +1866,12 @@ function BSC_after_FIR_GUI(~,~,~)
             end
             save(fullfile(tmfc.project_path,'tmfc_autosave.mat'),'tmfc');
             disp('BSC LSS after FIR computation completed.');
-        catch
+        catch ME
             freeze_GUI(0);
-            error('Error: Recompute BSC after FIR for all subjects.');
+            fprintf(2, '\n%s\n', repmat('=',1,44));
+            fprintf(2, '    BSC LSS after FIR computation failed\n');
+            fprintf(2, '%s\n\n', repmat('=',1,44));
+            rethrow(ME);
         end
     end
 
@@ -2530,16 +2579,18 @@ function [sub_names] = tmfc_subject_naming_GUI
 end
 
 %% ========================[ PPI centering GUI ]===========================
-function [centering, whitening] = PPI_centering_GUI
+    function centering = PPI_centering_GUI
 
     centering = 'with_mean_centering';
-    whitening = 'inverse';
     
     MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di, Reynolds and Biswal, 2017; Masharipov et al., 2024)'};
-    MW_str_2 = {'Apply whitening inversion of the seed time series prior to the deconvolution and PPI term calculation to avoid double prewhitening (He et al., 2025)'};
+    
+    MW_str_2 = { ...
+        ['Note: Whitening is applied during deconvolution, consistent with SPM PEB i.i.d. assumptions.' newline ...
+         'In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal' newline ...
+         'is used for the PHYS regressor to avoid double whitening (see He et al., 2025).']};
     
     set_centering = {'Enable mean centering', 'Disable mean centering'};
-    set_whitening = {'Enable inverse whitening','Disable inverse whitening'};
     
     PPI_GUI_MW = figure('Name', 'Psychophysiological interaction', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.3 0.42 0.4 0.30],'Resize','on','MenuBar', 'none', 'ToolBar', 'none','Tag','tmfc_PPI_term_GUI', 'color', 'w','WindowStyle','modal','CloseRequestFcn', @exit_MW); 
     
@@ -2548,9 +2599,8 @@ function [centering, whitening] = PPI_centering_GUI
     PPI_centering_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_1,'Units', 'normalized', 'Position',[0.02 0.76 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35*fontscale,'BackgroundColor','w'); 
     PPI_centering_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_centering,'Units', 'normalized', 'Position',[0.35 0.60 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
     
-    PPI_whitening_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_2,'Units', 'normalized', 'Position',[0.02 0.40 0.95 0.15],'fontunits','normalized', 'fontSize', 0.35*fontscale,'BackgroundColor','w'); 
-    PPI_whitening_pop = uicontrol(PPI_GUI_MW , 'Style', 'popupmenu', 'String', set_whitening,'Units', 'normalized', 'Position',[0.35 0.24 0.32 0.15],'fontunits','normalized', 'fontSize', 0.36);     
-    
+    PPI_whitening_txt = uicontrol(PPI_GUI_MW,'Style','text','String', MW_str_2,'Units', 'normalized', 'Position',[0.02 0.34 0.95 0.24],'fontunits','normalized', 'fontSize', 0.22*fontscale,'BackgroundColor','w'); 
+
     PPI_MW_OK = uicontrol(PPI_GUI_MW,'Style','pushbutton','String', 'OK','Units', 'normalized','Position',[0.41 0.09 0.2 0.12],'fontunits','normalized', 'fontSize', 0.40,'callback', @read_data);
           
     % Read & Sync Data
@@ -2561,18 +2611,12 @@ function [centering, whitening] = PPI_centering_GUI
            centering = 'no_mean_centering';
        end      
        
-       temp_white = get(PPI_whitening_pop, 'value');
-       if temp_white == 2
-           whitening = 'none';
-       end
-       
        uiresume(PPI_GUI_MW);
     end
     
     % Exit
     function exit_MW(~,~)
         centering = '';
-        whitening = '';
         uiresume(PPI_GUI_MW);
     end
     
@@ -2856,9 +2900,8 @@ function [tmfc] = reset_gPPI(tmfc)
         rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(tmfc.ROI_set_number).set_name,'gPPI_FIR'),'s');
     end
     
-    % Clear mean centering and whitening
+    % Clear mean centering 
     tmfc.ROI_set(tmfc.ROI_set_number).PPI_centering = [];
-    tmfc.ROI_set(tmfc.ROI_set_number).PPI_whitening = [];
 
     % Clear contrasts
     try

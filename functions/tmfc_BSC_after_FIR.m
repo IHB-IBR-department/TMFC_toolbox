@@ -115,6 +115,7 @@ end
 
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 nSub = length(tmfc.subjects);
+sub_check = zeros(1,nSub);
 cond_list = tmfc.LSS_after_FIR.conditions;
 nCond = length(cond_list);
 
@@ -265,19 +266,15 @@ end
 % Extract and correlate betas
 function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_list,XYZ,iXYZ,hdr,iSub)
     SPM = load(tmfc.subjects(iSub).path).SPM;
-
+    
+    clear beta_series
+    
     % Load individual ROIs
     if isempty(ROIs)
         for iROI = 1:nROI
             ROIs(iROI).mask = spm_data_read(spm_data_hdr_read(tmfc.ROI_set(ROI_set_number).ROIs(iROI).path_masked(iSub).subjects),'xyz',XYZ);
             ROIs(iROI).mask(ROIs(iROI).mask == 0) = NaN;
         end
-    end
-
-    % Number of trials per condition
-    nTrialCond = [];
-    for jCond = 1:nCond
-        nTrialCond(jCond) = length(SPM.Sess(cond_list(jCond).sess).U(cond_list(jCond).number).ons);
     end
     
     % Conditions of interest
@@ -287,10 +284,42 @@ function tmfc_extract_betas_after_FIR(tmfc,ROI_set_number,ROIs,nROI,nCond,cond_l
         % -------------------------------------
         disp(['Extracting average beta series: Subject: ' num2str(iSub) ' || Condition: ' num2str(jCond)]);
         
-        for kTrial = 1:nTrialCond(jCond)
-            betas(kTrial,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,'Betas', ...
+        % Exclude edge trials (onset < 0s or onset > end-8s)
+        % -------------------------------------------------------------
+        iSess = cond_list(jCond).sess;
+        iU    = cond_list(jCond).number;
+
+        RT   = SPM.xY.RT;
+        tEnd = (SPM.nscan(iSess)-1)*RT;
+        tMax = tEnd - 8;  % seconds before end to exclude
+
+        ons = SPM.Sess(iSess).U(iU).ons;
+
+        % Convert onsets to seconds for filtering
+        if strcmpi(SPM.xBF.UNITS,'scans')
+            ons_sec = ons * RT;
+        else
+            ons_sec = ons;
+        end
+
+        keep = (ons_sec >= 0) & (ons_sec <= tMax);
+        trial_idx = find(keep);
+
+        % If no valid trials 
+        if isempty(trial_idx)
+            error('Condition has no usable trials: all onsets are too close to session start or end (Sub %d, Sess %d, %s).', ...
+                   iSub, iSess, cond_list(jCond).file_name);
+        end
+
+        % Load only kept trials BUT keep original trial indices in filenames
+        betas = [];
+        for kk = 1:length(trial_idx)
+            kTrial = trial_idx(kk);
+            betas(kk,:) = spm_data_read(spm_data_hdr_read(fullfile(tmfc.project_path,'LSS_regression_after_FIR',tmfc.subjects(iSub).name,'Betas', ...
                 ['Beta_' cond_list(jCond).file_name '_[Trial_' num2str(kTrial) '].nii'])),'xyz',XYZ);
         end
+
+        clear iSess iU RT tEnd tMax ons ons_sec keep trial_idx kk kTrial
 
         % Remove NaN columns (voxels outside brain)
         tmp_betas = betas;

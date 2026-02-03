@@ -118,12 +118,12 @@ nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
 nCond = length(cond_list);
-sess = []; sess_num = []; nSess = [];
+sess = []; sess_num = []; 
 for iCond = 1:nCond
     sess(iCond) = cond_list(iCond).sess;
 end
 sess_num = unique(sess);
-nSess = length(sess_num);
+
 sub_check = zeros(1,nSub);
 if start_sub > 1
     sub_check(1:start_sub) = 1;
@@ -135,15 +135,30 @@ start_time = tic;
 count_sub = 1;
 cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
+% Initialize SPM
 spm('defaults','fmri');
 spm_jobman('initcfg');
 spm_get_defaults('cmdline',true);
 
-if tmfc.defaults.parallel==1
-    if isempty(gcp('nocreate')), parpool; end
+% Initialize parfor
+usePar = false;
+hasPCT = (exist('parfor','builtin')==5) && license('test','Distrib_Computing_Toolbox');
+if tmfc.defaults.parallel==1 && hasPCT
+    p = gcp('nocreate');
+    if isempty(p)
+        parpool;
+        p = gcp('nocreate');
+    end
+    nW = p.NumWorkers;
+    usePar = (nROI >= nW) && (nROI >= 4);
 end
+try, figure(findobj('Tag','TMFC_GUI')); end
 
+% -------------------------------------------------------------------------
+% Subject loop
+% -------------------------------------------------------------------------
 for iSub = start_sub:nSub
+
     % Calculate F-contrast for all conditions of interest
     SPM = load(tmfc.subjects(iSub).path).SPM;
     cond_col = [];
@@ -159,14 +174,16 @@ for iSub = start_sub:nSub
     for iCond = 1:length(cond_col)
         weights(iCond,cond_col(iCond)) = 1;
     end
+
     % Check if contrast already exists
     idx = [];
     if isfield(SPM,'xCon') && ~isempty(SPM.xCon)
-        idx = find(arrayfun(@(c) isequal(c.c, weights'), SPM.xCon), 1, 'first');
+        idx = find(arrayfun(@(c) isequal(c.c, weights') && isfield(c,'STAT') && strcmpi(c.STAT,'F'), SPM.xCon), 1, 'first');
         nCon = numel(SPM.xCon);
     else
         nCon = 0;
     end
+
     % Estimate contrasts only if missing
     if isempty(idx)
         matlabbatch = [];
@@ -177,87 +194,76 @@ for iSub = start_sub:nSub
         matlabbatch{1}.spm.stats.con.delete = 0;
         spm_jobman('run',matlabbatch);
         idx = nCon + 1;
+        % Reload SPM.mat to update SPM.xCon
+        SPM = load(tmfc.subjects(iSub).path).SPM;
     end
 
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name),'s');
-        pause(0.1);
+    % Remove existing VOI folder for this subject 
+    outPath = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name);
+    if isdir(outPath)
+        rmdir(outPath,'s'); pause(0.1);
     end
 
-    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name))
-        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name));
+    % Create a clean VOI output folder for the current subject
+    if ~isdir(outPath)
+        mkdir(outPath);
+    end
+
+    % Build reduced SPM struct for tmfc_regions
+    SPMr = struct();
+    
+    SPMr.xY  = struct('VY', SPM.xY.VY);
+    
+    SPMr.xX  = struct();
+    SPMr.xX.K    = SPM.xX.K;
+    SPMr.xX.W    = SPM.xX.W;
+    SPMr.xX.xKXs = SPM.xX.xKXs;
+    
+    SPMr.swd   = SPM.swd;
+    SPMr.Vbeta = SPM.Vbeta;
+
+    SPMr.Sess = struct('row', []);
+    for ss = 1:numel(SPM.Sess)
+        SPMr.Sess(ss).row = SPM.Sess(ss).row;
     end
     
-    for jSess = 1:nSess
+    SPMr.xCon = SPM.xCon(idx);
+
+    % VOI time-series extraction
+    if ~usePar
         for kROI = 1:nROI
-            matlabbatch = [];
-            matlabbatch{1}.spm.util.voi.spmmat = {tmfc.subjects(iSub).path};
-            matlabbatch{1}.spm.util.voi.adjust = idx;
-            matlabbatch{1}.spm.util.voi.session = sess_num(jSess);
-            matlabbatch{1}.spm.util.voi.name = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
+            roiName = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
+
+            fprintf('[VOI] Sub %02d/%02d | ROI %03d/%03d (%s)\n', ...
+                iSub, nSub, kROI, nROI, roiName);
+
             switch tmfc.ROI_set(ROI_set_number).type
                 case {'binary_images','fixed_spheres'}
-                    matlabbatch{1}.spm.util.voi.roi{1}.mask.image = {tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked};
+                    maskPath = tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked;
                 otherwise
-                    matlabbatch{1}.spm.util.voi.roi{1}.mask.image = {tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked(iSub).subjects};
+                    maskPath = tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked(iSub).subjects;
             end
-            matlabbatch{1}.spm.util.voi.roi{1}.mask.threshold = 0.1;
-            matlabbatch{1}.spm.util.voi.expression = 'i1';    
-            batch{kROI} = matlabbatch;
-            clear matlabbatch
-        end
-        
-        switch tmfc.defaults.parallel
-            case 0  % Sequential
-                for kROI = 1:nROI
-                    spm_jobman('run',batch{kROI});
-                    
-                    src = fullfile(SPM.swd, sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                    dst = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name, ...
-                                   sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                    try, movefile(src, dst); end
 
-                    try
-                        e1 = fullfile(SPM.swd, sprintf('VOI_%s_%d_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                        e0 = fullfile(SPM.swd, sprintf('VOI_%s_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
-                        if exist(e1,'file'), delete(e1); elseif exist(e0,'file'), delete(e0); end
-                    end
-                    try
-                        msk = fullfile(SPM.swd, sprintf('VOI_%s_mask.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
-                        if exist(msk,'file'), delete(msk); end
-                    end
-                end
-                
-            case 1  % Parallel
-                try
-                    figure(findobj('Tag','TMFC_GUI'));
-                end
-                
-                swd = SPM.swd;
-                parfor kROI = 1:nROI
-                    spm('defaults','fmri');
-                    spm_jobman('initcfg');
-                    spm_get_defaults('cmdline',true);
-                    spm_jobman('run',batch{kROI});
-
-                    src = fullfile(swd, sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                    dst = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs',tmfc.subjects(iSub).name, ...
-                                   sprintf('VOI_%s_%d.mat', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                    try, movefile(src, dst); end
-
-                    try
-                        e1 = fullfile(swd, sprintf('VOI_%s_%d_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name, sess_num(jSess)));
-                        e0 = fullfile(swd, sprintf('VOI_%s_eigen.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
-                        if exist(e1,'file'), delete(e1); elseif exist(e0,'file'), delete(e0); end
-                    end
-                    try
-                        msk = fullfile(swd, sprintf('VOI_%s_mask.nii', tmfc.ROI_set(ROI_set_number).ROIs(kROI).name));
-                        if exist(msk,'file'), delete(msk); end
-                    end
-                end
+            tmfc_regions(SPMr, roiName, maskPath, outPath, 1, sess_num, 0.1);
         end
 
-        clear batch
+    else
+        SPMrc = parallel.pool.Constant(SPMr);
+        parfor kROI = 1:nROI
+            roiName = tmfc.ROI_set(ROI_set_number).ROIs(kROI).name;
+
+            fprintf('[VOI] Sub %02d/%02d | ROI %03d/%03d (%s)\n', ...
+                iSub, nSub, kROI, nROI, roiName);
+
+            switch tmfc.ROI_set(ROI_set_number).type
+                case {'binary_images','fixed_spheres'}
+                    maskPath = tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked;
+                otherwise
+                    maskPath = tmfc.ROI_set(ROI_set_number).ROIs(kROI).path_masked(iSub).subjects;
+            end
+
+            tmfc_regions(SPMrc.Value, roiName, maskPath, outPath, 1, sess_num, 0.1);
+        end
     end
     
     sub_check(iSub) = 1;
@@ -278,7 +284,7 @@ for iSub = start_sub:nSub
         waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
     end
 
-    clear SPM
+    clear SPM SPMr SPMrc
 end
 
 % Close waitbar

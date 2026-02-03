@@ -123,15 +123,41 @@ for iSub = start_sub:nSub
             end
         end
         
-        % Conditions
+        % Conditions (skip conditions that would generate all-zero FIR regressors)
+        kCond2 = 0;
+        RT   = SPM.xY.RT;
+        tEnd = (SPM.nscan(jSess)-1) * RT;
+        tMax = tEnd - tmfc.FIR.window;
+
         for kCond = 1:length(SPM.Sess(jSess).U)
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).name = SPM.Sess(jSess).U(kCond).name{1};
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).onset = SPM.Sess(jSess).U(kCond).ons;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).duration = 0;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).tmod = 0;
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).pmod = struct('name', {}, 'param', {}, 'poly', {});
-            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond).orth = 1;
+
+            ons = SPM.Sess(jSess).U(kCond).ons;
+
+            % Convert to seconds for filtering
+            if strcmpi(SPM.xBF.UNITS,'scans')
+                ons_sec = ons * RT;
+            else
+                ons_sec = ons;
+            end
+
+            % Keep only onsets that allow the full FIR window inside the session
+            keep = ons_sec >= 0 & ons_sec <= tMax;
+            if ~any(keep)
+                continue
+            end
+
+            kCond2 = kCond2 + 1;
+
+            % Keep original units in the batch (scans or seconds), but filtered
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).name = SPM.Sess(jSess).U(kCond).name{1};
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).onset = ons(keep);
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).duration = 0;
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).tmod = 0;
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).pmod = struct('name', {}, 'param', {}, 'poly', {});
+            matlabbatch{1}.spm.stats.fmri_spec.sess(jSess).cond(kCond2).orth = 1;
         end
+
+        clear kCond2 RT tEnd tMax ons ons_sec keep
         
         % Confounds       
         for kConf = 1:length(SPM.Sess(jSess).C.name)

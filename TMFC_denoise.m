@@ -1,6 +1,6 @@
 function output_paths = TMFC_denoise(SPM_paths,subject_paths,options,anat_paths,func_paths,display_FD,estimate_GLMs,clear_all)
 
-% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.3]=
+% =[Task-Modulated Functional Connectivity (TMFC) Denoise Toolbox v1.4.4]=
 % 
 % The TMFC denoise toolbox updates the selected general linear model with
 % the addition of noise regressors. It can be used prior to TMFC analysis 
@@ -179,7 +179,7 @@ end
 
 %-Check TMFC_denoise version
 %--------------------------------------------------------------------------
-localVer  = 'v1.4.3';
+localVer  = 'v1.4.4';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_denoise'), ...

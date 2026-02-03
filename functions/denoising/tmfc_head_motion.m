@@ -11,6 +11,10 @@ function FD = tmfc_head_motion(SPM_paths,subject_paths,options)
 %     derivatives of translational and rotational parameters
 %     (Power et al., 2012).
 %
+% (3) Calculates correlations (Pearson's r) between framewise displacement
+%     (FD) and task regressors (from the original SPM design matrix) for each
+%     session, and provides summary statistics (mean / max |r|).
+%
 % =========================================================================
 % Copyright (C) 2025 Ruslan Masharipov
 % License: GPL-3.0-or-later
@@ -25,7 +29,18 @@ for iSub = 1:length(SPM_paths)
         if size(SPM.Sess(jSess).C.C,2) < 6
             error('The original model contains fewer than six confound regressors. It must include six head motion regressors. Please check:\n%s',SPM_paths{iSub});
         else
+            % HMP
             group_HMP(iSub).Sess{jSess} = SPM.Sess(jSess).C.C(:,[options.translation_idx options.rotation_idx]);
+            
+            % Task regressors
+            task_cols = [];
+            if isfield(SPM.Sess(jSess),'Fc')
+                for kCond = 1:length(SPM.Sess(jSess).Fc)
+                    task_cols = [task_cols SPM.Sess(jSess).col(SPM.Sess(jSess).Fc(kCond).i)];
+                end
+            end
+            group_task(iSub).Sess{jSess} = SPM.xX.X(SPM.Sess(jSess).row,task_cols);
+            group_task_names(iSub).Sess{jSess} = SPM.xX.name(task_cols);
         end
     end
     clear SPM
@@ -44,8 +59,10 @@ for iSub = 1:length(group_HMP)
         HMP_diff = [zeros(1,6); diff(HMP)];
         HMP12(jSess).Sess = [HMP HMP_diff];
         HMP24(jSess).Sess = [HMP HMP_diff HMP.^2 HMP_diff.^2];
-
+        
+        % -----------------------------------------------------------------
         % Calculate FD
+        % -----------------------------------------------------------------
         HMP_diff_xyz = HMP_diff(:,1:3);
         HMP_diff_rot = HMP_diff(:,4:6);
 
@@ -63,15 +80,81 @@ for iSub = 1:length(group_HMP)
         [~, sub, ~] = fileparts(subject_paths{iSub});
         FD(iSub).Subject = sub;
         FD(iSub).Sess(jSess).FD_ts = ts_FD;
-        FD(iSub).Sess(jSess).mean = mean(ts_FD);
-        FD(iSub).Sess(jSess).max = max(ts_FD);
+        FD(iSub).Sess(jSess).FD_mean = mean(ts_FD);
+        FD(iSub).Sess(jSess).FD_max = max(ts_FD);
 
-        clear HMP HMP_diff* ts_FD 
+        % -----------------------------------------------------------------
+        % Store task regressor names + task-FD correlations 
+        % -----------------------------------------------------------------
+        FD(iSub).Sess(jSess).task_names = group_task_names(iSub).Sess{jSess};
+
+        Xtask = group_task(iSub).Sess{jSess};
+        taskFD_corr = nan(1, size(Xtask,2));
+
+        for k = 1:size(Xtask,2)
+            taskFD_corr(k) = tmfc_corr(ts_FD, Xtask(:,k));
+        end
+
+        FD(iSub).Sess(jSess).taskFD_corr = taskFD_corr;
+
+        % Session-level summaries (ignore NaNs)
+        r = taskFD_corr(:);
+        ok = isfinite(r);
+
+        if any(ok)
+            FD(iSub).Sess(jSess).taskFD_corr_mean = mean(r(ok));
+
+            [mx, imx] = max(abs(r(ok)));
+            idx_ok = find(ok);
+            imx = idx_ok(imx);
+
+            FD(iSub).Sess(jSess).taskFD_corr_maxabs = mx;
+            FD(iSub).Sess(jSess).taskFD_corr_maxabs_name = FD(iSub).Sess(jSess).task_names{imx};
+        else
+            FD(iSub).Sess(jSess).taskFD_corr_mean = NaN;
+            FD(iSub).Sess(jSess).taskFD_corr_maxabs = NaN;
+            FD(iSub).Sess(jSess).taskFD_corr_maxabs_name = '';
+        end
+
+        clear HMP HMP_diff* ts_FD Xtask taskFD_corr
     end
+
+    % ---------------------------------------------------------------------
+    % Subject-level summaries across sessions
+    % ---------------------------------------------------------------------
 
     FD(iSub).FD_mean = mean(sub_FD_mean);
     FD(iSub).FD_max = max(sub_FD_max);
     clear sub_FD_max sub_FD_mean sub
+
+    % Task-FD correlations
+    sess_mean = nan(1, length(FD(iSub).Sess));
+    sess_max  = nan(1, length(FD(iSub).Sess));
+    sess_name = cell(1, length(FD(iSub).Sess));
+
+    for jSess = 1:length(FD(iSub).Sess)
+        sess_mean(jSess) = FD(iSub).Sess(jSess).taskFD_corr_mean;
+        sess_max(jSess)  = FD(iSub).Sess(jSess).taskFD_corr_maxabs;
+        sess_name{jSess} = FD(iSub).Sess(jSess).taskFD_corr_maxabs_name;
+    end
+
+    okm = isfinite(sess_mean);
+    if any(okm)
+        FD(iSub).taskFD_corr_mean = mean(sess_mean(okm));
+    else
+        FD(iSub).taskFD_corr_mean = NaN;
+    end
+
+    okx = isfinite(sess_max);
+    if any(okx)
+        [FD(iSub).taskFD_corr_maxabs, imax] = max(sess_max(okx));
+        idx_ok = find(okx);
+        imax = idx_ok(imax);
+        FD(iSub).taskFD_corr_maxabs_name = sess_name{imax};
+    else
+        FD(iSub).taskFD_corr_maxabs = NaN;
+        FD(iSub).taskFD_corr_maxabs_name = '';
+    end
 
     % Save 12HMP.mat and 24HMP.mat files
     if strcmpi(options.motion,'12HMP')

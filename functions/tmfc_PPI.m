@@ -3,13 +3,18 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
 % Calculates psychophysiological interactions (PPIs).
+% Whitening is applied during deconvolution, consistent with SPM PEB assumptions.
+% Mean centering of the psychological regressor (PSY) can be enabled or disabled.
+% In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal
+% is used for the PHYS regressor to avoid double whitening (see He et al., 2025).
+%
 %
 % FORMAT [sub_check] = tmfc_PPI(tmfc)
 % Run a function starting from the first subject in the list.
 %
 %   tmfc.subjects.path            - Paths to individual SPM.mat files
 %   tmfc.subjects.name            - Subject names within the TMFC project
-%                           ('Subject_XXXX' naming will be used by default)
+%                                   ('Subject_XXXX' naming will be used by default)
 %   tmfc.project_path             - Path where all results will be saved
 %   tmfc.defaults.parallel        - 0 or 1 (sequential/parallel computing)
 %
@@ -18,12 +23,7 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 %                                   regressor (PSY) prior to deconvolution:
 %                                   'with_mean_centering' (default)
 %                                   or 'no_mean_centering'
-%                                   (Di, Reynolds & Biswal, 2017; Masharipov et al., 2024)
-%   tmfc.ROI_set.PPI_whitening    - Apply whitening inversion of the seed 
-%                                   time series prior to deconvolution
-%                                   and PPI term calculation, to avoid double
-%                                   prewhitening (He et al., 2025):
-%                                   'inverse' (default) or 'none'
+%                                   (see Di, Reynolds & Biswal, 2017; Masharipov et al., 2024)
 %
 %   tmfc.ROI_set.type             - Type of the ROI set
 %   tmfc.ROI_set.set_name         - Name of the ROI set
@@ -117,12 +117,6 @@ elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_centering)
     tmfc.ROI_set(ROI_set_number).PPI_centering = 'with_mean_centering';
 end
 
-if ~isfield(tmfc.ROI_set(ROI_set_number),'PPI_whitening')
-    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'inverse';
-elseif isempty(tmfc.ROI_set(ROI_set_number).PPI_whitening)
-    tmfc.ROI_set(ROI_set_number).PPI_whitening = 'inverse';
-end
-
 % Check subject names
 if ~isfield(tmfc.subjects,'name')
     for iSub = 1:length(tmfc.subjects)
@@ -130,80 +124,173 @@ if ~isfield(tmfc.subjects,'name')
     end
 end
 
+% Try to update GUI
 try
     main_GUI = guidata(findobj('Tag','TMFC_GUI'));                           
     set(main_GUI.TMFC_GUI_S4,'String', 'Updating...','ForegroundColor',[0.772, 0.353, 0.067]);       
 end
 
+% -------------------------------------------------------------------------
+% Basic setup
+% -------------------------------------------------------------------------
 nSub = length(tmfc.subjects);
 nROI = length(tmfc.ROI_set(ROI_set_number).ROIs);
+
 cond_list = tmfc.ROI_set(ROI_set_number).gPPI.conditions;
+nCond = length(cond_list);
+
+sess = []; sess_num = []; 
+for iCond = 1:nCond
+    sess(iCond) = cond_list(iCond).sess;
+end
+sess_num = unique(sess);
+maxSess  = max(sess_num);
+
+conds_by_sess = cell(1, maxSess);
+for jCond = 1:nCond
+    s = cond_list(jCond).sess;
+    conds_by_sess{s}(end+1) = jCond;
+end
+
 sub_check = zeros(1,nSub);
 if start_sub > 1
     sub_check(1:start_sub) = 1;
 end
 
-% Initialize waitbar
-w = waitbar(0,'Please wait...','Name','PPI regressors calculation','Tag','tmfc_waitbar');
-start_time = tic;
-count_sub = 1;
+% Initialize SPM
+spm('defaults','fmri');
+
 cleanupObj = onCleanup(@unfreeze_after_ctrl_c);
 
-spm('defaults','fmri');
-spm_jobman('initcfg');
+% -------------------------------------------------------------------------
+% NOTE ABOUT PARFOR (INTENTIONALLY DISABLED BY DEFAULT)
+% -------------------------------------------------------------------------
+% spm_PEB (used inside tmfc_PEB_PPI) involves inversion/solves of large
+% matrices and is already implicitly multithreaded via high-performance
+% linear algebra libraries (e.g., BLAS/LAPACK). In many practical cases,
+% using parfor here can be slower due to worker overhead and CPU
+% oversubscription. If you want to benchmark parfor speed on your machine,
+% you can set the flag below to false.
 
-for iSub = start_sub:nSub
+force_disable_parfor = true;   % <-- set to false to test parfor on your PC
 
-    if isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
-        rmdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name),'s');
-        pause(0.1);
-    end
+% -------------------------------------------------------------------------
+% Prepare CACHE
+% -------------------------------------------------------------------------
+CACHE = struct();
+CACHE.project_path = tmfc.project_path;
 
-    if ~isdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name))
-        mkdir(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name));
-    end
+CACHE.ROI_set_number = ROI_set_number;
+CACHE.ROIset         = tmfc.ROI_set(ROI_set_number);
 
-    % Conditions of interest
-    for jCond = 1:length(cond_list)
-        switch tmfc.defaults.parallel
-            case 0  % Sequential
-                for kROI = 1:nROI
-                    tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI);
-                end
-            case 1  % Parallel
-                try
-                    if isempty(gcp('nocreate')), parpool; end
-                    figure(findobj('Tag','TMFC_GUI'));
-                end
-                parfor kROI = 1:nROI
-                    tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI);
-                end
+CACHE.conditions.list       = cond_list;
+CACHE.conditions.by_session = conds_by_sess;
+CACHE.conditions.nCond      = nCond;
+
+CACHE.sessions.list = sess_num;
+CACHE.sessions.max  = maxSess;
+
+CACHE.subjects.sublist = tmfc.subjects;
+CACHE.subjects.nSub = nSub; 
+
+% -------------------------------------------------------------------------
+% Subject loop 
+% -------------------------------------------------------------------------
+
+% Sequential computations
+% -------------------------------------------------------------------------
+if tmfc.defaults.parallel == 0 || force_disable_parfor
+
+    % If user requested parallel mode, notify that parfor is disabled here
+    if tmfc.defaults.parallel == 1 && force_disable_parfor
+        try
+            helpdlg({ ...
+                'Parallel mode requested, but parfor is disabled for PPI calculation.', ...
+                '', ...
+                'spm_PEB is already implicitly multithreaded (BLAS/LAPACK), so parfor is often slower here.', ...
+                '', ...
+                'Set "force_disable_parfor = false" inside tmfc_PPI if you want to test parfor speed.' ...
+                }, 'TMFC note');
+        catch
+            % Do nothing if GUI is not available
         end
     end
-    
-    sub_check(iSub) = 1;
 
-    % Update main TMFC GUI
-    try  
-        main_GUI = guidata(findobj('Tag','TMFC_GUI'));                        
-        set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);    
+    % Initialize waitbar
+    w = waitbar(0,'Please wait...','Name','PPI regressors calculation','Tag','tmfc_waitbar');
+    start_time = tic;
+    count_sub = 1;
+
+    for iSub = start_sub:nSub
+        tmfc_PEB_PPI(CACHE,iSub);
+        sub_check(iSub) = 1;
+        % Update main TMFC GUI
+        try
+            set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(iSub), '/', num2str(nSub), ' done'),'ForegroundColor',[0.219, 0.341, 0.137]);
+        end
+
+        % Update waitbar
+        elapsed_time = toc(start_time);
+        time_per_sub = elapsed_time/count_sub;
+        count_sub = count_sub + 1;
+        time_remaining = (nSub-iSub)*time_per_sub;
+        hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+        try
+            waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+        end
     end
-    
-    % Update waitbar
-    elapsed_time = toc(start_time);
-    time_per_sub = elapsed_time/count_sub;
-    count_sub = count_sub + 1;
-    time_remaining = (nSub-iSub)*time_per_sub;
-    hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+
+    % Close waitbar
     try
-        waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+        delete(w);
     end
-end
 
-% Close waitbar
-try
-    delete(w)
-end
+% Parallel computations
+% -------------------------------------------------------------------------
+else
+    try % Waitbar for MATLAB R2017a and higher
+        D = parallel.pool.DataQueue;            % Creation of parallel pool
+        w = waitbar(0,'Please wait...','Name','PPI regressors calculation','Tag','tmfc_waitbar');
+        afterEach(D, @tmfc_parfor_waitbar);     % Command to update waitbar
+        tmfc_parfor_waitbar(w,nSub,start_sub);
+    catch % No waitbar for MATLAB R2016b and earlier
+        D = [];
+        opts = struct('WindowStyle','non-modal','Interpreter','tex');
+        w = warndlg({'\fontsize{12}Sorry, waitbar progress update is not available for parallel computations in MATLAB R2016b and earlier.',[],...
+            'Please wait until all computations are completed.',[],...
+            'If you want to interrupt computations:',...
+            '   1) Do not close this window;',...
+            '   2) Select MATLAB main window;',...
+            '   3) Press Ctrl+C.'},'Please wait...',opts);
+    end
+
+    % Parallel Loop
+    try
+        if isempty(gcp('nocreate')), parpool; end
+        figure(findobj('Tag','TMFC_GUI'));
+    end
+
+    CACHEc = parallel.pool.Constant(CACHE);
+    parfor iSub = start_sub:nSub
+        tmfc_PEB_PPI(CACHEc.Value, iSub);
+        sub_check(iSub) = 1;
+
+        % Update waitbar
+        try
+            send(D,[]);
+        end
+    end
+
+    % Update TMFC GUI window
+    try                                
+        set(main_GUI.TMFC_GUI_S4,'String', strcat(num2str(nSub), '/', num2str(nSub), ' done'), 'ForegroundColor', [0.219, 0.341, 0.137]); 
+    end
+
+    % Close waitbar
+    try                                                                
+        delete(w);
+    end
+end   
 
 % -------------------------------------------------------------------------
 function unfreeze_after_ctrl_c()    
@@ -220,160 +307,29 @@ end
 end
 
 %==========================================================================
-function tmfc_PEB_PPI(tmfc,ROI_set_number,cond_list,iSub,jCond,kROI)
-% Adapted from spm_peb_ppi.m
-    
-% Load SPM 
-SPM = load(tmfc.subjects(iSub).path).SPM;
 
-% Load VOI
-VOI = fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'VOIs', ... 
-      tmfc.subjects(iSub).name,['VOI_' tmfc.ROI_set(ROI_set_number).ROIs(kROI).name '_' num2str(cond_list(jCond).sess) '.mat']);
-p   = load(deblank(VOI(1,:)),'xY');
-
-xY(1) = p.xY;
-Sess  = SPM.Sess(xY(1).Sess);
-
-PPI.name = ['[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name];
-
-% Define Uu
-% Matrix of input variables and contrast weights. This is an
-% [n x 3] matrix. The first column indexes SPM.Sess.U(i). The
-% second column indexes the name of the input or cause, see
-% SPM.Sess.U(i).name{j}. The third column is the contrast
-% weight. Unless there are parametric effects the second
-% column will generally be a 1.
-U.name = {};
-U.u    = [];
-U.w    = [];
-try
-    Uu = [cond_list(jCond).number cond_list(jCond).pmod 1];
-catch
-    Uu = [cond_list(jCond).number 1 1];
-end
-for i = 1:size(Uu,1)
-    U.u           = [U.u Sess.U(Uu(i,1)).u(33:end,Uu(i,2))];
-    U.name{end+1} = Sess.U(Uu(i,1)).name{Uu(i,2)};
-    U.w           = [U.w Uu(i,3)];
-end
-
-% See spm_peb_ppi:
-
-% Setup variables
-%--------------------------------------------------------------------------
-RT      = SPM.xY.RT;
-dt      = SPM.xBF.dt;
-NT      = round(RT/dt);
-fMRI_T0 = SPM.xBF.T0;
-N       = length(xY(1).u);
-k       = 1:NT:N*NT;                       % microtime to scan time indices
-
-% Setup other output variables
-%--------------------------------------------------------------------------
-PPI.xY = xY;
-PPI.RT = RT;
-PPI.dt = dt;  
-
-% Create basis functions and hrf in scan time and microtime
-%--------------------------------------------------------------------------
-hrf = spm_hrf(dt);
-
-% Create convolved explanatory {Hxb} variables in scan time
-%--------------------------------------------------------------------------
-xb  = spm_dctmtx(N*NT + 128,N);
-Hxb = zeros(N,N);
-for i = 1:N
-    Hx       = conv(xb(:,i),hrf);
-    Hxb(:,i) = Hx(k + 128);
-end
-xb = xb(129:end,:);
-
-% Get confounds (in scan time) and constant term
-%--------------------------------------------------------------------------
-X0 = xY(1).X0;
-M  = size(X0,2);
-
-% Get response variable
-%--------------------------------------------------------------------------
-if strcmp(tmfc.ROI_set(ROI_set_number).PPI_whitening,'inverse') % Whitening inversion to avoid double whitening (see He et al., 2025)
-    % Check if SPM.mat has concatenated sessions 
-    % (if spm_fmri_concatenate.m script was used)
-    if size(SPM.nscan,2) == size(SPM.Sess,2) 
-        W = SPM.xX.W(SPM.xX.K(xY.Sess).row,SPM.xX.K(xY.Sess).row);
-        Y = inv(W)*xY.u;
+% Waitbar for parallel mode
+function tmfc_parfor_waitbar(waitbarHandle,iterations,firstsub)
+    persistent w nSub start_sub start_time count_sub 
+    if nargin == 3
+        w = waitbarHandle;
+        nSub = iterations;
+        start_sub = firstsub - 1;
+        start_time = tic;
+        count_sub = 1;
     else
-        Y = inv(SPM.xX.W)*xY.u;
+        if isvalid(w)         
+            elapsed_time = toc(start_time);
+            time_per_sub = elapsed_time/count_sub;
+            iSub = start_sub + count_sub;
+            time_remaining = (nSub-iSub)*time_per_sub;
+            hms = fix(mod((time_remaining), [0, 3600, 60]) ./ [3600, 60, 1]);
+            waitbar(iSub/nSub, w, [num2str(iSub/nSub*100,'%.f') '%, ' num2str(hms(1),'%02.f') ':' num2str(hms(2),'%02.f') ':' num2str(hms(3),'%02.f') ' [hr:min:sec] remaining']);
+            count_sub = count_sub + 1;
+        end
     end
-else
-    Y = xY.u;
 end
 
-% Remove confounds and save Y in output structure
-%--------------------------------------------------------------------------
-Yc    = Y - X0*inv(X0'*X0)*X0'*Y;
-PPI.Y = Yc(:,1);
-if size(Y,2) == 2
-    PPI.P = Yc(:,2);
-end
 
-% Specify covariance components; assume neuronal response is white
-% treating confounds as fixed effects
-%--------------------------------------------------------------------------
-Q = speye(N,N)*N/trace(Hxb'*Hxb);
-Q = blkdiag(Q, speye(M,M)*1e6  );
 
-% Get whitening matrix (NB: confounds have already been whitened)
-%--------------------------------------------------------------------------
-W = SPM.xX.W(Sess.row,Sess.row);
 
-% Create structure for spm_PEB
-%--------------------------------------------------------------------------
-clear P
-P{1}.X = [W*Hxb X0];        % Design matrix for lowest level
-P{1}.C = speye(N,N)/4;      % i.i.d assumptions
-P{2}.X = sparse(N + M,1);   % Design matrix for parameters (0's)
-P{2}.C = Q;
-
-C  = spm_PEB(Y,P);
-xn = xb*C{2}.E(1:N);
-xn = spm_detrend(xn);
-
-% Setup psychological variable from inputs and contrast weights
-%----------------------------------------------------------------------
-PSY = zeros(N*NT,1);
-for i = 1:size(U.u,2)
-    PSY = PSY + full(U.u(:,i) * U.w(i));
-end
-
-% Mean centering
-if strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'with_mean_centering') || strcmp(tmfc.ROI_set(ROI_set_number).PPI_centering,'mean_centering') 
-    PSY = spm_detrend(PSY);
-end
-
-% Multiply psychological variable by neural signal
-%----------------------------------------------------------------------
-PSYxn = PSY.*xn;
-
-% Convolve, convert to scan time, and account for slice timing shift
-%----------------------------------------------------------------------
-ppi = conv(PSYxn,hrf);
-ppi = ppi((k-1) + fMRI_T0);
-
-% Convolve psych effect, convert to scan time, and account for slice
-% timing shift
-%----------------------------------------------------------------------
-PSYHRF = conv(PSY,hrf);
-PSYHRF = PSYHRF((k-1) + fMRI_T0);
-
-% Save psychological variables
-%----------------------------------------------------------------------
-PPI.psy = U;
-PPI.P   = PSYHRF;
-PPI.xn  = xn;
-PPI.ppi = spm_detrend(ppi);
-
-% Save PPI *.mat file
-%----------------------------------------------------------------------
-save(fullfile(tmfc.project_path,'ROI_sets',tmfc.ROI_set(ROI_set_number).set_name,'PPIs',tmfc.subjects(iSub).name, ...
-    ['PPI_[' regexprep(tmfc.ROI_set(ROI_set_number).ROIs(kROI).name,' ','_') ']_' cond_list(jCond).file_name '.mat']),'PPI');
-end

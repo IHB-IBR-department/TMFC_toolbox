@@ -8,6 +8,8 @@
 
 **TMFC** is a MATLAB toolbox for SPM12/SPM25 for task-modulated functional connectivity analysis.
 
+**The TMFC toolbox is under active development. Questions, suggestions, and contributions are welcome.**.
+
 TMFC toolbox implements:
  - Beta-series correlations based on the least-squares separate approach (**BSC-LSS**);
  - Generalized psychophysiological interactions (**gPPI**) with deconvolution procedure;
@@ -388,17 +390,21 @@ To perform gPPI analysis, we first need to extract time series from the seed ROI
 
 ### Volume of interest (VOI) 
 
-Click **"VOIs"** button to extract time series for the selected ROI set. Select conditions of interest. All other conditions will be considered as nuisance conditions. TMFC toolbox uses SPM volume of interest (VOI) function to extract time series. It extracts the first eigenvariate for the seed ROI after removing effects of no interest (using nuisance regressors, such as motion regressors, aCompCorr regressors, regressors for conditions of no interest, etc), and performing whitening and high-pass filtering.
+Click **"VOIs"** button to extract time series for the selected ROI set. Select conditions of interest. All other conditions will be considered as nuisance conditions.
+The TMFC toolbox uses an SPM-compatible volume of interest (VOI) procedure to extract ROI time series. 
+For each seed ROI, it extracts the first eigenvariate after removing effects of no interest (e.g., motion regressors, aCompCor components, regressors for conditions of no interest), and applying whitening and high-pass filtering.
+In addition to the filtered time series, the toolbox also saves the corresponding raw demeaned ROI signal.
 
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\VOIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **VOI .mat files**.
 
 ### Psychophysiological interaction (PPI) terms
 
 Click **"PPIs"** button to calculate PPI terms using the deconvolution procedure ([Gitelman et al., 2003](https://doi.org/10.1016/S1053-8119(03)00058-2)). TMFC toolbox uses SPM Parametric Empirical Bayes (PEB) function to calculate PPI terms.
-Select two options:
-1) "Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
-2) "Enable/Disable whitening inversion" ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
+Select mean centering:
+"Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
 
+**Note:** 
+**Inverse whitening** has been deprecated since v1.9.0. Whitening is applied during deconvolution, consistent with SPM PEB i.i.d. assumptions. In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal is used for the PHYS regressor to avoid double whitening ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
    
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\PPIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **PPI .mat files**.
 
