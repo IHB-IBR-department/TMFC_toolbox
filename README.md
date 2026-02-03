@@ -8,7 +8,20 @@
 
 **TMFC** is a MATLAB toolbox for SPM12/SPM25 for task-modulated functional connectivity analysis.
 
-**The TMFC toolbox is under active development. Questions, suggestions, and contributions are welcome.**.
+**The TMFC toolbox is under active development. Questions, suggestions, and contributions are welcome.**
+
+**Features planned for future releases:**
+1) Statistical inference for TMFC matrices
+   - Network-Based Statistic (NBS) with Family-Wise Error (FWE) correction
+   - Threshold-Free Network-Based Statistic (TFNBS)
+2) ReadTheDocs documentation
+3) Performance improvements (migration from SPM batch system to internal TMFC functions)
+     - VOI extraction ✅
+     - PPI computation ✅
+     - gPPI computation ⬜
+     - LSS computation ⬜
+4) Python version of the TMFC toolbox
+-------------------------------------------------------------------------------------------
 
 TMFC toolbox implements:
  - Beta-series correlations based on the least-squares separate approach (**BSC-LSS**);
