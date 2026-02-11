@@ -28,6 +28,8 @@
 if nargin == 0
 	SPM_check = 1;
 end
+
+spm_jobman('initcfg');
                     
 % SS = select subjects, MW = main window 
 SS_MW = figure('Name', 'Select subjects', 'NumberTitle', 'off', 'Units', 'normalized', 'Position', [0.36 0.25 0.35 0.575],'MenuBar', 'none','ToolBar', 'none','color','w','CloseRequestFcn',@SS_MW_exit);

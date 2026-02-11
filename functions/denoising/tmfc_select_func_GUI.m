@@ -387,6 +387,12 @@ function apply_filter(~,~)
                 fprintf('Searching in: %s | pattern: %s\n', td, dir_filter);
                 cand = dir(fullfile(td, dir_filter));
                 if ~isempty(cand)
+                    cand = cand(~[cand.isdir]);
+                    names = {cand.name};
+                    is_hdr = endsWith(lower(names), '.hdr');
+                    cand(is_hdr) = [];
+                end
+                if ~isempty(cand)
                     target_dir = td;
                     break;
                 end
@@ -402,6 +408,12 @@ function apply_filter(~,~)
                     fprintf('BFS found: %s | pattern: %s\n', td, dir_filter);
                     cand = dir(fullfile(td, dir_filter));
                     if ~isempty(cand)
+                        cand = cand(~[cand.isdir]);
+                        names = {cand.name};
+                        is_hdr = endsWith(lower(names), '.hdr');
+                        cand(is_hdr) = [];
+                    end
+                    if ~isempty(cand)
                         target_dir = td;
                     end
                 end
@@ -411,6 +423,12 @@ function apply_filter(~,~)
             if isempty(cand) && (~user_changed_root && ~user_changed_subf)
                 fprintf('Fallback to original SPM folder: %s | pattern: %s\n', orig_dir, dir_filter);
                 cand = dir(fullfile(orig_dir, dir_filter));
+                if ~isempty(cand)
+                    cand = cand(~[cand.isdir]);
+                    names = {cand.name};
+                    is_hdr = endsWith(lower(names), '.hdr');
+                    cand(is_hdr) = [];
+                end
                 if ~isempty(cand)
                     target_dir = orig_dir;
                 end
