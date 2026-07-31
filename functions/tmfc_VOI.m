@@ -2,9 +2,9 @@ function [sub_check] = tmfc_VOI(tmfc,ROI_set_number,start_sub)
 
 % ========= Task-Modulated Functional Connectivity (TMFC) toolbox =========
 %
-% Extracts time series from volumes of interest (VOIs). Computes an
-% F-contrast for all conditions of interest, regresses out conditions of no
-% interest and confounds, and applies whitening and high-pass filtering.
+% Extracts contrast-adjusted, whitened and filtered VOI time series for
+% PPI calculation, and contrast-adjusted, unfiltered and unwhitened VOI
+% time series for the PHYS regressor.
 %
 % FORMAT [sub_check] = tmfc_VOI(tmfc)
 % Run a function starting from the first subject in the list.
@@ -273,6 +273,7 @@ if ~useParSub
         SPMr = struct();
         SPMr.xY  = struct('VY', SPM.xY.VY);
         SPMr.xX  = struct();
+        SPMr.xX.X    = SPM.xX.X;
         SPMr.xX.K    = SPM.xX.K;
         SPMr.xX.W    = SPM.xX.W;
         SPMr.xX.xKXs = SPM.xX.xKXs;
@@ -455,6 +456,7 @@ function ok = tmfc_VOI_one_sub(tmfc,ROI_set_number,iSub,cond_list,sess_num,nSub,
     SPMr = struct();
     SPMr.xY  = struct('VY', SPM.xY.VY);
     SPMr.xX  = struct();
+    SPMr.xX.X    = SPM.xX.X;
     SPMr.xX.K    = SPM.xX.K;
     SPMr.xX.W    = SPM.xX.W;
     SPMr.xX.xKXs = SPM.xX.xKXs;

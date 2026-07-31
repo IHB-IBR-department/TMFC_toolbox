@@ -1,6 +1,6 @@
 function TMFC
     
-% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.9.5 ]====
+% =====[ Task-Modulated Functional Connectivity (TMFC) toolbox v1.9.6 ]====
 %
 % Opens the main GUI window.
 %
@@ -88,7 +88,7 @@ end
 
 %-Check TMFC toolbox version
 %--------------------------------------------------------------------------
-localVer  = 'v.1.9.5';
+localVer  = 'v.1.9.6';
 try
     r = webread(sprintf('https://api.github.com/repos/%s/%s/releases/latest', ...
                         'IHB-IBR-department','TMFC_toolbox'), ...
@@ -2622,9 +2622,9 @@ end
     MW_str_1 = {'Apply mean centering of the psychological regressor prior to the deconvolution and PPI term calculation (Di, Reynolds and Biswal, 2017; Masharipov et al., 2024)'};
     
     MW_str_2 = { ...
-        ['Note: Whitening is applied during deconvolution, consistent with SPM PEB i.i.d. assumptions.' newline ...
-         'In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal' newline ...
-         'is used for the PHYS regressor to avoid double whitening (see He et al., 2025).']};
+        ['Note: The same whitening transform is applied to the seed signal and deconvolution matrix.' newline ...
+         'In subsequent gPPI model estimation, PHYS is derived from unwhitened and unfiltered' newline ...
+         'BOLD data adjusted for regressors of no interest, avoiding double whitening (Masharipov & Kireev, 2026).']};
     
     set_centering = {'Enable mean centering', 'Disable mean centering'};
     

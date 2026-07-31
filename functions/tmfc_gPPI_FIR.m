@@ -337,9 +337,9 @@ if ~useParSub
                 tmp = load(VOI);
                 matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).name = ['Seed_' tmfc.ROI_set(ROI_set_number).ROIs(jROI).name];
                 if isfield(tmp,'Yraw')
-                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Yraw;  % Use raw (unwhitened) demeanted VOI time series
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Yraw;  % Use contrast-adjusted, unfiltered and unwhitened VOI time series 
                 else
-                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Y;     % Backward compatibility: old VOI files contain only Y
+                    matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Y;     % Backward compatibility: old VOI files contain only Y (contrast-adjusted, filtered and whitened time series)
                 end
                 clear VOI tmp
                 
@@ -819,9 +819,9 @@ function ok = tmfc_gPPI_FIR_one_sub(tmfc,ROI_set_number,iSub,cond_list,nCond,ses
             tmp = load(VOI);
             matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).name = ['Seed_' tmfc.ROI_set(ROI_set_number).ROIs(jROI).name];
             if isfield(tmp,'Yraw')
-                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Yraw;  % Use raw (unwhitened) demeanted VOI time series
+                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Yraw;  % Use contrast-adjusted, unfiltered and unwhitened VOI time series 
             else
-                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Y;     % Backward compatibility: old VOI files contain only Y
+                matlabbatch{1}.spm.stats.fmri_spec.sess(kSess).regress(sum(sess==sess_num(kSess))+1).val = tmp.Y;     % Backward compatibility: old VOI files contain only Y (contrast-adjusted, filtered and whitened time series)
             end
             clear VOI tmp
 

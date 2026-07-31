@@ -22,7 +22,8 @@ function tmfc_regions(SPM, name, maskPath, outPath, Ic, sess_num, thr)
 %     VOI_<name>_<sess>.mat 
 %   Each file contains:
 %     Y    - first eigenvariate of whitened, filtered, contrast-adjusted VOI time series
-%     Yraw - first eigenvariate of raw (demeaned) VOI time series
+%     Yraw - first eigenvariate of unfiltered and unwhitened VOI time
+%            series adjusted for regressors of no interest
 %
 % =========================================================================
 % Copyright (C) 2026 Ruslan Masharipov
@@ -52,6 +53,30 @@ end
 if any(~isfinite(Yraw_all(:)))
     error('tmfc_regions:NonFiniteData','Data contain NaN or Inf. Check VOI mask / data.');
 end
+
+% Adjust raw data without filtering or whitening 
+% -------------------------------------------------------------------------
+Yraw_adj_all = Yraw_all;
+
+if Ic ~= 0
+    % Estimate the complete GLM in the original temporal domain
+    xXraw   = spm_sp('Set',SPM.xX.X);
+    xXraw.X = full(xXraw.X);
+    beta_raw = spm_sp('x-',xXraw) * Yraw_all;
+
+    if ~isnan(Ic)
+        % Recreate the F-contrast for the unfiltered, unwhitened design
+        xCon_raw = spm_FcUtil('Set',SPM.xCon(Ic).name,'F','c',SPM.xCon(Ic).c,xXraw);
+
+        % Remove effects in the null space of the F-contrast
+        Yraw_adj_all = Yraw_all - spm_FcUtil('Y0',xCon_raw,xXraw,beta_raw);
+    else
+        % Adjust for everything
+        Yraw_adj_all = Yraw_all - xXraw.X * beta_raw;
+    end
+end
+
+clear xXraw beta_raw xCon_raw
 
 % Whiten and high-pass filter
 % -------------------------------------------------------------------------
@@ -99,9 +124,8 @@ for iSess = 1:nSess
     % Session rows
     rows = SPM.Sess(s).row(:);
 
-    % Raw eigenvariate
-    Yraw = spm_detrend(Yraw_all(rows,:));
-    Yraw = first_eig_scaled(Yraw);
+    % Unfiltered and unwhitened contrast-adjusted eigenvariate
+    Yraw = first_eig_scaled(Yraw_adj_all(rows,:));
 
     % Clean eigenvariate
     Y = first_eig_scaled(Y_all(rows,:));

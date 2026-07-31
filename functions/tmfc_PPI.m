@@ -5,9 +5,9 @@ function [sub_check] = tmfc_PPI(tmfc,ROI_set_number,start_sub)
 % Calculates psychophysiological interactions (PPIs).
 % Whitening is applied during deconvolution, consistent with SPM PEB assumptions.
 % Mean centering of the psychological regressor (PSY) can be enabled or disabled.
-% In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal
-% is used for the PHYS regressor to avoid double whitening (see He et al., 2025).
-%
+% In the subsequent gPPI model estimation, the contrast-adjusted, unfiltered
+% and unwhitened BOLD signal is used for the PHYS regressor to avoid double
+% whitening (Masharipov & Kireev, 2026).
 %
 % FORMAT [sub_check] = tmfc_PPI(tmfc)
 % Run a function starting from the first subject in the list.

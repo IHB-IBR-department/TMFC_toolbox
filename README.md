@@ -426,7 +426,7 @@ Select mean centering:
 "Enable/Disable mean centering" ([Di, Reynolds & Biswal, 2017](https://doi.org/10.1002/hbm.23413),[Masharipov et al., 2025](https://doi.org/10.1038/s42003-024-07088-3)).
 
 **Note:** 
-**Inverse whitening** has been deprecated since v1.9.0. Whitening is applied during deconvolution, consistent with SPM PEB i.i.d. assumptions. In the subsequent gPPI model estimation, the raw (not whitened) BOLD signal is used for the PHYS regressor to avoid double whitening ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)).
+**Inverse whitening** has been deprecated since v1.9.0 ([He et al., 2025](https://doi.org/10.1101/2025.05.22.655642)). During deconvolution, the same whitening transform is applied to both the seed signal and the deconvolution matrix, consistent with SPM PEB assumptions. During subsequent gPPI model estimation, the PHYS regressor is derived from unwhitened and unfiltered BOLD data adjusted for regressors of no interest, thereby avoiding double whitening (Masharipov & Kireev, 2026).
    
 Once the calculations are complete, TMFC toolbox will create a **"...\TMFC_project_name\ROI_sets\ROI_set_name\PPIs"** folder with subjects' subfolders. Subjects' subfolders will contain SPM **PPI .mat files**.
 
